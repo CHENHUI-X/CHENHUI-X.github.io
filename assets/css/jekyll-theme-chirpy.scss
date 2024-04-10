@@ -1,0 +1,50 @@
+---
+---
+
+@import 'main';
+/* append your custom style below */
+
+/* 侧边栏背景图片添加 */
+#sidebar {
+    padding-left: 0;
+    padding-right: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    overflow-y: auto;
+    width: 260px;
+    z-index: 99;
+    /* background: var(--sidebar-bg); */
+    background-image: url(https://s2.loli.net/2024/04/10/j4eVbNWfJ2gxvZi.png); /* <- change background image */
+    background-size: cover; /* <- customize the image size */
+    background-repeat: no-repeat; /* <- */
+    background-position: top;
+    border-right: 1px solid var(--sidebar-border-color);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* 侧边栏相关文字样式设置 */
+#sidebar .site-title a {
+    color: rgb(255 255 255); /* <- */
+}
+#sidebar .site-subtitle {
+    /* font-size: 95%;*/
+    color: #ffffff; /* <- */
+    margin-top: .25rem;
+    word-spacing: 1px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+#sidebar .sidebar-bottom .mode-toggle, #sidebar a {
+    color: #ffffff; /* <- */
+    padding: 0;
+    border: 0
+}
+#sidebar .sidebar-bottom .btn {
+    color: var(--sidebar-btn-color);
+}
+
