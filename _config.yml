@@ -19,11 +19,11 @@ title: CHENHUI-X # the main title
 tagline: Written in chaos, don't trust a word # it will display as the sub-title
 
 description: >- # used by seo meta and the atom feed
-  Notes, Musings, Records, Passion.
+  他说他是乱写的, 他可不是乱写的啊, 一个"Machine Learning", 一个"Deep Learning", 训练有素, 啊, 有备而来!
 
 # Fill in the protocol & hostname for your site.
 # e.g. 'https://username.github.io', note that it does not end with a '/'.
-url: ""
+url: "https://chenhui-x.github.io"
 
 github:
   username: CHENHUI-X # change to your github username
@@ -66,7 +66,7 @@ goatcounter:
 #     light  - Use the light color scheme
 #     dark   - Use the dark color scheme
 #
-theme_mode: light # [light | dark]
+theme_mode: # [light | dark]
 
 # The CDN endpoint for images.
 # Notice that once it is assigned, the CDN url
@@ -97,12 +97,12 @@ comments:
   # Giscus options › https://giscus.app
   giscus:
     repo: CHENHUI-X/CHENHUI-X.github.io # <gh-username>/<repo>
-    repo_id: R_kgDOLrtKsA
-    category: Announcements
-    category_id: DIC_kwDOLrtKsM4CekIj
-    mapping: pathname # optional, default to 'pathname'
-    input_position: bottom # optional, default to 'bottom'
-    lang: zh-CN # optional, default to the value of `site.lang`
+    repo_id: "R_kgDOLrtKsA"
+    category: "Announcements"
+    category_id: "DIC_kwDOLrtKsM4CekIj"
+    mapping:  # optional, default to 'pathname'
+    input_position:  # optional, default to 'bottom'
+    lang:  # optional, default to the value of `site.lang`
     reactions_enabled: # optional, default to the value of `1`
 
 # Self-hosted static assets, optional › https://github.com/cotes2020/chirpy-static-assets
