@@ -1,6 +1,6 @@
 ---
 title: Perplexity
-date: 2024-04-09 14:18:00 +0800
+date: 2024-04-10 14:18:00 +0800
 categories: [DeepLearning, NLP]
 tags: [nlp, perplexity]     # TAG names should always be lowercase
 math: true
@@ -10,7 +10,8 @@ math: true
 
 > 本文介绍的Perplexity 特指 "Perplexity of a probability model".
 {: .prompt-info }
-## 快速了解
+
+## 前言 
 
 在NLP中, 经常可以看到使用"困惑度"来描述一个LLM的能力. 那么什么是"困惑度"?
 
