@@ -18,7 +18,7 @@ order: 4
 >
 > 在和平精英当过几年特种兵
 >
-> 0.02百万粉丝网红博主 (真的!!!) 
+> 0.018百万粉丝网红博主 (真的!!!) 
 >
 > 关注我 , Sir this way  : [https://space.bilibili.com/294132471](https://space.bilibili.com/294132471)​.
 {: .prompt-tip }
