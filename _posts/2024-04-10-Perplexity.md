@@ -136,7 +136,7 @@ $$
 
 最后, 实际计算过程中, 可能使用以e为底的对数, 也有计算其log后作为困惑度, 此外还有一些其他计算方式, 但是本质类似,就是想表达 "预测输出的概率越大,困惑度就越小"
 
-### Reference
+## Reference
 [1] [Two minutes NLP — Perplexity explained with simple probabilities](https://medium.com/nlplanet/two-minutes-nlp-perplexity-explained-with-simple-probabilities-6cdc46884584)
 
 [2] [Wiki-Perplexity](https://en.wikipedia.org/wiki/Perplexity)
