@@ -28,7 +28,7 @@ Generator 要做的事情呢 , 可以划分为以下几步:
 
 [2] 然后 Generator 一顿操作, 输出 $G(z)$ 
 
-[3] 目标: 尽可能的欺骗 Discriminator , 让其认为 `G(Z)`是真的 , 具体表现为 $D(G(Z))$ 越接近 $1$ 越好
+[3] 目标: 尽可能的欺骗 Discriminator , 让其认为  $G(Z)$  是真的 , 具体表现为 $D(G(Z))$ 越接近 $1$ 越好
 
 因此, 用交叉熵表示 Generator 要优化的目标是:
 
@@ -43,7 +43,7 @@ L(G) &=  minimize \ \sum 1 * \frac {1} {log(D(G(z)))} + 0 * \frac {1} {log(1 - D
 $$
 </div>
 
-> 这里有个小trick , 当我们 update Generator 时 , Discriminator 是固定的 , 而 x \sim p_{\text{data}}(x) 也是固定的 (就是我们真实样本训练集), 于是 Generator 有以下**等价优化目标**(当然可以加个 Expectation ~ ).
+> 这里有个小trick , 当我们 update Generator 时 , Discriminator 是固定的 , 而 $x \sim p_{\text{data}}(x)$ 也是固定的 (就是我们真实样本训练集), 于是 Generator 有以下**等价优化目标**(当然可以加个 Expectation ~ ).
 
 
 $$

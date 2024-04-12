@@ -164,6 +164,7 @@ $$f(x_1 , \ ... \ ,x_k, n , p_1,p_2 \ ... \ p_n)\ = \ C*p_1^{x_1} * \ ... \ p_n^
 
 
 - 性质
+
 在老虎机场景下. 假设离散随机变量 $X$ (可以理解为每个Bandit成功的次数)
 
 ![image.png](https://s2.loli.net/2024/04/11/DUZz4WqcwAkCMIg.png){: width="100" height="130" }
