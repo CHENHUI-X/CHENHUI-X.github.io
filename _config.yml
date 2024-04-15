@@ -91,14 +91,16 @@ comments:
     shortname: # fill with the Disqus shortname. › https://help.disqus.com/en/articles/1717111-what-s-a-shortname
   # utterances settings › https://utteranc.es/
   utterances:
-    repo: # <gh-username>/<repo>
-    issue_term: # < url | pathname | title | ...>
+    repo: "CHENHUI-X/CHENHUI-X.github.io" # <gh-username>/<repo>
+    issue_term: "pathname" # < url | pathname | title | ...>
+    theme: "preferred-color-scheme"
+    crossorigin: "anonymous"
   # Giscus options › https://giscus.app
   giscus:
-    repo: CHENHUI-X/CHENHUI-X.github.io # <gh-username>/<repo>
-    repo_id: "R_kgDOLrtKsA"
-    category: "Announcements"
-    category_id: "DIC_kwDOLrtKsM4CekIj"
+    repo:  # <gh-username>/<repo>
+    repo_id: 
+    category: 
+    category_id: 
     mapping:  # optional, default to 'pathname'
     input_position:  # optional, default to 'bottom'
     lang:  # optional, default to the value of `site.lang`
