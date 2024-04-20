@@ -12,7 +12,7 @@ math: true
 在机器学习或深度学习中，无论是分类、回归还是其他场景，通常都是利用模型去拟合一个函数。在这个过程中，正则化是一种常用的手段，用来防止过拟合。本篇博客主要从几个角度探讨正则化的理解，并解释它为何能够防止过拟合。
 
 
-> 阅读前, 需要你 : 有高数基础知识, 线代基础知识, 统计学习基础知识, 当然还要有 ML和 DL 的知识背景.解 
+> 阅读前, 需要你 : 有高数基础知识, 线代基础知识, 统计学习基础知识, 当然还要有 ML和 DL 的知识背景.
 {: .prompt-info }
 
 ## 公式
@@ -31,11 +31,11 @@ $$
 
 这里 $R(w)$ 是关于参数 $w$ 的一个函数.对于 L1 Regularization
 
-$$R(w) = \lambda {\|\|w\|\|_1}^2$$
+$$R(w) = \lambda {\|w\|_1}^2$$
 
 对于 L2 Regularization
 
-$$R(w) = \lambda {\|\|w\|\|_2}^2$$ 
+$$R(w) = \lambda {\|w\|_2}^2$$ 
 
 
 ## 理解 
@@ -144,7 +144,7 @@ $argmax_w \ p(w|x,y) = argmax_w \ p(x,y|w) * p(w)$.
 
 > 最大后验估计对极大似然估计说: 老弟你这不对, 分子最大化的时候 , 你得考虑 p(w) . 
 
-OK , 基于最大后验估计, 取 log得到:
+OK , 基于最大后验估计, 取 log 得到:
 
 $$
 \begin{align*}
@@ -170,9 +170,7 @@ maximize \  \sum log \ p(w) &= \\
 \end{align*}
 $$
 
-> 从这个角度可以看到, 如果加 
-> $ {\|w\|_2}^2 $
-> 正则项, 其实就是对model的权重参数 $w$ 假定了先验分布为**标准正态分布**. 
+> 从这个角度可以看到, 如果加 L2 Regularization , 其实就是对 model 的权重参数 $w$ 假定了先验分布为**标准正态分布**. 
 {: .prompt-info }
 
 
@@ -192,9 +190,7 @@ maximize \  \sum log \ p(w) &= \\
 \end{align*}
 $$
 
-> 从这个角度可以看到, 如果加 
-> $ {\|w\|_1}^2 $
-> 正则项, 其实就是对model的权重参数 $w$ 假定了先验分布为**拉普拉斯分布**. 
+> 从这个角度可以看到, 如果加 L1 Regularization, 其实就是对 model的权重参数 $w$ 假定了先验分布为**拉普拉斯分布**. 
 {: .prompt-info }
 
 
@@ -210,7 +206,7 @@ $$
 
 根据上图可以看到, L1 Regularization (拉普拉斯分布) 在 0 附近形状更尖锐, 将 w 推向0的时候更加强硬. 而  L2 Regularization (标准正态分布) 显得更加柔和. 
 
-所以 L1 正则项的另外一个应用就是能够特征进行选择: 通过在回归任务中添加 L1 项,会导致一部分权重 w 为 0,这样我们认为, 权重 $w_i=0$ 的特征就是可以去除的. 
+
 
 ### 几何性质
 
@@ -222,7 +218,7 @@ $$
 
 ![image.png](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*GdOo-X5Mq2CYLzci6reoZw.png)
 
-这也就是为什么说, L1 Regularization 能够比 L2 Regularization 更加的 "Sparsity".
+这也就是为什么说, L1 Regularization 能够比 L2 Regularization 更加的 "Sparsity".所以 L1 正则项的另外一个应用就是能够进行特征选择: [LASSO回归](https://en.wikipedia.org/wiki/Lasso_(statistics))通过在原始损失函数上添加 L1 Regularization,导致特征 $i$ 对应的权重 $w_i$ 为 0, 我们认为, 权重 $w_i=0$ 的特征就是可以去除的. 
 
 
 ## Reference
