@@ -59,6 +59,14 @@ math: true
 
 不过汉字太多了, 为方便叙述, 后续我们使用英文来举例子. 本文我们就用到的 `a-z` 26个字母 + `0-9` 10个数字 + `'\ '` + `','` + `'.'` + `'<pad>'`共40个字符, 我们称之为 'vocabulary'. 其中, `'<pad>'` 用于对句子进行填充, 使得训练的时候, 输入的句子一样长. 以下代码实现将这些字符映射到数字.
 
+
+
+
+
+<details markdown="1">
+<summary> 详细信息 </summary>
+
+
 ```python
 
 class Tokenizer:
@@ -102,6 +110,10 @@ class Tokenizer:
 
 ```
 
+</details>
+
+
+
 ### 输入输出构造
 
 我们的训练集是一句话 : "cats rule the world. dogs are the best. elephants have long trunks. monkeys like bananas. pandas eat bamboo. tigers are dangerous. zebras have stripes. lions are the kings of the savannah. giraffes have long necks. hippos are big and scary. rhinos have horns. penguins live in the arctic. polar bears are white" 
@@ -115,6 +127,10 @@ class Tokenizer:
 > [3] `'ts ' -> 's r'`
 
 使用如下代码将字符转换为数字.
+
+<details markdown="1">
+<summary> 详细信息 </summary>
+
 
 ```python
         # Create the training data
@@ -145,6 +161,9 @@ class Tokenizer:
         
 
 ```
+
+</details>
+
 
 字符转数字处理后的结果 `tokenized_and_padded_training_data`
 

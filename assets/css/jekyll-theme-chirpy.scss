@@ -47,6 +47,8 @@
 #sidebar .sidebar-bottom .btn {
     color: var(--sidebar-btn-color);
 }
+
+
 /* 生成动画 */
 @keyframes infirot {
     from {
@@ -62,16 +64,6 @@
     display: inline-block;
     animation: infirot 1s linear infinite;
     -webkit-animation: infirot 1s linear infinite;
-  }
-
-  .animation-star {
-    display: inline-block;
-    animation: infirot 1s linear infinite;
-    -webkit-animation: infirot 1s linear infinite;
-    width: 20px; /* 设置星星的宽度 */
-    height: 20px; /* 设置星星的高度 */
-    background-color: yellow; /* 设置星星的颜色 */
-    border-radius: 50%; /* 使星星呈现圆形 */
   }
   
   @function random_range($min, $max) {
