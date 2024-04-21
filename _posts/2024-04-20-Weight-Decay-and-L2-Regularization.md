@@ -49,7 +49,7 @@ $$
 $$
 
 如果想让 weight decay 和 带L2 Regularization 等价 , 那就是 
-$$\alpha \lambda \'   = \lambda$$ 
+$$\alpha \lambda '   = \lambda$$ 
 , 显然对于SGD我们可以做到这个事情. 也就是说 **在SGD优化器下, weight decay 和 带L2 Regularization 等价.** 不过有个问题, 假设我们存在一个最优的weight decay系数 $\lambda$ , 并且置了 L2 的系数
 $$\lambda '$$ 
 , 这样就会把系统的学习率给固定了. 换句话说, 这时 weight decay 的系数 和 L2 Regularization 的系数是耦合的. 二者会相互影响.

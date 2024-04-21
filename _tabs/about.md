@@ -10,13 +10,13 @@ order: 4
 >
 > 世界500强简历投递者
 >
-> 百亿项目参与者
+> PDD百亿项目参与者
 >
 > 京东Plus会员
 >
 > 在和平精英当过几年特种兵
 >
-> 0.2百万粉丝网红博主 
+> 0.02百万粉丝网红博主 
 >
 > 关注我 , Sir this way  : [https://space.bilibili.com/294132471](https://space.bilibili.com/294132471)​.
 {: .prompt-tip }

@@ -81,7 +81,7 @@ $$
 使用拉格朗日乘数法, 上述问题变为:
 
 $$
-minimize_w \  maximize_{\lambda} \ L(w,\lambda,x) = L(w) + \lambda ( {\|w\|_2}^2 -  C)
+\mathop{minimize}\limits_{w} \  \mathop{maximize}\limits_{\lambda} \ L(w,\lambda,x) = L(w) + \lambda ( {\|w\|_2}^2 -  C)
 
 $$
 
@@ -134,13 +134,13 @@ $maximize \ p(w|x,y)$
 
 
 极大似然估计 : 
-$argmax_w \ p(w|x,y) = argmax_w \ p(x,y|w)$.
+$\mathop{arg \ max}\limits_{w}\ p(w|x,y) = \mathop{arg \ max}\limits_{w} \ p(x,y|w)$.
 
 > 极大似然估计不关心 w 的原始分布. 它的核心思想是，假设数据是由参数 w 生成的，那么反过来，能让根据这些数据计算出的 w 的条件分布, 最大的那个 w 就是我们要找的 w.
 
 
 最大后验估计: 
-$argmax_w \ p(w|x,y) = argmax_w \ p(x,y|w) * p(w)$.
+$\mathop{arg \ max}\limits_{w} \ p(w|x,y) = \mathop{arg \ max}\limits_{w} \ p(x,y|w) * p(w)$.
 
 > 最大后验估计对极大似然估计说: 老弟你这不对, 分子最大化的时候 , 你得考虑 p(w) . 
 
@@ -148,7 +148,7 @@ OK , 基于最大后验估计, 取 log 得到:
 
 $$
 \begin{align*}
-argmax_w \ p(x,y|w) * p(w) &= \sum log \ p(x,y|w) + \sum log \ p(w)
+\mathop{arg \ max}\limits_{w} \ p(x,y|w) * p(w) &= \sum log \ p(x,y|w) + \sum log \ p(w)
 
 \end{align*}
 $$
@@ -165,8 +165,8 @@ $$
 \begin{align*}
 maximize \  \sum log \ p(w) &= \\
 &=  maximize - \frac {1} {2 \sigma ^2} \sum {\|w\|_2}^2 + C \\ 
-&= minimize  \frac {1} {2 \sigma ^2} \sum {\|w\|_2}^2 + C \\  
-&<=> minimize \sum {\|w\|_2}^2 
+&= minimize  \ \frac {1} {2 \sigma ^2} \sum {\|w\|_2}^2 + C \\  
+&\equiv minimize \ \sum {\|w\|_2}^2 
 \end{align*}
 $$
 
