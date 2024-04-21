@@ -6,13 +6,13 @@ tags: [machine learning,  mathematics,  reinforcement learning]     # TAG names 
 math: true
 ---
 
-## 前言
+## 1. 前言
 
 
 这篇Blog主要对几个分布进行总结,  以及对他们之间的关系进行梳理
 
 
-## Gamma Function
+## 2. Gamma Function
 
 - 定义
 
@@ -24,7 +24,7 @@ math: true
 
 ![Gamma函数性质.png](https://s2.loli.net/2024/04/10/KRSeYOvgoc73aQ5.png){: width="400" height="300" }
 
-## Gamma Distribution
+## 3. Gamma Distribution
 
 对Gamma函数等式左右两端, 同时除以$\Gamma(\alpha)$, 则有
 
@@ -43,7 +43,7 @@ math: true
 
 ![image.png](https://s2.loli.net/2024/04/10/zTtJFMWeSVPYlGr.png){: width="400" height="300" }
 
-## Binomial Distribution
+## 4. Binomial Distribution
 
 二项分布是 n 次独立的是/非试验中成功的次数的离散概率分布, 其中每次试验的成功概率为p.
 > p 是已知的 ,  给定 p , 求解目标成功次数对应的概率,  通常使用 $C(m, n, p)$ 来计算.
@@ -55,7 +55,7 @@ n次试验中正好得到k次成功的概率由概率质量函数给出：
 > 参数p 本身就有一个分布,  如何预估 参数p 本身的分布 ?  参考下边的 Beta分布
 {: .prompt-info }
 
-## Binomial Distribution 的另一个理解
+## 5. Binomial Distribution 的另一个理解
 
 ![image.png](https://s2.loli.net/2024/04/10/tq31VBQ9alucOEf.png){: width="400" height="300" }
 
@@ -79,7 +79,7 @@ ok, 现在假设k=2, 换句说,  理解为总共n+1个球,   把第3个球涂为
 
 ![image.png](https://s2.loli.net/2024/04/10/CGDNJqa5zn3S1AT.png){: width="400" height="300" }
 
-## Beta Function
+## 6. Beta Function
 
 在上边的式子基础上,  令 $k = \alpha - 1$ ,  $n - k = \beta - 1$ ,  则 $n = \alpha + \beta - 2$ ,  变量换为 $t$
 
@@ -95,7 +95,7 @@ ok, 现在假设k=2, 换句说,  理解为总共n+1个球,   把第3个球涂为
 
 ![image.png](https://s2.loli.net/2024/04/10/pkcCZHqhrFNwxmV.png){: width="400" height="300" }
 
-## Beta Distribution
+## 7. Beta Distribution
 
 - 定义 $Beta$ 分布
 ![image.png](https://s2.loli.net/2024/04/10/5PQtVqLlzJxsRCD.png){: width="400" height="300" }
@@ -114,7 +114,7 @@ $Beta$ 分布 与 之前的 `Bernoulli` 分布 (0 -1 分布) , `Binomial` 分布
 
 - [2] Beta分布是在给定成功次数 $\alpha$ 和失败次数 $\beta$ (通常来自实验观察,  $p$ 未知) 后 ,  探究成功概率参数 $p$ 的分布 (即上述公式中的 x 的分布) . 看起来像是一种对偶的关系,  不过更多人叫他是共轭关系
 
-## Multinomial Distribution
+## 8. Multinomial Distribution
 - 定义
 
 ![image.png](https://s2.loli.net/2024/04/10/ZX3Y9TQ8Sx2OIF4.png){: width="400" height="300" }
@@ -128,7 +128,7 @@ $Beta$ 分布 与 之前的 `Bernoulli` 分布 (0 -1 分布) , `Binomial` 分布
 
 ![image.png](https://s2.loli.net/2024/04/10/beKZFcOQVUYS5Dp.png){: width="400" height="300" }
 
-## Multinomial Distribution的另一种理解
+## 9. Multinomial Distribution的另一种理解
 
 可以结合之前的小球案例,  多项分布 可以理解为如下案例
 
@@ -145,7 +145,7 @@ $$f(x_1 ,  \ ... \ , x_k,  n ,  p_1, p_2 \ ... \ p_n)\ = \ C*p_1^{x_1} * \ ... \
 - 然后删除顺序, 只不过将这个过程分配给每个箱子内部实现 : 每个箱子内部除以 $x_i{!}$ 即可, 便得到上述结果
 
 
-##  Dirichlet Distribution
+##  10. Dirichlet Distribution
 
 - 定义
 
@@ -231,7 +231,7 @@ $$f(x_1 ,  \ ... \ , x_k,  n ,  p_1, p_2 \ ... \ p_n)\ = \ C*p_1^{x_1} * \ ... \
 
 
 
-##  Reference
+## Reference
 
 [1] [https://zhuanlan.zhihu.com/p/37976562](https://zhuanlan.zhihu.com/p/37976562)
 
