@@ -42,7 +42,7 @@ $$
 
 ![第1个字.png](https://s2.loli.net/2024/04/10/IfNJ1tRBwbTH8lP.png){: width="600" height="400" }
 
-于是
+则有
 $P( ' a ' ) = 0.4$
 ,  进一步的
 $P( w_2 | ' a ' )$ 
