@@ -132,6 +132,9 @@ baseurl: ""
 # 背景动画
 backgroud_animation: true 
 
+# 启用鼠标点击特效
+mouse_click_effect: true
+
 # ------------ The following options are not recommended to be modified ------------------
 
 kramdown:
