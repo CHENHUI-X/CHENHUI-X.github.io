@@ -170,6 +170,56 @@ $minimize \ D_{KL}(P \ ||\  Q) $
 {: .prompt-info }
 
 
+## 5. 补充
+
+KL divergence between two multivariate Gaussian distributions. Probabilty density function of multivariate Normal distribution is given by:
+
+$$
+p(\mathbf{x}) = \frac{1}{(2\pi)^{k/2}|\Sigma|^{1/2}} \exp\left(-\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^T\Sigma^{-1}(\mathbf{x}-\boldsymbol{\mu})\right)
+$$
+
+假设2个分布分别为 $\mathcal{N}(\boldsymbol{\mu_p},\,\Sigma_p) $ 和 $\mathcal{N}(\boldsymbol{\mu_q},\,\Sigma_q)$ , 其中 $\mu$ 为 $k$ 维 列向量.
+
+$$
+\begin{aligned}
+D_{KL}(p||q) & = \mathbb{E}_p\left[\log(p) - \log(q)\right]
+\newline
+& = \mathbb{E}_p\left[\frac{1}{2}\log\frac{|\Sigma_q|}{|\Sigma_p|} - \frac{1}{2}(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p}) + \frac{1}{2}(\mathbf{x}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\mathbf{x}-\boldsymbol{\mu_q})\right]
+\newline
+& = \frac{1}{2}\mathbb{E}_p\left[\log\frac{|\Sigma_q|}{|\Sigma_p|}\right] - \frac{1}{2}\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p})\right] + \frac{1}{2}\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\mathbf{x}-\boldsymbol{\mu_q})\right]
+\newline
+& = \frac{1}{2}\log\frac{|\Sigma_q|}{|\Sigma_p|} - \frac{1}{2}\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p})\right] + \frac{1}{2}\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\mathbf{x}-\boldsymbol{\mu_q})\right] 
+\end{aligned}
+$$
+
+其中 
+$(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p})$ 
+是一个实数. 所以可以重新写为 : 
+
+$$
+tr \left\{(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p})\right\}
+$$
+
+其中 tr{} 表示  trace operator , 利用 trace trick (轮换性) , 可以将上式修改为:
+
+$$
+tr \left\{(\mathbf{x}-\boldsymbol{\mu_p})(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}\right\}
+$$
+
+于是第2项可修改为:
+
+$$
+\frac{1}{2}\mathbb{E}_p\left[tr\left\{(\mathbf{x}-\boldsymbol{\mu_p})(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}\right\}\right]
+$$
+
+然后, 将 expectation 和 trace 交换位置:
+
+$$
+\frac{1}{2}tr\left\{\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_p})(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}\right]\right\}
+$$
+
+
+
 ## Reference
 
 [1] [https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence](https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence)

@@ -6,8 +6,6 @@ tags: [nlp,  perplexity]     # TAG names should always be lowercase
 math: true
 ---
 
-# Perplexity
-
 ## 1. 前言 
 
 在NLP中,  经常可以看到使用"困惑度"来描述一个LLM的能力. 那么什么是"困惑度"?
