@@ -109,7 +109,7 @@ AIMessage(content='很高兴帮助您.'),
 
 ### 1.3 Example selectors
 
-假设在Prompt里边给了很多例子, 希望用户输入的时候, 系统能够自动选择合适的例子, 然后和用户输入一起给LLM. [API Reference](https://python.langchain.com/docs/modules/model_io/prompts/example_selectors/)
+假设有一些例子, 我们希望 LLM 能够根据输入挑一些合适的例子出来, 方便我们后续的操作, 比如将他们放到一个 prompt 中. [API Reference](https://python.langchain.com/docs/modules/model_io/prompts/example_selectors/)
 
 ####  Select by length
 
@@ -144,66 +144,35 @@ example_selector = LengthBasedExampleSelector(
     # it is provided as a default value if none is specified.
     # get_text_length: Callable[[str], int] = lambda x: len(re.split("\n| ", x))
 )
-dynamic_prompt = FewShotPromptTemplate(
-    # We provide an ExampleSelector instead of examples.
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    # 下边是用来 format 最终的 prompt
-    prefix="Give the antonym of every input",
-    suffix="Input: {adjective}\nOutput:",
-    input_variables=["adjective"],
-)
 
 ```
 输入:
 ```python
-print(dynamic_prompt.format(adjective="big"))
+example_selector.select_examples({"input": "okay"})
 ```
 
 输出:
 
 ```plaintext
-Give the antonym of every input
-
-Input: happy
-Output: sad
-
-Input: tall
-Output: short
-
-Input: energetic
-Output: lethargic
-
-Input: sunny
-Output: gloomy
-
-Input: windy
-Output: calm
-
-Input: big
-Output:
+[{'input': 'happy', 'output': 'sad'},
+ {'input': 'tall', 'output': 'short'},
+ {'input': 'energetic', 'output': 'lethargic'},
+ {'input': 'sunny', 'output': 'gloomy'},
+ {'input': 'windy', 'output': 'calm'}]
 
 ```
 
 输入:
 ```python
 long_string = "big and huge and massive and large and gigantic and tall and much much much much much bigger than everything else"
-print(dynamic_prompt.format(adjective=long_string))
+example_selector.select_examples({"input": long_string})
 ```
 
 输出:
 
 ```plaintext
 # 可以看到只给了一个example
-
-Give the antonym of every input
-
-Input: happy
-Output: sad
-
-Input: big and huge and massive and large and gigantic and tall and much much much much much bigger than everything else
-Output:
-
+[{'input': 'happy', 'output': 'sad'}]
 ```
 #### Select by maximal marginal relevance (MMR)
 
@@ -219,9 +188,8 @@ Output:
 
 ```python
 
-from langchain_community.vectorstores import FAISS
 from langchain_core.example_selectors import MaxMarginalRelevanceExampleSelector
-from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_openai import OpenAIEmbeddings
 
 # 用于 format examples pool 
@@ -249,33 +217,13 @@ example_selector = MaxMarginalRelevanceExampleSelector.from_examples(
     # The number of examples to produce.
     k=2,
 )
-mmr_prompt = FewShotPromptTemplate(
-    # We provide an ExampleSelector instead of examples.
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    # 用于 format 最终的 prompt
-    prefix="Give the antonym of every input",
-    suffix="Input: {adjective}\nOutput:",
-    input_variables=["adjective"],
-)
-# Input is a feeling, so should select the happy/sad example as the first one
-print(mmr_prompt.format(adjective="worried"))
 
 ```
 输出:
 
 ``` plaintext
-Give the antonym of every input
-
-Input: happy
-Output: sad
-
-Input: windy
-Output: calm
-
-Input: worried
-Output:
-
+[{'input': 'happy', 'output': 'sad'},
+ {'input': 'windy', 'output': 'calm'}]
 ```
 
 #### Select by similarity
@@ -314,28 +262,14 @@ example_selector = SemanticSimilarityExampleSelector.from_examples(
     # The number of examples to produce.
     k=1,
 )
-similar_prompt = FewShotPromptTemplate(
-    # We provide an ExampleSelector instead of examples.
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    prefix="Give the antonym of every input",
-    suffix="Input: {adjective}\nOutput:",
-    input_variables=["adjective"],
-)
-# Input is a measurement, so should select the tall/short example
-print(similar_prompt.format(adjective="large"))
+
+example_selector.select_examples({"adjective": "large"})
 
 ```
 输出
 
 ```plaintext
-Give the antonym of every input
-
-Input: tall
-Output: short
-
-Input: large
-Output:
+[{'input': 'tall', 'output': 'short'}]
 ```
 #### Select by n-gram overlap
 
@@ -378,77 +312,43 @@ example_selector = NGramOverlapExampleSelector(
     # Selector sorts examples by ngram overlap score,
     # and excludes those with no ngram overlap with input.
 )
-dynamic_prompt = FewShotPromptTemplate(
-    # We provide an ExampleSelector instead of examples.
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    prefix="Give the Spanish translation of every input",
-    suffix="Input: {sentence}\nOutput:",
-    input_variables=["sentence"],
-)
-# An example input with large ngram overlap with "Spot can run."
-# and no overlap with "My dog barks."
-print(dynamic_prompt.format(sentence="Spot can run fast."))
+
+# 虽然  "My dog barks." 与 输入不相关, 但是还是输出了 
+example_selector.select_examples({"sentence": "Spot can run fast."})
+
 ```
 
 输出 :
 
 ```plaintext
-Give the Spanish translation of every input
-
-Input: Spot can run.
-Output: Spot puede correr.
-
-Input: See Spot run.
-Output: Ver correr a Spot.
-
-Input: Spot plays fetch.
-Output: Spot juega a buscar.
-
-Input: My dog barks.
-Output: Mi perro ladra.
-
-Input: Spot can run fast.
-Output:
-
+[{'input': 'Spot can run.', 'output': 'Spot puede correr.'},
+ {'input': 'See Spot run.', 'output': 'Ver correr a Spot.'},
+ {'input': 'My dog barks.', 'output': 'Mi perro ladra.'}]
 ```
 
 输入:
 
 ```python
-
+# 不输出 不相关的 
 example_selector.threshold = 0.0
 print(dynamic_prompt.format(sentence="Spot can run fast."))
 
 ```
 输出:
 ```plaintext
-# Since "My dog barks." has no ngram overlaps with "Spot can run fast."
-# it is excluded.
-
-Give the Spanish translation of every input
-
-Input: Spot can run.
-Output: Spot puede correr.
-
-Input: See Spot run.
-Output: Ver correr a Spot.
-
-Input: Spot plays fetch.
-Output: Spot juega a buscar.
-
-Input: Spot can run fast.
-Output:
+[{'input': 'Spot can run.', 'output': 'Spot puede correr.'},
+ {'input': 'See Spot run.', 'output': 'Ver correr a Spot.'}]
 ```
 
-### 1.4 Few-shot prompt templates
+### 1.3 Few-shot prompt templates
 
-FewShotPromptTemplate + example selector 
-实现的功能就是, 首先我们有一堆 example (通常是成对儿的输入和输出) , 然后可以自适应的, 根据不同的输入, 能够自动的 select 合适的 example 与 输入合并, 一同变为 LLM 的 prompt.
+上边介绍了一些 example selector , 现在介绍 
+FewShotPromptTemplate + example selector .
+二者实现的功能就是, 首先我们有一堆 example (通常是成对儿的输入和输出) , 然后可以自适应的, 根据不同的输入, 能够自动的 select 合适的 example 与 输入合并, 一同变为 LLM 的 prompt.
 
 也就是说, 不同的输入, 会产生不同的 prompt , 我理解是和 Retrieval-augmented generation (RAG) 类似的效果. 
 
-只有 FewShotPromptTemplate:
+define example:
 
 ```python
 from langchain_core.prompts.few_shot import FewShotPromptTemplate
@@ -510,22 +410,9 @@ example_prompt = PromptTemplate(
     input_variables=["question", "answer"], template="Question: {question}\n{answer}"
 )
 
-print(example_prompt.format(**examples[0]))
-
-# 构造一个 Template 
-prompt = FewShotPromptTemplate(
-    examples=examples,
-    example_prompt=example_prompt,
-    # format Template
-    suffix="Question: {input}",
-    input_variables=["input"],
-)
-
-# 当前, 还是所有的 example 都能输出 , 省略
-print(prompt.format(input="Who was the father of Mary Ball Washington?"))
 ```
 
-整个 example selector:
+define selector:
 
 ```python
 from langchain_chroma import Chroma
@@ -543,17 +430,9 @@ example_selector = SemanticSimilarityExampleSelector.from_examples(
     k=1,
 )
 
-# Select the most similar example to the input.
-question = "Who was the father of Mary Ball Washington?"
-selected_examples = example_selector.select_examples({"question": question})
-print(f"Examples most similar to the input: {question}")
-for example in selected_examples:
-    print("\n")
-    for k, v in example.items():
-        print(f"{k}: {v}")
 ```
 
-FewShotPromptTemplate + selector : 
+FewShotPromptTemplate + example + selector : 
 
 ```python
 prompt = FewShotPromptTemplate(
