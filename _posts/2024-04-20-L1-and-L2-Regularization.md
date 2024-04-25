@@ -148,7 +148,7 @@ OK , 基于最大后验估计, 取 log 得到:
 
 $$
 \begin{align*}
-\mathop{arg \ max}\limits_{w} \ p(x,y|w) * p(w) &= \sum log \ p(x,y|w) + \sum log \ p(w)
+\mathop{arg \ max}\limits_{w} \ p(x,y|w) * p(w) &=  log \ p(x,y|w) +  log \ p(w)
 
 \end{align*}
 $$
@@ -163,10 +163,10 @@ $$f(w) = \frac {1} {\sqrt {2 \pi \sigma}} exp(- \frac{w^2}{2 \sigma ^2})$$
 
 $$
 \begin{align*}
-maximize \  \sum log \ p(w) &= \\
-&=  maximize - \frac {1} {2 \sigma ^2} \sum {\|w\|_2}^2 + C \\ 
-&= minimize  \ \frac {1} {2 \sigma ^2} \sum {\|w\|_2}^2 + C \\  
-&\equiv minimize \ \sum {\|w\|_2}^2 
+maximize \   log \ p(w) &= \\
+&=  maximize - \frac {1} {2 \sigma ^2}  {\|w\|_2}^2 + C \\ 
+&= minimize  \ \frac {1} {2 \sigma ^2}  {\|w\|_2}^2 + C \\  
+&\equiv minimize \  {\|w\|_2}^2 
 \end{align*}
 $$
 
@@ -183,10 +183,10 @@ $$f(w) = \frac {1} {2b} exp(- \frac{|w|}{b})$$
 
 $$
 \begin{align*}
-maximize \  \sum log \ p(w) &= \\
-&=  maximize - \frac {1} {2 b} \sum {\|w\|_1}^2 + C \\ 
-&= minimize  \frac {1} {2 b} \sum {\|w\|_1}^2 + C \\  
-&<=> minimize \sum {\|w\|_1}^2 
+maximize \   log \ p(w) &= \\
+&=  maximize - \frac {1} {2 b}  {\|w\|_1}^2 + C \\ 
+&= minimize  \frac {1} {2 b}  {\|w\|_1}^2 + C \\  
+&<=> minimize  {\|w\|_1}^2 
 \end{align*}
 $$
 

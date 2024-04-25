@@ -41,6 +41,8 @@ math: true
         > 4. **特征选择的随机性**：在构建决策树时, 通常会从特征集中选择一个特征进行节点分裂.如果没有适当的随机性引入, 即使是很小的数据变化也可能导致选择不同的特征, 从而产生完全不同的树结构, 增加了模型的方差.
         > 5. **树的深度**：决策树的深度也会影响其方差.树越深, 模型就越有可能学习到数据中的噪声和偶然规律, 从而导致高方差.
         > 6. **数据表示的选择**：决策树对数据的表示非常敏感.如果数据的特征没有经过适当的预处理和特征工程, 可能会导致树对数据的某些特定表示过度拟合, 从而增加方差.
+        >
+        > 当这些高方差的树被集成在一起时，由于它们的随机性质，它们彼此之间存在差异。这种差异导致它们在某些数据点上出现错误，但在其他数据点上正确，因此这些错误会相互抵消。通过集成多个具有高方差的模型，随机森林能够平均化这些错误，从而降低整体的方差。
         {: .prompt-tip }
 - SVM则是属于那种“差不多就行”、“能分类正确即可”, 因此模型输出大多数在0.5 左右
 
@@ -90,7 +92,7 @@ whenever
 
 $$f_i \geq f_j$$
 
-$y_i$ is the true label of sample and $f_i$ is the output of the calibrated classifier for sample
+$y_i$ is the true label of sample and $\hat{f}_i$ is the output of the calibrated classifier for sample
 (i.e., the calibrated probability).
 
 Overall, ‘isotonic’ will perform as well as or better than ‘sigmoid’ when there is enough data (greater than ~ 1000 samples) to avoid overfitting
