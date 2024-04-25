@@ -126,7 +126,7 @@ $$
 > 
 > 于是,  原始公式可进行转化,  从而证明完毕:
 > 
-> $$$P\big(Y<=y | U <= \frac {f(Y)} {c*g(Y)}\big) = \frac { \frac {F(y)} {c*G(y)} * G(y) } {\frac {1} { c }} \\ = F(y)$$
+> $$P\big(Y<=y | U <= \frac {f(Y)} {c*g(Y)}\big) = \frac { \frac {F(y)} {c*G(y)} * G(y) } {\frac {1} { c }} \\ = F(y)$$
 
 
 - 直觉理解
