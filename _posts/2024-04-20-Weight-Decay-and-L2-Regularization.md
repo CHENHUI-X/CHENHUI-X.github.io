@@ -7,7 +7,7 @@ math: true
 ---
 
 
-## 1. 前言
+## 0. 前言
 
 在 [上一篇 Blog](https://chenhui-x.github.io/posts/L1-and-L2-Regularization/#%E8%AE%A9%E6%9D%83%E9%87%8D-w-%E8%A1%B0%E5%87%8F) 中探讨了 L1 Regularization 和 L2 Regularization. 我们说到, 对损失函数添加 L2 Regularization , 最后对 w 使用梯度下降的时候, 实际是对 w 做了权重衰减. 
 
@@ -21,9 +21,9 @@ math: true
 
 
 
-## 2. SGD场景下
+## 1. SGD场景下
 
-### 2.1 无 momentum 
+### 1.1 无 momentum 
 
 weight decay 的公式:
 
@@ -55,7 +55,7 @@ $$\lambda '$$
 , 这样就会把系统的学习率给固定了. 换句话说, 这时 weight decay 的系数 和 L2 Regularization 的系数是耦合的. 二者会相互影响.
 
 
-### 2.2 添加 momentum
+### 1.2 添加 momentum
 
 如果在 L2 Regularization 的基础上添加 momentum 项 
 
@@ -85,7 +85,7 @@ $$
 {: .prompt-warning }
 
 
-## 3. Adam场景下
+## 2. Adam场景下
 
 这里就不敲公式了,给出 AdamW paper 附录的证明.
 

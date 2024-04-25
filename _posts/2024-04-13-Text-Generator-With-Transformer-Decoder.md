@@ -7,7 +7,7 @@ math: true
 ---
 
 
-## 1. 前言
+## 0. 前言
 
 这篇 Blog 主要聚焦于利用 Transformer 的 Decoder **实现**一个简单的 text generator. 虽然代码相对简单, 但是核心思想类似, 做个记录, 方便后续学习理解. 主要参考 : [https://wingedsheep.com/building-a-language-model/](https://wingedsheep.com/building-a-language-model/)
 
@@ -15,7 +15,7 @@ math: true
 {: .prompt-info }
 
 
-## 2. 准备
+## 1. 准备
 
 首先需要搞明白真正在编程实现一个 `text generator` 的时候, 代码核心是什么? 我们来列出任务的基本组成: 
 
@@ -41,9 +41,9 @@ math: true
 
 其他的, positional encoding, token embedding 以及 mlp 等组件都是常规操作, 不足为虑. 因此我们将从上述3个方面来入手.
 
-## 3. 数据构造
+## 2. 数据构造
 
-### 3.1 让计算机处理文字
+### 2.1 让计算机处理文字
 
 文本生成任务是说, 我们想让模型根据一个简单提示词, 然后接着提示词不断的写下去. 比如, 给模型输入: "我爱您,", 那么模型也许能够输出: "母亲, 感谢您的养育之恩."  最后我们将输入和输出连起来得到完整的语句: "我爱您, 母亲, 感谢您的养育之恩."
 
@@ -114,7 +114,7 @@ class Tokenizer:
 
 
 
-### 3.2 输入输出构造
+### 2.2 输入输出构造
 
 我们的训练集是一句话 : "cats rule the world. dogs are the best. elephants have long trunks. monkeys like bananas. pandas eat bamboo. tigers are dangerous. zebras have stripes. lions are the kings of the savannah. giraffes have long necks. hippos are big and scary. rhinos have horns. penguins live in the arctic. polar bears are white" 
 
@@ -211,7 +211,7 @@ ok , 经过上边的映射, `a`就是 11 , `b` 就是 12, 假设我们想输入 
 
 
 
-## 4. Mask Attention
+## 3. Mask Attention
 
 假设输入是 'cat', 经过填充就是 `0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 11, 30`
 
@@ -226,7 +226,7 @@ Attention不说了, 这里 Mask 主要有2个缘由:
 
 [2] 此外，由于我们的任务是文本生成，字符是按顺序一个接一个地生成的，从左到右逐步产生。因此，我们希望当前的token只能注意到其左侧的token, 不允许其注意到未来的token.
 
-### 4.1 Padding Mask
+### 3.1 Padding Mask
 
 Padding Mask 中, 1 表示当前输入允许注意的位置. 举个例子:
 
@@ -241,14 +241,14 @@ Padding Mask 中, 1 表示当前输入允许注意的位置. 举个例子:
 
 ![image.png](https://s2.loli.net/2024/04/15/OZTfaF13c2hYz6u.png)
 
-### 4.2 Causal Mask
+### 3.2 Causal Mask
 
 Causal Mask 就常规了, 一个 shape with  $序列长度 \times 序列长度$ 的下三角矩阵.
 
 ![image.png](https://s2.loli.net/2024/04/15/qTOa2cKxWPeizgF.png)
 
 
-### 4.3 武魂融合, 启动!
+### 3.3 武魂融合, 启动!
 
 那实际中我们是 "两手都要抓,两手都要硬", 即需要 "Padding Mask" 也需要 "Causal Mask".
 
@@ -258,14 +258,14 @@ Causal Mask 就常规了, 一个 shape with  $序列长度 \times 序列长度$ 
 最后, 我们可以看到, 只有 "2" 的位置 Attention score 是允许的, 其余位置都不可以.
 
 
-## 5. 文本生成
+## 4. 文本生成
 
 ![image.png](https://s2.loli.net/2024/04/15/kqFK1vbJdLS37Yz.png)
 
 这里最后我们模型输出的是下一个 token 在 vocabulary 上的概率, 因此具体下个 token 具体是什么, 需要采样, 采样思路有很多, 可以参考: [how-to-generate](https://huggingface.co/blog/how-to-generate). 不过这篇 Blog 就简单的输出概率最大的那个token. 
 
 
-## 6. 完整代码
+## 5. 完整代码
 
 完整代码见: [Text-Generator-With-Decoder](https://github.com/CHENHUI-X/Text-Generator-With-Decoder/tree/main)
 

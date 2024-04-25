@@ -6,7 +6,7 @@ tags: [machine learning,  mathematics]     # TAG names should always be lowercas
 math: true
 ---
 
-## 1. 前言
+## 0. 前言
 
 
 比如在老虎机场景,  我们想知道哪一台老虎机的赢面更大,  通常是给定所有老虎机 "赢" 的参数分布 ,  比如 Dirichlet distribution,  初始化 $\alpha1 \ \alpha2 \ …$  ,  然后根据实际数据采样,  更新 Dirichlet distribution的参数即可. 
@@ -22,7 +22,7 @@ math: true
 {: .prompt-info }
 
 
-## 2. 基于Monte-Carlo的方法
+## 1. 基于Monte-Carlo的方法
 
 - 引理1
 
@@ -48,7 +48,7 @@ math: true
 > 即 Y是均匀分布
 
 
-### 2.1 逆变换采样法
+### 1.1 逆变换采样法
 
 设 X 是一个随机变量，其分布函数$f(x)$,  累积分布函数 (CDF,  Cumulative distribution function) 为 F(x). 则依据如下采样过程,  得到的x是服从分布$f(x)$的.
 
@@ -60,7 +60,7 @@ math: true
 
 > 根据引理1容易知道,  如果从均匀分布 $U(0,  1) $ 中生成一个随机数 u，并令 $x = F^{-1} (u)$，则 $x$ 服从原分布$ F(x)$。(理解为本身这个$F$就是我们想采样的 $f$ 对应的 $F$,  那反函数求解出来的 $x$ 自然就是 满足 $f(x)$ 和 $F(x)$ ) ,  即为 逆变换方法 ,  几个具体实现: [https://lwz322.github.io/2019/06/02/ITM.html](https://lwz322.github.io/2019/06/02/ITM.html)
 
-### 2.2 拒绝采样法
+### 1.2 拒绝采样法
 
 - 准备工作
     1. 已知 概率密度函数$f(y)$,  我们需要依据这个分布进行抽样

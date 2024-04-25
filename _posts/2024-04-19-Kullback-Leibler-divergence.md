@@ -7,14 +7,14 @@ math: true
 ---
 
 
-## 1. 前言
+## 0. 前言
 
 我们有2个分布 $P$ 和 $Q$, 如何比较二者之间的差异性? 在数理统计上, K-L 散度是一个常用的方法.
 
 
-## 2. 定义
+## 1. 定义
 
-### 2.1 离散版本
+### 1.1 离散版本
 
 For discrete probability distributions $P$ and $Q$ defined on the same sample space $\mathcal {X}$ . 
  
@@ -28,16 +28,16 @@ $$
 D_{KL}(P \ ||\  Q)  = - \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{Q(x)} {P(x)})
 $$
 
-### 2.2 连续版本
+### 1.2 连续版本
 
 $$
 D_{KL}(P \ ||\  Q)  = \int_{x \in \mathcal {X}} p(x) \ log(\frac{p(x)} {q(x)}) \ dx
 $$
 
 
-## 3. 理解
+## 2. 理解
 
-### 3.1 公式上
+### 2.1 公式上
 
 有人会把KL散度理解为一种"距离",不过"距离"需要满足以下几个性质
 
@@ -108,7 +108,7 @@ $$
 > 因此称其为“距离”是不合适的， 充其量只能说其可以度量两个分布之间的差异性。
 {: .prompt-info }
 
-### 3.2 从熵的角度
+### 2.2 从熵的角度
 
 "熵"通常指的是[香农熵(Shannon entropy)](https://zh.wikipedia.org/zh-hans/%E7%86%B5_(%E4%BF%A1%E6%81%AF%E8%AE%BA)). 原来是信息论里边的东西, 其公式大家很熟悉:
 
@@ -151,7 +151,7 @@ $H(Y) - H(Y|X) = 0$
 
 这样看来, $minimize \ KL(P,Q)$ 就是想让二者从`信息量上`尽量的相近
 
-## 4. 应用
+## 3. 应用
 
 $$
 \begin{align*}
@@ -170,7 +170,7 @@ $minimize \ D_{KL}(P \ ||\  Q) $
 {: .prompt-info }
 
 
-## 5. 补充
+## 4. 补充
 
 KL divergence between two multivariate Gaussian distributions. 
 

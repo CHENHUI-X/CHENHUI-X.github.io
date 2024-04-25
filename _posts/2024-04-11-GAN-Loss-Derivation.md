@@ -6,7 +6,7 @@ tags: [deep learning,  mathematics]     # TAG names should always be lowercase
 math: true
 ---
 
-## 1. 前言
+## 0. 前言
 
 [GAN原始paper](https://arxiv.org/abs/1406.2661)中的损失很优美 ( 啊~ 你别说你还真别说 ):
 
@@ -16,11 +16,11 @@ $$
 
 不过有的同学可能看的一头雾水,  我们来推导一下怎么来的. 
 
-## 2. 推导
+## 1. 推导
 
 为方便推导 ,  记 `Generator` 为 `G` ,  `Discriminator` 为 `D`.
 
-### 2.1 Generator
+### 1.1 Generator
 
 Generator 要做的事情呢 ,  可以划分为以下几步:
 
@@ -53,7 +53,7 @@ $$
 $$
 
 
-### 2.2 Discriminator
+### 1.2 Discriminator
 
 Discriminator 要做的事情呢 ,  可以划分为以下几步:
 
@@ -88,7 +88,7 @@ $$
 $$
 
 
-### 2.3 大一统
+### 1.3 大一统
 
 $Generator$ 要 $minimize$ 下边这个式子,  $Discriminator$ 要 $maximize$ 下边这个式子 . 叮~ 任务完成~
 
@@ -96,7 +96,7 @@ $$
 \mathcal{L}_{\text{GAN}} = min_{G} \ max_{D} \  \mathbb{E}_{x \sim p_{\text{data}}(x)}[\log D(x)] + \mathbb{E}_{z \sim p_z(z)}[\log(1 - D(G(z)))]
 $$
 
-## 3. 算法步骤
+## 2. 算法步骤
 
 贴一个原始paper中的算法步骤,  不过可以看到 ,  上边式子那个只是为了美观 ,  实际更新的时候,  还是用原始的, 
 

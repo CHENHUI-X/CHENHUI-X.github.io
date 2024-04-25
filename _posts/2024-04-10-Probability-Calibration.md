@@ -6,14 +6,14 @@ tags: [machine learning, calibration]     # TAG names should always be lowercase
 math: true
 ---
 
-## 1. 前言
+## 0. 前言
 
 在分类的时候, 我们不仅希望预测类别, 还希望输出概率, 但是有些模型是不能直接输出概率的, 或者输出的概率只是一个相对的, 这时就需要校准
 
 
 一个良好的、校准过的分类器, 输出的prob=0.8 ,  就是可以理解为当前样本有80%的概率是正样本
 
-## 2. 校准曲线
+## 1. 校准曲线
 
 将预测值升序排序, 然后划分bin, “ x-axis represents the average predicted probability in each bin” . 而y轴则是对应bin中, 相应样本是正样本的比例, 然后绘制相应曲线
 
@@ -47,9 +47,9 @@ math: true
 - SVM则是属于那种“差不多就行”、“能分类正确即可”, 因此模型输出大多数在0.5 左右
 
 
-## 3. Calibrating a classifier
+## 2. Calibrating a classifier
 
-### 3.1 函数介绍
+### 2.1 函数介绍
 
 使用 [CalibratedClassifierCV](https://scikit-learn.org/stable/modules/generated/sklearn.calibration.CalibratedClassifierCV.html#sklearn.calibration.CalibratedClassifierCV) 来实现校准 , 这个类使用交叉验证来校准模型.首先要注意的是, 校准模型时使用的训练集, 不能和 用来训练未校准模型的训练集一样.同时也是为了样本分布平衡, 需要让校准模型的过程在不同训练子集上重复.其核心思想为：
 
@@ -62,8 +62,8 @@ math: true
 - when  `ensemble=False`
     - 一眼丁真, 鉴定为最好别用
 
-### 3.2 校准方法
-#### 3.2.1 sigmoid 方法
+### 2.2 校准方法
+#### 2.2.1 sigmoid 方法
 
 $$p(y_i = 1 | f_i) = \frac{1}{1 + \exp(A f_i + B)}$$
 
@@ -76,7 +76,7 @@ A and B are real numbers to be determined when fitting the regressor via maximum
 - small sample sizes
 - un-calibrated model is under-confident and has similar calibration errors for both high and low outputs.
 
-#### 3.2.2 isotonic 方法
+#### 2.2.2 isotonic 方法
 
 fits a non-parametric isotonic regressor, which outputs a step-wise non-decreasing function, see [sklearn.isotonic](https://scikit-learn.org/stable/modules/classes.html#module-sklearn.isotonic). It minimizes:
 > 该方法输出map function 是 严格单调递增的 : **即未校准的模型 认为 p(A) < p(B) , 那么经过校准后的的 p(A) 应该还是小于 p(B)**
