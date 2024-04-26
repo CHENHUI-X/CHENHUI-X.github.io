@@ -122,13 +122,13 @@ $2 * \lambda *  \eta  \in (0,1)$
 
 ### 3.3 给权重 $w$ 限定分布
 
-从统计学上来看, f(w,x) 输出的是一个分布去拟合 y 的分布 , 使用贝叶斯公式:
+从统计学上来看, $f(w,x)$ 输出的是一个分布去拟合 y 的分布 , 使用贝叶斯公式:
 
 $$
 p(w|x,y) = \frac{p(w) * p(x,y|w)}{p(x,y)} 
 $$
 
-p(x,y) 是死的, 
+$p(x,y)$ 是死的, 
 $maximize \ p(w|x,y)$ 
 就是 $maximize$ 分子
 
@@ -166,7 +166,7 @@ $$
 maximize \   log \ p(w) &= \\
 &=  maximize - \frac {1} {2 \sigma ^2}  {\|w\|_2}^2 + C \\ 
 &= minimize  \ \frac {1} {2 \sigma ^2}  {\|w\|_2}^2 + C \\  
-&\equiv minimize \  {\|w\|_2}^2 
+&\equiv minimize \  {\|w\|_2}^2 \ (\sigma = 1)
 \end{align*}
 $$
 
@@ -186,7 +186,7 @@ $$
 maximize \   log \ p(w) &= \\
 &=  maximize - \frac {1} {2 b}  {\|w\|_1}^2 + C \\ 
 &= minimize  \frac {1} {2 b}  {\|w\|_1}^2 + C \\  
-&<=> minimize  {\|w\|_1}^2 
+&<=> minimize  \   {\|w\|_1}^2   \ (b = 1)
 \end{align*}
 $$
 

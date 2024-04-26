@@ -176,13 +176,11 @@ example_selector.select_examples({"input": long_string})
 ```
 #### Select by maximal marginal relevance (MMR)
 
-参考paper: https://arxiv.org/pdf/2211.13892.pdf
-
-这个 selector 的思想是, 选择与当前输入 p 相似的(cosine similarity) example $q_j$ , 但是这个 $q_j$ 还要尽量与 example pool 中 $q_i$ 不要太相似, 这是为了多样性. paper 中的 next example 选择公式为:
+这个 selector 的思想是, 选择与当前输入 p 相似的(cosine similarity) example $q_j$ , 但是这个 $q_j$ 还要尽量与 example pool 中 $q_i$ 不要太相似, 这是为了多样性. [原始paper](https://arxiv.org/pdf/2211.13892.pdf) 中的 next example 选择公式为:
 
 ![image.png](https://s2.loli.net/2024/04/25/2bHXmLKFRyAkxl5.png)
 
-可以看到, 如果下一个 $q_j$ 和 当前的 $p$ 很相似, 但是和其他的 $q_i$ 也非常相似, 那么这个分数也不会太高.
+可以看到, 如果下一个 $q_j$ 和 当前的 $p$ 很相似, 但是和其他的 $q_i$ 也非常相似, 那么这个分数也不会太高. 
 
 例子
 
