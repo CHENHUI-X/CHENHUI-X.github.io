@@ -14,9 +14,7 @@ Causal Inference (因果推断) 已经在多个领域发挥出巨大作用, 尽�
 由于是入门学习, 因此课程和书籍选择了相对简单的. 根据网上的推荐和实际体验, 感觉 Brady Neal 的系列介绍比较合适, 因此这个系列都将会以 Brady Neal 的课程为基础. 课程链接: [https://www.bradyneal.com/causal-inference-course](https://www.bradyneal.com/causal-inference-course)
 
 
-另外, 由于这是个人学习笔记, 我作为初学者, 在博客中记录的内容和理解难免会有错误. 希望各位能够指正, 并请不吝赐教, 在下将不胜感激。
-
-> 阅读前, 需要你 : 有高数基础知识, 线代基础知识, 当然还要有 ML和 DL 的知识背景. 
+> 由于这是个人学习笔记, 我作为初学者, 在博客中记录的内容和理解难免会有错误. 希望各位能够指正, 并请不吝赐教, 在下将不胜感激。
 {: .prompt-info }
 
 
@@ -27,13 +25,13 @@ Causal Inference (因果推断) 已经在多个领域发挥出巨大作用, 尽�
 
 ### 1.1 Simpson’s Paradox 
 
-通常因果推断的第一课都是 Simpson’s Paradox (辛普森悖论) . 它说了这么一件事 : 假设现在有种病, 我们有2中治疗方案, treatment A and treatment B. 在做实验的时候, treatment B  比较稀缺, 只有较少的志愿者可以用上 B, 比如 treatment A and treatment B 的志愿者分别为 73% 和 27% . 现在得到这么一组数据 :
+通常因果推断的第一课都是 Simpson’s Paradox (辛普森悖论) . 它说了这么一件事 : 假设现在有种病, 我们有 2 个治疗方案, treatment A and treatment B. 在做实验的时候, treatment B  比较稀缺, 只有较少的志愿者可以用上 B, 比如 treatment A and treatment B 的志愿者分别为 73% 和 27% . 现在得到这么一组数据 :
 
 表中, 百分比指的是接受相应的 treatment 后志愿者死亡率. Mild组 表示病的不重 , Severe组 表示病的比较严重. 
 
 ![image.png](https://s2.loli.net/2024/04/26/OvNDhwKrz68ajnu.png){: width="400" height="300" }
 
-从上表可以看到, 无论是哪个分组, 明显 treatment B 死亡率更低. 但是有趣的是, 当你纵观所有人, 即 Total 列反而是 treatment A 死亡率更高. 那么到低哪个 treatment 更好呢? 
+从上表可以看到, 无论是哪个分组, 明显 treatment B 死亡率更低. 但是有趣的是, 当你纵观所有人, 即 Total 列反而是 treatment A 死亡率更低. 那么到底哪个 treatment 更好呢? 
 
 上表有个关键的问题, 总共 550 个人 接受了 treatment B, 但是有 500 个是重病患者. 因此计算最终的死亡率时候, 重病死亡率的权重更大, 导致对于 treatment B 的 Total 死亡率接近 20 %. 同理, 对于 treatment A, 轻症患者更多, 所以最后的平均死亡率反而比较低. 所以, 到底哪个更好?? 实际上, 这个答案是基于因果关系的.
 
