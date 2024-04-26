@@ -1,7 +1,7 @@
 ---
 title: Perplexity
 date: 2024-04-10 14:18:00 +0800
-categories: [DeepLearning,  NLP]
+categories: [Deep Learning,  NLP]
 tags: [nlp,  perplexity]     # TAG names should always be lowercase
 math: true
 ---

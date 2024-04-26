@@ -551,7 +551,8 @@ print(
 
 输出 :
 
-```python
+```plaintext
+
 You are impersonating Elon Musk.
 
 Here's an example of an interaction:
@@ -567,10 +568,262 @@ A:
 ```
 
 
-## 
+## 2. Retrieval
+
+Retrieval Augmented Generation (RAG) 可能是目前 LLM 发挥比较大作用的一个应用. 其核心思想是利用外挂的知识库赋予在不同的垂直领域应用能力. 
+
+其核心流程如下:
+
+[1] 首先我们要有相应的资源库, source
+
+[2] 然后针对不同的资源, 我们使用相应的 dataloader 将资源数据读取
+
+[3] 由于资源文档比较长, 通常我们要进行分块, 称为 chunk
+
+[4] 将文档chunk后, 会对每个 chunk 进行 embedding
+
+[5] embedding 之后, 要进行 store, 这个组件一般称为 vector store
+
+[6] 当我们给定输入的时候, LLM 能够根据语义从 store 中抽取有用的资源,这个过程就是 retrieve
+
+![image.png](https://s2.loli.net/2024/04/26/IiHL1MVWNc8QJtG.png)
+
+各种资源就不介绍了, 我们学习不同资源对应的 dataloader
+
+### 2.1 Dataloader
+
+[官方文档](https://python.langchain.com/docs/integrations/document_loaders/)集成了很多第三方 dataloader, 
+甚至可以直接从arxiv、GitHub等直接获取数据. 但是常用的可能就是针对 文本 和 csv 的, 而且使用方法类似, 所以这里只学习 文本类型 的.
+
+#### Document Loader
+
+LangChain 给的例子是继承 BaseLoader, 然后将读到的文本初始化为 Document 对象.
+内部有 4 个基本方法: 直接读取所有, 异步读取所有, lazy 读取, 异步lazy读取.
+
+![image.png](https://s2.loli.net/2024/04/26/PC8fvdnsaHA9KB6.png){: width="400" height="300" }
 
 
+例子:
 
+<details markdown="1">
+<summary> 详细信息 </summary>
+
+```python
+from typing import AsyncIterator, Iterator
+from langchain_core.document_loaders import BaseLoader
+from langchain_core.documents import Document
+
+class CustomDocumentLoader(BaseLoader):
+    """An example document loader that reads a file line by line."""
+
+    def __init__(self, file_path: str) -> None:
+        """Initialize the loader with a file path.
+
+        Args:
+            file_path: The path to the file to load.
+        """
+        self.file_path = file_path
+
+    def lazy_load(self) -> Iterator[Document]:  # <-- Does not take any arguments
+        """A lazy loader that reads a file line by line.
+
+        When you're implementing lazy load methods, you should use a generator
+        to yield documents one by one.
+        """
+        with open(self.file_path, encoding="utf-8") as f:
+            line_number = 0
+            for line in f:
+                yield Document(
+                    page_content=line,
+                    metadata={"line_number": line_number, "source": self.file_path},
+                )
+                line_number += 1
+
+    # alazy_load is OPTIONAL.
+    # If you leave out the implementation, a default implementation which delegates to lazy_load will be used!
+    async def alazy_load(
+        self,
+    ) -> AsyncIterator[Document]:  # <-- Does not take any arguments
+        """An async lazy loader that reads a file line by line."""
+        # Requires aiofiles
+        # Install with `pip install aiofiles`
+        # https://github.com/Tinche/aiofiles
+        import aiofiles
+
+        async with aiofiles.open(self.file_path, encoding="utf-8") as f:
+            line_number = 0
+            async for line in f:
+                yield Document(
+                    page_content=line,
+                    metadata={"line_number": line_number, "source": self.file_path},
+                )
+                line_number += 1
+
+with open("./meow.txt", "w", encoding="utf-8") as f:
+    quality_content = "meow meow🐱 \n meow meow🐱 \n meow😻😻"
+    f.write(quality_content)
+
+loader = CustomDocumentLoader("./meow.txt")
+
+## Test out the lazy load interface
+for doc in loader.lazy_load():
+    print()
+    print(type(doc))
+    print(doc)
+
+## Test out the async implementation
+async for doc in loader.alazy_load():
+    print()
+    print(type(doc))
+    print(doc)
+
+"""
+输出结果一样:
+
+<class 'langchain_core.documents.base.Document'>
+page_content='meow meow🐱 \n' metadata={'line_number': 0, 'source': './meow.txt'}
+
+<class 'langchain_core.documents.base.Document'>
+page_content=' meow meow🐱 \n' metadata={'line_number': 1, 'source': './meow.txt'}
+
+<class 'langchain_core.documents.base.Document'>
+page_content=' meow😻😻' metadata={'line_number': 2, 'source': './meow.txt'}
+"""
+```
+</details>
+
+> load() can be helpful in an interactive environment such as a jupyter notebook.
+Avoid using it for production code since eager loading assumes that all the content can fit into memory, which is not always the case, especially for enterprise data.
+{: .prompt-info }
+
+### 2.2 Text Splitters
+
+Once you've loaded documents, you'll often want to transform them to better suit your application. The simplest example is you may want to split a long document into smaller chunks that can fit into your model's context window.
+
+[官方文档](https://python.langchain.com/docs/modules/data_connection/document_transformers/)给了多种 Splitter, 最常用的为以下 3 种.
+
+#### Split by character
+
+这个是最简单的 Splitter, 单纯就是使用指定的 character 去切分 text .
+
+例子:
+
+```python
+from langchain_text_splitters import CharacterTextSplitter
+
+text_splitter = CharacterTextSplitter(
+    separator=" ", # 指定 separator
+    chunk_size=5,
+    chunk_overlap=2,
+    length_function=len,
+    is_separator_regex=False,
+)
+
+text_splitter.split_text("我是练习时长 达两年半的坤坤")
+
+```
+上述代码中, chunk_size 本意是指进行 split 之后, 后续进行store的时候, 最大以多大的size 作为一个整体进行存储. 但是可以看到这个参数对于 CharacterTextSplitter 不生效, 实际上[源码](https://api.python.langchain.com/en/latest/_modules/langchain_text_splitters/character.html#CharacterTextSplitter)中, 就是简单的用 re.split() 对文档按照 separator 进行切割, 不管子句有多长, 直接返回. 
+
+输出:
+
+```plaintext
+['我是练习时长', '达两年半的坤坤']
+```
+
+> 因为 LLM 通常对输入有长度限制, 因此 CharacterTextSplitter 不太适合, 可能会超出输入尺寸范围, 而下边的 RecursiveCharacterTextSplitter 可以递归切割子句, 直到每个子句都小于 chunk size.
+{: .prompt-info }
+
+
+#### Recursive Splitter By Character
+
+这个看了[源码](https://api.python.langchain.com/en/latest/_modules/langchain_text_splitters/character.html#RecursiveCharacterTextSplitter),它默认的 `separator = ["\n\n", "\n", " ", ""]`, 我的理解是说, 首先会根据`\n\n`进行切割. 一般来说, 2 个换行分割开的通常是 2 篇文章. 所以会先按照这个尺度进行切割. 如果切割之后, 某篇文章还是太长(大于 chunk size), 那么会继续使用 `\n` 进行划分切割, 同理直到其长度小于 chunk size.
+
+例子:
+
+```python
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+text_splitter = RecursiveCharacterTextSplitter(
+    # Set a really small chunk size, just to show.
+    chunk_size=5,
+    chunk_overlap=0,
+    length_function=len,
+    is_separator_regex=False,
+    keep_separator = False
+)
+text_splitter.split_text(
+    "我是\n\n练习时长达两年\n半的坤坤"
+    )
+```
+输出:
+```plaintext
+['我是', '练习时长达', '两年', '半的坤坤']
+# 可以看到, 首先用`\n\n`进行分割, 因为"我是"的长度小于5, 所以直接存起来, 
+# 但是后边部分太长, 又基于`\n`进行切割, "半的坤坤"是满足要求的,所以一起存了起来.
+# 但是"练习时长达两年"的长度还是大于5, 于是进行了继续的切割. 变为"练习时长达" 和 "两年"
+```
+
+#### Split by tokens
+
+这个就是使用 NLP 中 token 进行切割, 不同的 tokenizer 有不同的切割方式. 举个例子, 加入一个单词算一个token, 那就按单词切割.
+
+这里使用 OpenAI BPE tokenizer : tiktoken, 是[BPE 算法](https://huggingface.co/learn/nlp-course/chapter6/5)的一个实现.
+
+Split by tokens 的使用方法基于上边 2 种 Splitter, 只是切割时调用方法不同:
+
+```python
+# pip install tiktoken
+text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
+    encoding="cl100k_base", chunk_size=100, chunk_overlap=0
+) # CharacterTextSplitter 实际还是受 chunk_size 的约束
+texts = text_splitter.split_text("text")
+
+text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+    model_name="gpt-4",
+    chunk_size=100,
+    chunk_overlap=0,
+) # 能够保证子句全部小于chunk_size
+texts = text_splitter.split_text("text")
+# 此外 encoding参数 和 model_name参数 效果类似, 具体请参考api
+```
+
+
+#### Semantic Chunking
+
+这个就是字面意思, 基于 text 之间的语义进行切割, 使得语义相近的尽量在一个chunk, 但是这个目前(2024年4月27日)是个实验性功能. 参考[官方文档](https://python.langchain.com/docs/modules/data_connection/document_transformers/semantic-chunker/)
+
+由于这个需要计算语义相似度, 所以需要进行 embedding. 
+
+例子:
+
+```python
+from langchain_experimental.text_splitter import SemanticChunker
+from langchain_openai.embeddings import OpenAIEmbeddings
+texts = text_splitter.split_text("text")
+```
+
+这个里边提供了一个 Breakpoints, 用于评估什么时候该切割, 语义相近多少才算相近?
+
+- Percentile
+
+Percentile(百分位数) 是默认的评估标准,  他是计算所有两两句子之间的difference, 如果大于阈值就给他切开.
+
+例子:
+```python
+text_splitter = SemanticChunker(
+    OpenAIEmbeddings(), breakpoint_threshold_type="percentile"
+    # breakpoint_threshold_amount : 默认值 
+)
+```
+阅读[源码](https://api.python.langchain.com/en/latest/_modules/langchain_experimental/text_splitter.html#SemanticChunker)可以看到,当`threshold_type = "percentile"` 时, 默认使用 95% 分位数. 表示当 2 个句子差异性大于所有距离的 95% 分位数时, 就进行切割. `breakpoint_threshold_amount` 参数控制分位数具体大小.
+
+- Standard Deviation
+
+用法类似, 不再赘述. 源码中当`threshold_type = "standard_deviation"` 时, 默认使用 `mean + 3 * std` 作为阈值. 表示当 2 个句子差异性大于阈值时, 就进行切割.
+`breakpoint_threshold_amount` 参数控制标准差的倍数.
+- Interquartile
+
+使用的箱线图方法, 默认使用  `mean + 1.5 * iqr`, 其中 `iqr = q3 - q1`, q3 为 75% 分位数, q1 为 25% 分位数, 
+`breakpoint_threshold_amount` 参数控制`q3-q1`的倍数.
 
 ## Reference
 
