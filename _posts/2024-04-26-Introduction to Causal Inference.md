@@ -92,7 +92,7 @@ Causal Inference (因果推断) 已经在多个领域发挥出巨大作用, 尽�
 > 你可以观察接受狗子之后, 观察 $\mathit {Y(1)}$. 反之, 你可以不接受狗子来观察  $\mathit {Y(0)}$. 但是你不能同时观察到 $\mathit {Y(1)}$ 和 $\mathit {Y(0)}$ !!!! 这个问题就是 "**Fundamental Problem of Causal Inference**"
 {: .prompt-info }
 
-#### 2.1.3  Average Treatment Effects
+### 2.2  Average Treatment Effects
 
 因为每个人可能有些许差异, 实际要想客观的评估 treatment 的作用, 我们要对所有人求 treatment 期望:
 
@@ -100,6 +100,112 @@ $$
 \tau \triangleq \mathbb{E}[Y_i(1) - Y_i(0)] = \mathbb{E}[Y(1) - Y(0)]
 $$
 
+但是上式由于 Fundamental Problem of Causal Inference, 实际上比较难做到计算. 参看下表:
+
+![image.png](https://s2.loli.net/2024/04/27/9vpO8bP5Uq2dYtS.png){: width="300" height="200" }
+
+当对个体 $i$ 采取了 treatment 0 的时候, 你只能观察到 $Y_i(0)$, 观察不到 $Y_i(1)$. 也就是说以下式子不成立:
+
+$$
+\mathbb{E}[Y(1) - Y(0)] = \mathbb{E}[Y(1)] - \mathbb{E}[Y(0)] \neq \mathbb{E}[Y(1) | T = 1 ] - \mathbb{E}[Y(0) | T = 0]
+$$
+
+可以看到, treatment 0 对应的集合只是一部分, 不能作为全部的结果, $\mathbb{E}[Y(1)]$ 理应是最右边的结果.
+
+![image.png](https://s2.loli.net/2024/04/27/vtybfejVDn4QNKA.png){: width="600" height="400" }
+
+
+#### 2.2.1 Ignorability and Exchangeability
+
+那么什么时候, 或者基于什么假设, 上式能够成立呢? 
+
+> Assumption 2.1 Ignorability / Exchangeability
+>
+> $$(Y(1) , Y(0)) \amalg T$$
+{: .prompt-info }
+
+当假设满足 Ignorability 的时候, 能够做到以下式子成立. 这里 Ignorability 指的是, 可以忽视缺失的数据. 
+
+$$
+\begin{aligned}
+\mathbb{E}[Y(1) - Y(0)] &= \mathbb{E}[Y(1)] - \mathbb{E}[Y(0)] 
+\newline
+&=\mathbb{E}[Y(1) \mid T = 1 ] - \mathbb{E}[Y(0) \mid T = 0] \ (Ignorability)
+\newline
+&=\mathbb{E}[Y \mid T = 1 ] - \mathbb{E}[Y \mid T = 0] \ (之后讨论)
+\end{aligned}
+$$
+
+上式表明 `Y(1)` 就只基于 `T = 1` , 不受其他影响 , 即没有 confounder 的影响了. 如图:
+
+![image.png](https://s2.loli.net/2024/04/27/crp69WgbIqMOvX5.png){: width="400" height="300" }
+
+
+这个假设也叫 `Exchangeability`, 表示说 $\mathbb{E}[Y(0) \mid T = 0] = \mathbb{E}[Y(0) \mid T = 1] = \mathbb{E}[Y(0) \mid t ]$ , 这其实就是说对于 group A 或者 group B, 把他们交换 treatment group 和 control group, 输出的结果只与 treatment 有关, 和 group A 或者 group B 没有关系 (尤其是 confounder). 也暗示着除了 treatment 的方式有区别, 不受其他影响.
+
+> Definition 2.1 Identifiability
+>
+> causal quantity (e.g. $\mathbb{E}[Y(t)]$) is Identifiable if we can compute it from a purely statistical quantity (e.g. $\mathbb{E}[Y \mid t]$)
+{: .prompt-info }
+
+这个 Identifiability 是说, 我们可以用 $\mathbb{E}[Y \mid t]$ 代替 $\mathbb{E}[Y(t)]$.
+
+#### 2.2.2 Conditional Exchangeability and Unconfoundedness
+
+实际中, 我们直接假设 group A 或者 group B 除了 treatment 的方式有区别, 不受其他影响. 但是这个不太现实, 明显是不合理的. 但是我们考虑, 如果可以控制一些条件, 让他们除了 treatment 方式有区别, 其他没有区别.
+
+> Assumption 2.2 Conditional Exchangeability / Unconfoundedness
+>
+> $$(Y(1) , Y(0)) \amalg T \mid X$$
+{: .prompt-info }
+
+当假设满足 Conditional Exchangeability 的时候, 换句话说, 我们控制了 confounder X, 使得 group 基于同样的 confounder , 那这时去做 treatment, 就实现了 treatment 直接作用于 outcome, 不会因为潜在的 confounder 影响 outcome. 如图所示:
+
+<div style="display: flex;">
+    <img src="https://s2.loli.net/2024/04/27/HcwmUCh7oAPdjir.png" alt="Image 1" style="width: 100%;">
+    <img src="https://s2.loli.net/2024/04/27/2Gt8Ugf9d6WSomB.png" alt="Image 2" style="width: 100%;">
+</div>
+
+于是有以下公式成立:
+
+$$
+\begin{aligned}
+\mathbb{E}[Y(1) - Y(0) \mid X] &= \mathbb{E}[Y(1) \mid X] - \mathbb{E}[Y(0) \mid X] 
+\newline
+&=\mathbb{E}[Y(1) \mid T = 1, X] - \mathbb{E}[Y(0) \mid T = 0, X] \ (Ignorability)
+\newline
+&=\mathbb{E}[Y \mid T = 1, X ] - \mathbb{E}[Y \mid T = 0, X] \ (fix confounder)
+\end{aligned}
+$$
+
+
+则:
+
+$$
+\begin{aligned}
+\mathbb{E}[Y(1) - Y(0) ] &= \mathbb{E}_X[\mathbb{E}[Y(1) \mid X] - \mathbb{E}[Y(0) \mid X]]
+\newline
+&=\mathbb{E}_X[\mathbb{E}[Y(1) \mid T = 1, X] - \mathbb{E}[Y(0) \mid T = 0, X]] \ (Ignorability)
+\newline
+&=\mathbb{E}_X[\mathbb{E}[Y \mid T = 1, X ] - \mathbb{E}[Y \mid T = 0, X] ]\ (expect confounder)
+\end{aligned}
+$$
+
+
+Conditional exchangeability (Assumption 2.2) is a core assumption for
+causal inference and goes by many names. For example, the following are reasonably commonly used to **refer to the same assumption: unconfoundedness, conditional ignorability, no unobserved confounding,
+selection on observables, no omitted variable bias**, etc. 
+
+$\textit{We will use the name “unconfoundedness” a fair amount throughout this book.}$
+
+
+> Theorem 2.1  (Adjustment Formula) Given the assumptions of **unconfoundedness**, **positivity**, **consistency**, and **no interference**, we can identify the
+average treatment effect:
+>
+> $$\mathbb{E}[Y(1) - Y(0) ] = \mathbb{E}_X[\mathbb{E}[Y \mid T = 1, X ] - \mathbb{E}[Y \mid T = 0, X] ] $$
+{: .prompt-info }
+
+不过上述的式子还是有缺陷, 我们只是理想的假设 fix confounder 之后满足要求, 但问题是有时候很多 confounder 都是潜在的, 我能不能保证 fix 住的 confounder 就是全部的, 这就会导致还是会有从 treatment -> confounder -> outcome 这条链路的影响存在.
 
 
 ## Reference

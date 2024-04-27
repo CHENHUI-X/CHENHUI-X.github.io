@@ -588,7 +588,6 @@ Retrieval Augmented Generation (RAG) 可能是目前 LLM 发挥比较大作用�
 
 ![image.png](https://s2.loli.net/2024/04/26/IiHL1MVWNc8QJtG.png)
 
-各种资源就不介绍了, 我们学习不同资源对应的 dataloader
 
 ### 2.1 Dataloader
 
@@ -764,7 +763,7 @@ text_splitter.split_text(
 
 #### Split by tokens
 
-这个就是使用 NLP 中 token 进行切割, 不同的 tokenizer 有不同的切割方式. 举个例子, 加入一个单词算一个token, 那就按单词切割.
+这个就是使用 NLP 中 token 进行切割, 不同的 tokenizer 有不同的切割方式. 举个例子, 如果一个单词算一个token, 那就按单词切割.
 
 这里使用 OpenAI BPE tokenizer : tiktoken, 是[BPE 算法](https://huggingface.co/learn/nlp-course/chapter6/5)的一个实现.
 
@@ -774,7 +773,7 @@ Split by tokens 的使用方法基于上边 2 种 Splitter, 只是切割时调�
 # pip install tiktoken
 text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
     encoding="cl100k_base", chunk_size=100, chunk_overlap=0
-) # CharacterTextSplitter 实际还是受 chunk_size 的约束
+) # CharacterTextSplitter 实际不受 chunk_size 的约束
 texts = text_splitter.split_text("text")
 
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
@@ -814,16 +813,14 @@ text_splitter = SemanticChunker(
     # breakpoint_threshold_amount : 默认值 
 )
 ```
-阅读[源码](https://api.python.langchain.com/en/latest/_modules/langchain_experimental/text_splitter.html#SemanticChunker)可以看到,当`threshold_type = "percentile"` 时, 默认使用 95% 分位数. 表示当 2 个句子差异性大于所有距离的 95% 分位数时, 就进行切割. `breakpoint_threshold_amount` 参数控制分位数具体大小.
+阅读[源码](https://api.python.langchain.com/en/latest/_modules/langchain_experimental/text_splitter.html#SemanticChunker)可以看到,当`threshold_type = "percentile"` 时, 默认使用 95% 分位数. `breakpoint_threshold_amount` 参数控制分位数具体大小.
 
 - Standard Deviation
 
-用法类似, 不再赘述. 源码中当`threshold_type = "standard_deviation"` 时, 默认使用 `mean + 3 * std` 作为阈值. 表示当 2 个句子差异性大于阈值时, 就进行切割.
-`breakpoint_threshold_amount` 参数控制标准差的倍数.
+用法类似, 不再赘述. 源码中当`threshold_type = "standard_deviation"` 时, 默认使用 `mean + 3 * std` 作为阈值. `breakpoint_threshold_amount` 参数控制标准差的倍数.
 - Interquartile
 
-使用的箱线图方法, 默认使用  `mean + 1.5 * iqr`, 其中 `iqr = q3 - q1`, q3 为 75% 分位数, q1 为 25% 分位数, 
-`breakpoint_threshold_amount` 参数控制`q3-q1`的倍数.
+使用的箱线图方法, 默认使用  `mean + 1.5 * iqr`, 其中 `iqr = q3 - q1`, q3 为 75% 分位数, q1 为 25% 分位数. `breakpoint_threshold_amount` 参数控制`q3 - q1`的倍数.
 
 ## Reference
 
