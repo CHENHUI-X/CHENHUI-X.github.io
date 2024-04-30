@@ -9,7 +9,7 @@ math: true
 ## 0. 前言
 
 
-比如在老虎机场景,  我们想知道哪一台老虎机的赢面更大,  通常是给定所有老虎机 "赢" 的参数分布 ,  比如 Dirichlet distribution,  初始化 $\alpha1 \ \alpha2 \ …$  ,  然后根据实际数据采样,  更新 Dirichlet distribution的参数即可. 
+比如在老虎机场景,  我们想知道哪一台老虎机的赢面更大,  通常是给定所有老虎机 "赢" 的参数分布 ,  比如 Dirichlet distribution,  初始化 $\alpha1 \ \alpha2 \ …$  ,  然后根据实际数据采样,  更新 Dirichlet distribution 的参数即可.
 
 具体采样流程(通常使用在类似多臂老虎机场景) :
 
@@ -32,19 +32,19 @@ math: true
 
 
 > 对于任意实数$y$ ,  我们有:
-> 
+>
 > $$P(Y<=y)  = P(F(X) <= y) = P(X <= F^{-1}(y) = F( F^{-1}(y))$$
-> 
+>
 > 由于F(x)是单调递增函数, 因此$F^{-1}(y)$具有唯一解 $x$ , 令$x = F^{-1}(y)$ , 则有 $F(x) = y$ .
-> 
+>
 > 因此
-> 
+>
 > $$P( Y <= y) = F(F^{-1}(y)) = F(x) = y$$
-> 
+>
 > 即有
-> 
+>
 > $$P( Y <= y)  = y$$
-> 
+>
 > 即 Y是均匀分布
 
 
@@ -76,56 +76,56 @@ math: true
 
 
 > **证明上述采样方法生成的样本服从 $f(y)$ ,  等价于证明以下内容**
-> 
+>
 > ![image.png](https://s2.loli.net/2024/04/11/zBmECrMeK82fnAI.png)
-> 
+>
 > 其中 ,  U 为 $[0 , 1]$ 的随机数,  $y$ 是从 $g(y)$ 采样得到的 ,  $F$ 和 $G$ 分别是 $f$ 和 $g$ 对应的累积分布函数.
-> 
+>
 > 根据贝叶斯公式
-> 
+>
 > $$P(A|B) = \frac {P(B|A)P(A)} {P(B)}$$
-> 
+>
 > 将 $P(Y<=y \mid U <= \frac {f(Y)} {c * g(Y)})$ 用贝叶斯公式转化为:
-> 
+>
 > ![image.png](https://s2.loli.net/2024/04/11/e6lD9zZm7pocfIu.png)
-> 
+>
 > 现在分别来看 右边的 3个式子
-> 
+>
 > (1) 分母
-> 
+>
 > $$P(U <= \frac {f(Y)} {c*g(Y)}) =  \int P(U <= \frac {f(Y)} {c*g(Y)}| Y = y)p( Y = y)$$
-> 
-> 
+>
+>
 > 由于 y 是从 g 中抽样得到的 ,  那么 $p( Y = y) = g(y)$ ,  不妨假设此时 y 的抽样结果 : $Y = y$ ,  又因为 U 是均匀的 0 ,  1 分布 , 按定义 我们有
-> 
+>
 > $$P(U <= \frac {f(Y)} {c*g(Y)}| Y = y) = \frac {f(y)} {c*g(y)}$$
-> 
-> 此外,  由于$\int f(y)=1$ ,  我们有 
-> 
+>
+> 此外,  由于$\int f(y)=1$ ,  我们有
+>
 > ![image.png](https://s2.loli.net/2024/04/11/mdCt9oxAZKaMNsW.png)
-> 
+>
 > (2) 分子 $p( Y <= y)$
-> 
-> 按照定义 
-> 
+>
+> 按照定义
+>
 > $$p( Y <= y) = G(y)$$
-> 
+>
 > (3) 分子 $P(U <= \frac {f(Y)} {c*g(Y)} \ Y <= y)$
-> 
+>
 $$
 \begin{align*}
-P(U <= \frac {f(Y)} {c*g(Y)} \mid Y <= y) &= 
-\frac {P(U <= \frac {f(Y)} {c*g(Y)},  Y <= y)} {P(Y <= y)} \\&=  
-\frac { \int_{-\infty}^{y} P(U <= \frac {f(w)} {c*g(w)}  ,  Y = w <= y)\ dw}{G(y)} \\ &= 
-\frac { \int_{-\infty}^{y} \frac {f(w)} {c*g(w)} *g(w) \ dw}{G(y)} \\ &=  
-\frac { \frac {F(y)} {c*G(y)} * G(y) }{G(y)} \\ &= 
+P(U <= \frac {f(Y)} {c*g(Y)} \mid Y <= y) &=
+\frac {P(U <= \frac {f(Y)} {c*g(Y)},  Y <= y)} {P(Y <= y)} \\&=
+\frac { \int_{-\infty}^{y} P(U <= \frac {f(w)} {c*g(w)}  ,  Y = w <= y)\ dw}{G(y)} \\ &=
+\frac { \int_{-\infty}^{y} \frac {f(w)} {c*g(w)} *g(w) \ dw}{G(y)} \\ &=
+\frac { \frac {F(y)} {c*G(y)} * G(y) }{G(y)} \\ &=
 \frac {F(y)} {c*G(y)}
 \end{align*}
 $$
-> 
-> 
+>
+>
 > 于是,  原始公式可进行转化,  从而证明完毕:
-> 
+>
 > $$P\big(Y<=y | U <= \frac {f(Y)} {c*g(Y)}\big) = \frac { \frac {F(y)} {c*G(y)} * G(y) } {\frac {1} { c }} \\ = F(y)$$
 
 
@@ -152,7 +152,7 @@ $$P(\theta_b|X) = \frac {P(X|\theta_b)P(\theta_b)} {P(X)}$$
 
 $$\gamma = \frac {P(\theta_a|X)}{P(\theta_b|X)} = \frac {P(X|\theta_a)P(\theta_a)}{P(X|\theta_b)P(\theta_b)}$$
 
-这样避免了分母的积分，这里 $P(\theta_a)$ 可以参考 Dirichlet Distribution （多维）或者 Beta Distribution （二维）. 思想是这样的,  不过需要一点点其他知识. 
+这样避免了分母的积分，这里 $P(\theta_a)$ 可以参考 Dirichlet Distribution （多维）或者 Beta Distribution （二维）. 思想是这样的,  不过需要一点点其他知识.
 
 > 未完待续...
 {: .prompt-info }

@@ -1,5 +1,5 @@
 ---
-title: Lang Chain Notes
+title: Lang Chain Series
 date: 2024-04-24 19:0000 +0800
 categories: [Deep Learning, LLM, LangChain]
 tags: [deep learning, llm, langchain] # TAG names should always be lowercase
@@ -1001,7 +1001,7 @@ for i, doc in enumerate(found_docs):
 
 Retrievers 接受用户的 query, 然后从 vector store 中根据规则(不同种类相似度)去搜索得到合适的上下文, 用于后续回答输出.
 
-同样的, [官方文档](https://python.langchain.com/docs/modules/data_connection/retrievers/有多种类型的 Retrievers, 下面简要学习.
+同样的, [官方文档](https://python.langchain.com/docs/modules/data_connection/retrievers/)有多种类型的 Retrievers, 下面简要学习.
 
 #### Vector store-backed retriever
 

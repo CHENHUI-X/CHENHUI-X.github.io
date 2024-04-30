@@ -8,13 +8,13 @@ math: true
 
 ## 0. 前言
 
-[GAN原始paper](https://arxiv.org/abs/1406.2661)中的损失很优美 ( 啊~ 你别说你还真别说 ):
+[GAN原始paper](https://arxiv.org/abs/1406.2661)中的损失很优美:
 
 $$
 \mathcal{L}_{\text{GAN}} = min_{G} \ max_{D} \  \mathbb{E}_{x \sim p_{\text{data}}(x)}[\log D(x)] + \mathbb{E}_{z \sim p_z(z)}[\log(1 - D(G(z)))]
 $$
 
-不过有的同学可能看的一头雾水,  我们来推导一下怎么来的. 
+不过有的同学可能看的一头雾水,  我们来推导一下怎么来的.
 
 ## 1. 推导
 
@@ -24,9 +24,9 @@ $$
 
 Generator 要做的事情呢 ,  可以划分为以下几步:
 
-[1] 首先,  从一个 noise 分布 sample 一笔数据 ,  不妨假设 $z \sim p_z(z)$ 
+[1] 首先,  从一个 noise 分布 sample 一笔数据 ,  不妨假设 $z \sim p_z(z)$
 
-[2] 然后 Generator 一顿操作,  输出 $G(z)$ 
+[2] 然后 Generator 一顿操作,  输出 $G(z)$
 
 [3] 目标: 尽可能的欺骗 Discriminator ,  让其认为  $G(Z)$  是真的 ,  具体表现为 $D(G(Z))$ 越接近 $1$ 越好
 
@@ -57,7 +57,7 @@ $$
 
 Discriminator 要做的事情呢 ,  可以划分为以下几步:
 
-[1] 首先,  从一个 真实 分布 sample 一笔数据 ,  不妨假设 $x \sim p_x(x)$ 
+[1] 首先,  从一个 真实 分布 sample 一笔数据 ,  不妨假设 $x \sim p_x(x)$
 
 [2] 然后,  接受来自 Generator 的输出 $G(Z)$
 
@@ -98,7 +98,7 @@ $$
 
 ## 2. 算法步骤
 
-贴一个原始paper中的算法步骤,  不过可以看到 ,  上边式子那个只是为了美观 ,  实际更新的时候,  还是用原始的, 
+贴一个原始paper中的算法步骤,  不过可以看到 ,  上边式子那个只是为了美观 ,  实际更新的时候,  还是用原始的,
 
 ![image.png](https://s2.loli.net/2024/04/12/yS5QvjER17fJ3z4.png)
 

@@ -9,7 +9,7 @@ math: true
 ## 0. 前言
 
 
-这篇Blog主要对几个分布进行总结,  以及对他们之间的关系进行梳理
+这篇 Blog 主要对几个分布进行总结,  以及对他们之间的关系进行梳理
 
 
 ## 1. Gamma Function
@@ -109,7 +109,7 @@ ok, 现在假设k=2, 换句说,  理解为总共n+1个球,   把第3个球涂为
 
 $Beta$ 分布 与 之前的 `Bernoulli` 分布 (0 -1 分布) , `Binomial` 分布 (即二项分布 , $C(m, n, p)$ ) 构成共轭分布.
 
-- [1] `Binomial` 分布(二项分布 ) 理解为给定成功概率参数 $p$ 和实验次数 $n$ 的情况下,  成功 $k$ 次的概率分布. 
+- [1] `Binomial` 分布(二项分布 ) 理解为给定成功概率参数 $p$ 和实验次数 $n$ 的情况下,  成功 $k$ 次的概率分布.
 
 
 - [2] Beta分布是在给定成功次数 $\alpha$ 和失败次数 $\beta$ (通常来自实验观察,  $p$ 未知) 后 ,  探究成功概率参数 $p$ 的分布 (即上述公式中的 x 的分布) . 看起来像是一种对偶的关系,  不过更多人叫他是共轭关系
@@ -120,7 +120,7 @@ $Beta$ 分布 与 之前的 `Bernoulli` 分布 (0 -1 分布) , `Binomial` 分布
 ![image.png](https://s2.loli.net/2024/04/10/ZX3Y9TQ8Sx2OIF4.png){: width="400" height="300" }
 
 > [1] 这里 p 是已知的 ,  给定 p ,  求解目标成功次数对应的概率. 对于此时参数p本身的分布 , 参考下方 Dirichlet Distribution
-> 
+>
 > [2] 这里可以看到,  Multinomial Distribution 其实可以理解为多维的 “二项分布” ,  即 “多项分布”.
 {: .prompt-info }
 
@@ -175,7 +175,7 @@ $$f(x_1 ,  \ ... \ , x_k,  n ,  p_1, p_2 \ ... \ p_n)\ = \ C*p_1^{x_1} * \ ... \
 
 ![image.png](https://s2.loli.net/2024/04/11/d8biLJZpeyh6N9r.png){: width="100" height="130" }
 
-那随机变量 $X$ 的分布为 (就是多项分布) 
+那随机变量 $X$ 的分布为 (就是多项分布)
 
 ![image.png](https://s2.loli.net/2024/04/11/aiI1wQcuFTCPGDZ.png){: width="400" height="300" }
 
@@ -183,7 +183,7 @@ $$f(x_1 ,  \ ... \ , x_k,  n ,  p_1, p_2 \ ... \ p_n)\ = \ C*p_1^{x_1} * \ ... \
 
 - 应用
 
-如下案例,  类似Bandit,  只不过使用筛子. 
+如下案例,  类似Bandit,  只不过使用筛子.
 
 ![image.png](https://s2.loli.net/2024/04/11/NSyKDk29Fu8Vql6.png){: width="400" height="300" }
 
@@ -191,7 +191,7 @@ $$f(x_1 ,  \ ... \ , x_k,  n ,  p_1, p_2 \ ... \ p_n)\ = \ C*p_1^{x_1} * \ ... \
 
 ![image.png](https://s2.loli.net/2024/04/11/wlBVrdCth17y6Go.png){: width="400" height="300" }
 
-其中,  
+其中,
 
 ![image.png](https://s2.loli.net/2024/04/11/OhzY7IS8T3LK6mE.png){: width="400" height="300" }
 

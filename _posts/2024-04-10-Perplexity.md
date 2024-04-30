@@ -6,11 +6,11 @@ tags: [nlp,  perplexity]     # TAG names should always be lowercase
 math: true
 ---
 
-## 0. 前言 
+## 0. 前言
 
-在NLP中,  经常可以看到使用"困惑度"来描述一个LLM的能力. 那么什么是"困惑度"?
+在 NLP 中,  经常可以看到使用"困惑度"来描述一个 LLM 的能力. 那么什么是"困惑度"?
 
-简单理解,  困惑度就是"模型对样本预测结果的信心". 具体的,  模型对这个样本结果的预测概率越高,  表明信心越高,  对应困惑度越低. 
+简单理解,  困惑度就是"模型对样本预测结果的信心". 具体的,  模型对这个样本结果的预测概率越高,  表明信心越高,  对应困惑度越低.
 
 
 > 本文介绍的Perplexity 特指 "Perplexity of a probability model".
@@ -33,19 +33,19 @@ $$
 
 $$
 \begin{align*}
-P(' a\ red\ fox\ . ') =  P(' a ') \times P(' red ' | ' a ') \times P(' fox ' | ' a\ red ') \times P(' . '|' a\ red\ fox ') 
+P(' a\ red\ fox\ . ') =  P(' a ') \times P(' red ' | ' a ') \times P(' fox ' | ' a\ red ') \times P(' . '|' a\ red\ fox ')
 \end{align*}
 $$
 
 
-假设模型,  预测第一个字的概率分布如下 : 
+假设模型,  预测第一个字的概率分布如下 :
 
 ![第1个字.png](https://s2.loli.net/2024/04/10/IfNJ1tRBwbTH8lP.png){: width="600" height="400" }
 
 则有
 $P( ' a ' ) = 0.4$
 ,  进一步的
-$P( w_2 | ' a ' )$ 
+$P( w_2 | ' a ' )$
 分布如下
 
 ![第2个字.png](https://s2.loli.net/2024/04/10/vgHxO3nFumXrQAc.png){: width="600" height="400" }
@@ -135,7 +135,7 @@ P(W) ^{-1/ N} &=  \prod_{i=1}^{N}   P(w)^{-  1/N} \\
 \end{align*}
 $$
 
-从这个角度来看,  困惑度越小,  交叉熵越小,  预测越准确. 
+从这个角度来看,  困惑度越小,  交叉熵越小,  预测越准确.
 
 最后,  实际计算过程中,  可能使用以e为底的对数,  也有计算其log后作为困惑度,  此外还有一些其他计算方式,  但是本质类似, 就是想表达 "预测输出的概率越大, 困惑度就越小"
 
