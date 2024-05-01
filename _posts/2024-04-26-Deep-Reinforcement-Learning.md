@@ -136,7 +136,7 @@ $log \ p(r_t,s_{t+1}|s_t,a_t)$
 
 $$
 \begin{align*}
-\nabla log \  p_{\theta}(\tau)  &= \sum_{t=1}^{T} log \ p(a_t|s_t,\theta)
+\nabla log \  p_{\theta}(\tau)  &= \sum_{t=1}^{T} \nabla log \ p(a_t|s_t,\theta)
 
 \end{align*}
 $$
@@ -146,7 +146,7 @@ $$
 
 $$
 \begin{align*}
-\nabla  \tilde{R}_{\theta}  &= \frac{1}{N} \sum_{n=1}^{N} \sum_{t=1}^{T} R(\tau^n) log \ p(a_t^n|s_t^n,\theta)
+\nabla  \tilde{R}_{\theta}  &= \frac{1}{N} \sum_{n=1}^{N} \sum_{t=1}^{T} R(\tau^n) \nabla log \ p(a_t^n|s_t^n,\theta)
 \end{align*}
 $$
 
@@ -154,7 +154,7 @@ $$
 
 $$
 \begin{align*}
-\nabla  \tilde{R}_{\theta}  &= \mathbb{E}_{(s_t,a_t) \sim p_{\theta}} [R(\tau) log \ p(a_t |s_t,\theta)]
+\nabla  \tilde{R}_{\theta}  &= \mathbb{E}_{(s_t,a_t) \sim p_{\theta}} [R(\tau) \nabla log \ p(a_t |s_t,\theta)]
 \end{align*}
 $$
 
@@ -178,10 +178,10 @@ $$
 一般的, baseline b 可以取值为截至目前的平均 reward:
 $b \approx \mathbb{E}_{\tau} [R(\tau)] $.
 
-此外
+此外, 上边式子可以理解为是对
 $log \ p(a_t^n|s_t^n,\theta)$
-的一个 sum weight.
-表示的是, 在 state $s_t$ 时采取 action $a_t$ 时对后来获得的总奖励的影响是多大. 来在上边的公式中, 这个 weight 对每个时间步 t 都一样, 均为 $R(\tau)$. 直觉上, 当前时间步 t 采取的动作, 只能影响 时间步 t 之后的奖励或者状态等. 并且随着时间流逝, 时间步 t 采取的动作对后续的影响应该越来越小, 因此对 $R(\tau)$ 进行修改:
+的一个 sum weight. 其中 $R(\tau^n) - b$
+表示的是, 在 state $s_t$ 时采取 action $a_t$ 时对后来获得的总奖励的影响是多大. 来在上边的公式中, 这个 weight 对每个时间步 t 都一样, 均为 $R(\tau^n) - b$. 直觉上, 当前时间步 t 采取的动作, 只能影响 时间步 t 之后的奖励或者状态等. 并且随着时间流逝, 时间步 t 采取的动作对后续的影响应该越来越小, 因此对 $R(\tau)$ 进行修改(忽略 b ):
 
 $$
 R(\tau^n) = \sum_{t' = t}^{T_n} \gamma^{t'-t}r_{t'}^{n}
@@ -197,7 +197,7 @@ $$
 >
 $$
 \begin{align*}
-\nabla  \tilde{R}_{\theta}  &= \mathbb{E}_{(s_t,a_t) \sim p_{\theta}} [A^{\theta}(s_t,a_t) log \ p(a_t |s_t,\theta)]
+\nabla  \tilde{R}_{\theta}  &= \mathbb{E}_{(s_t,a_t) \sim p_{\theta}} [A^{\theta}(s_t,a_t) \nabla  log \ p(a_t |s_t,\theta)]
 \end{align*}
 $$
 {: .prompt-info }
@@ -221,7 +221,7 @@ $$
 \newline
 &= \int f(x) \frac{p(x)}{q(x)} q(x) \ d(x)
 \newline
-&= \mathbb{E}_{x \sim p} [f(x)\frac{p(x)}{q(x)}]
+&= \mathbb{E}_{x \sim q} [f(x)\frac{p(x)}{q(x)}]
 \end{align*}
 $$
 
@@ -242,9 +242,9 @@ $$
 
 $$
 \begin{align*}
-Var_{x \sim p} [f(x) \frac{p(x)}{q(x)} ] &= \mathbb{E}_{x \sim p} [(f(x)\frac{p(x)}{q(x)})^2] - (\mathbb{E}_{x \sim p} [f(x)\frac{p(x)}{q(x)}] ) ^2
+Var_{x \sim q} [f(x) \frac{p(x)}{q(x)} ] &= \mathbb{E}_{x \sim q} [(f(x)\frac{p(x)}{q(x)})^2] - (\mathbb{E}_{x \sim q} [f(x)\frac{p(x)}{q(x)}] ) ^2
 \newline
-&= \int f(x)^2 \frac {p(x) p(x)} {q(x) q(x)} q(x)\ d(x) - \int q(x) f(x) \frac {p(x)}{q(x)} \ d(x)
+&= \int f(x)^2 \frac {p(x) p(x)} {q(x) q(x)} q(x)\ d(x) - (\int q(x) f(x) \frac {p(x)}{q(x)} \ d(x)) ^ 2
 \newline
 &=  \mathbb{E}_{x \sim p} [f(x)^2\frac {p(x)}{q(x)}] - (\mathbb{E}_{x \sim p} [f(x)] ) ^2
 \newline
@@ -395,11 +395,15 @@ $$
 
 #### 3.2.2 TD 方法求解 $Q^{\pi}(s,a)$
 
-1. 初始化 Q-function $Q^{\pi}(s,a)$, target Q-function $\tilde{Q^{\pi}}(s,a)$
-2. 然后对每个 state 都采取 action a, where $a = \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s,a)$
-3. 这样就能收集到一批 4 元对 : {$s_t,a_t,r_t,s_{t+1}$} 到 buffer 里边.
-4. 从 buffer 里边 sample 一笔数据, {$s_i,a_i,r_i,s_{i+1}$}.
-5. 使用 TD 方法优化:
+[1]. 初始化 Q-function $Q^{\pi}(s,a)$, target Q-function $\tilde{Q^{\pi}}(s,a)$
+
+[2]. 然后对每个 state 都采取 action a, where $a = \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s,a)$
+
+[3]. 这样就能收集到一批 4 元对 : {$s_t,a_t,r_t,s_{t+1}$} 到 buffer 里边.
+
+[4]. 从 buffer 里边 sample 一笔数据, {$s_i,a_i,r_i,s_{i+1}$}.
+
+[5]. 使用 TD 方法优化:
 
 $$
 minimize \ Q^{\pi}(s_i,a_i) \leftrightarrow  r_i + \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{i+1},a), where \ a = \pi(s_{i+1})
@@ -407,13 +411,13 @@ $$
 
 > 这个过程就是"培养" $\pi$, 让他能够给那个最优的 action 给出最大的分数.
 
-6. 由于等式左右两边都在变, 考虑到稳定性, 我们用 fixed target Q-function 去替换 $\mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{i+1},a)$, 于是优化目标变为:
+[6]. 由于等式左右两边都在变, 考虑到稳定性, 我们用 fixed target Q-function 去替换 $\mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{i+1},a)$, 于是优化目标变为:
 
 $$
 minimize \ Q^{\pi}(s_i,a_i) \leftrightarrow  r_i + \mathop{\arg\max}\limits_{a}  \ \tilde{Q^{\pi}}(s_{i+1},a), where \ a = \pi(s_{i+1})
 $$
 
-7. if step % C = 0, $\tilde{Q^{\pi}} = Q^{\pi}$
+[7]. if step % C = 0, $\tilde{Q^{\pi}} = Q^{\pi}$
 
 #### 3.2.3 tips
 
@@ -423,7 +427,7 @@ $$
 
 $$
 a = \begin{cases}
-a, \ \ p < \epsilon \\ \\
+rand \ \ a, \ \ p < \epsilon \\ \\
 \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{i},a),  \ \ p < 1 - \epsilon
 \end{cases}
 $$

@@ -1,8 +1,8 @@
 ---
 title: Text Generator With Transformer Decoder
 date: 2024-04-13 22:23:00 +0800
-categories: [Deep Learning , Transformer ,  NLP]
-tags: [deep learning,  nlp]     # TAG names should always be lowercase
+categories: [Deep Learning]
+tags: [deep learning,  nlp, transformer]     # TAG names should always be lowercase
 math: true
 ---
 
@@ -17,13 +17,13 @@ math: true
 
 ## 1. 准备
 
-首先需要搞明白真正在编程实现一个 `text generator` 的时候, 代码核心是什么? 我们来列出任务的基本组成: 
+首先需要搞明白真正在编程实现一个 `text generator` 的时候, 代码核心是什么? 我们来列出任务的基本组成:
 
 - 数据构造
     - 输入 : 一个序列
-    - 输出 : 一个单词 或者 一个序列 
+    - 输出 : 一个单词 或者 一个序列
 - 模型实现
-    - positional encoding 
+    - positional encoding
     - token embedding
     - decoder layer
         - mask attention (multi-head)
@@ -47,7 +47,7 @@ math: true
 
 文本生成任务是说, 我们想让模型根据一个简单提示词, 然后接着提示词不断的写下去. 比如, 给模型输入: "我爱您,", 那么模型也许能够输出: "母亲, 感谢您的养育之恩."  最后我们将输入和输出连起来得到完整的语句: "我爱您, 母亲, 感谢您的养育之恩."
 
-不过计算机没法处理汉字, 英文也不认识. 所以我们首先需要把英文啊, 中文转成数字. 
+不过计算机没法处理汉字, 英文也不认识. 所以我们首先需要把英文啊, 中文转成数字.
 
 怎么转呢? 其实非常简单, 假设我们汉字有10w个, 我们就把每个汉字和一个数字一一对应即可. 比如 :
 
@@ -55,7 +55,7 @@ math: true
 ![image.png](https://s2.loli.net/2024/04/14/6nshFYQyPIBq8N1.png)
 
 
-注意这里, 标点符号也是要进行转换. 好的, 现在我们可以把`汉字`或者`单词`输入到模型中了. 
+注意这里, 标点符号也是要进行转换. 好的, 现在我们可以把`汉字`或者`单词`输入到模型中了.
 
 不过汉字太多了, 为方便叙述, 后续我们使用英文来举例子. 本文我们就用到的 `a-z` 26个字母 + `0-9` 10个数字 + `'\ '` + `','` + `'.'` + `'<pad>'`共40个字符, 我们称之为 'vocabulary'. 其中, `'<pad>'` 用于对句子进行填充, 使得训练的时候, 输入的句子一样长. 以下代码实现将这些字符映射到数字.
 
@@ -116,14 +116,14 @@ class Tokenizer:
 
 ### 2.2 输入输出构造
 
-我们的训练集是一句话 : "cats rule the world. dogs are the best. elephants have long trunks. monkeys like bananas. pandas eat bamboo. tigers are dangerous. zebras have stripes. lions are the kings of the savannah. giraffes have long necks. hippos are big and scary. rhinos have horns. penguins live in the arctic. polar bears are white" 
+我们的训练集是一句话 : "cats rule the world. dogs are the best. elephants have long trunks. monkeys like bananas. pandas eat bamboo. tigers are dangerous. zebras have stripes. lions are the kings of the savannah. giraffes have long necks. hippos are big and scary. rhinos have horns. penguins live in the arctic. polar bears are white"
 
-> 以下列出了几组输入和输出样例 (假设每句话最大token数目限制为3) : 
-> 
+> 以下列出了几组输入和输出样例 (假设每句话最大token数目限制为3) :
+>
 > [1] `'cat' -> 'ats'`
-> 
+>
 > [2] `'ats' -> 'ts '`
-> 
+>
 > [3] `'ts ' -> 's r'`
 
 使用如下代码将字符转换为数字.
@@ -158,7 +158,7 @@ class Tokenizer:
                 # Prepend padding tokens
                 tokenized_training_data.insert(0, tokenizer.character_to_token('<pad>'))
             return tokenized_training_data
-        
+
 
 ```
 
@@ -170,13 +170,13 @@ class Tokenizer:
 ![image.png](https://s2.loli.net/2024/04/14/RNGpnr92LbqPW6U.png)
 
 
-ok , 经过上边的映射, `a`就是 11 , `b` 就是 12, 假设我们想输入 `abc`, 希望模型预测的输出是 `d` . 那输入就是 `11 12 13`,  输出就是 `14`, 即 `11 12 13 -> 14`. 
+ok , 经过上边的映射, `a`就是 11 , `b` 就是 12, 假设我们想输入 `abc`, 希望模型预测的输出是 `d` . 那输入就是 `11 12 13`,  输出就是 `14`, 即 `11 12 13 -> 14`.
 
 
 本篇 blog 使用 `11 12 13 -> 12 13 14` 的输出格式, 本质是一样的. 这样保证了输入输出的序列长度是一样的. 此外代码中实现的时候, 我们假设序列的长度为 $20$ . 一句话不足 $20$ 个 token, 用`<pad>`字符填充(就是用0填充). 举个例子:
 
 
-用  `1 2 3 -> 2 3 4` , 经过填充后, 最后实际给模型的输入输出为 `0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 2 3 -> 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 2 3 4 ` 
+用  `1 2 3 -> 2 3 4` , 经过填充后, 最后实际给模型的输入输出为 `0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 2 3 -> 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 2 3 4 `
 
 你可能注意到, 我们在整个句子前边添加了 20 个`<pad>`字符. 这是为了下一步对输入输出构造, 对于第一组输入和输出.
 
@@ -262,7 +262,7 @@ Causal Mask 就常规了, 一个 shape with  $序列长度 \times 序列长度$ 
 
 ![image.png](https://s2.loli.net/2024/04/15/kqFK1vbJdLS37Yz.png)
 
-这里最后我们模型输出的是下一个 token 在 vocabulary 上的概率, 因此具体下个 token 具体是什么, 需要采样, 采样思路有很多, 可以参考: [how-to-generate](https://huggingface.co/blog/how-to-generate). 不过这篇 Blog 就简单的输出概率最大的那个token. 
+这里最后我们模型输出的是下一个 token 在 vocabulary 上的概率, 因此具体下个 token 具体是什么, 需要采样, 采样思路有很多, 可以参考: [how-to-generate](https://huggingface.co/blog/how-to-generate). 不过这篇 Blog 就简单的输出概率最大的那个token.
 
 
 ## 5. 完整代码

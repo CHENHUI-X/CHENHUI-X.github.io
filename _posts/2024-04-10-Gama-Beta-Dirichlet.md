@@ -1,7 +1,7 @@
 ---
 title: Gama&Beta&Dirichlet
 date: 2024-04-10 20:30:00 +0800
-categories: [Machine Learning ,  Mathematics,  Statistical,  Reinforcement Learning]
+categories: [Machine Learning ,  Reinforcement Learning, Mathematics,  Statistical  ]
 tags: [machine learning,  mathematics,  reinforcement learning]     # TAG names should always be lowercase
 math: true
 ---

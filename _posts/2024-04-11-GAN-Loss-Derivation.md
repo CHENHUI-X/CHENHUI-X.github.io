@@ -1,8 +1,8 @@
 ---
 title: GAN Loss Derivation
 date: 2024-04-11 23:39:00 +0800
-categories: [Deep Learning ,  Mathematics,  GAN]
-tags: [deep learning,  mathematics]     # TAG names should always be lowercase
+categories: [Deep Learning ,  Mathematics]
+tags: [deep learning,  mathematics, gan]     # TAG names should always be lowercase
 math: true
 ---
 

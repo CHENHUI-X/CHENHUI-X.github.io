@@ -125,52 +125,87 @@ examples = [
     {"input": "windy", "output": "calm"},
 ]
 
-# 用于将 example format
 example_prompt = PromptTemplate(
     input_variables=["input", "output"],
     template="Input: {input}\nOutput: {output}",
 )
 example_selector = LengthBasedExampleSelector(
+    # The examples it has available to choose from.
     examples=examples,
+
+    # The PromptTemplate being used to format the examples.
+    # 这个参数有些 selector 不需要, 有些是必须的, 请参考函数具体API
     example_prompt=example_prompt,
+
+    # The maximum length that the formatted examples should be.
+    # Length is measured by the get_text_length function below.
     max_length=25,
     # The function used to get the length of a string, which is used
     # to determine which examples to include. It is commented out because
     # it is provided as a default value if none is specified.
     # get_text_length: Callable[[str], int] = lambda x: len(re.split("\n| ", x))
 )
+dynamic_prompt = FewShotPromptTemplate(
+    # We provide an ExampleSelector instead of examples.
+    example_selector=example_selector,
+    example_prompt=example_prompt,
+    prefix="Give the antonym of every input",
+    suffix="Input: {adjective}\nOutput:",
+    input_variables=["adjective"],
+)
 
 ```
 
 输入:
 
 ```python
-example_selector.select_examples({"input": "okay"})
+# An example with small input, so it selects all examples.
+print(dynamic_prompt.format(adjective="big"))
 ```
 
 输出:
 
 ```plaintext
-[{'input': 'happy', 'output': 'sad'},
- {'input': 'tall', 'output': 'short'},
- {'input': 'energetic', 'output': 'lethargic'},
- {'input': 'sunny', 'output': 'gloomy'},
- {'input': 'windy', 'output': 'calm'}]
+Give the antonym of every input
 
+Input: happy
+Output: sad
+
+Input: tall
+Output: short
+
+Input: energetic
+Output: lethargic
+
+Input: sunny
+Output: gloomy
+
+Input: windy
+Output: calm
+
+Input: big
+Output:
 ```
 
 输入:
 
 ```python
+# An example with long input, so it selects only one example.
 long_string = "big and huge and massive and large and gigantic and tall and much much much much much bigger than everything else"
-example_selector.select_examples({"input": long_string})
+print(dynamic_prompt.format(adjective=long_string))
 ```
 
 输出:
 
 ```plaintext
 # 可以看到只给了一个example
-[{'input': 'happy', 'output': 'sad'}]
+Give the antonym of every input
+
+Input: happy
+Output: sad
+
+Input: big and huge and massive and large and gigantic and tall and much much much much much bigger than everything else
+Output:
 ```
 
 #### Select by maximal marginal relevance (MMR)
@@ -184,12 +219,14 @@ example_selector.select_examples({"input": long_string})
 例子
 
 ```python
-
-from langchain_core.example_selectors import MaxMarginalRelevanceExampleSelector
-from langchain_core.prompts import PromptTemplate
+from langchain_community.vectorstores import FAISS
+from langchain_core.example_selectors import (
+    MaxMarginalRelevanceExampleSelector,
+    SemanticSimilarityExampleSelector,
+)
+from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
 from langchain_openai import OpenAIEmbeddings
 
-# 用于 format examples pool
 example_prompt = PromptTemplate(
     input_variables=["input", "output"],
     template="Input: {input}\nOutput: {output}",
@@ -203,7 +240,6 @@ examples = [
     {"input": "sunny", "output": "gloomy"},
     {"input": "windy", "output": "calm"},
 ]
-
 example_selector = MaxMarginalRelevanceExampleSelector.from_examples(
     # The list of examples available to select from.
     examples,
@@ -214,14 +250,34 @@ example_selector = MaxMarginalRelevanceExampleSelector.from_examples(
     # The number of examples to produce.
     k=2,
 )
-
+mmr_prompt = FewShotPromptTemplate(
+    # We provide an ExampleSelector instead of examples.
+    example_selector=example_selector,
+    example_prompt=example_prompt,
+    prefix="Give the antonym of every input",
+    suffix="Input: {adjective}\nOutput:",
+    input_variables=["adjective"],
+)
+```
+输入:
+```python
+# Input is a feeling, so should select the happy/sad example as the first one
+print(mmr_prompt.format(adjective="worried"))
 ```
 
 输出:
 
 ```plaintext
-[{'input': 'happy', 'output': 'sad'},
- {'input': 'windy', 'output': 'calm'}]
+Give the antonym of every input
+
+Input: happy
+Output: sad
+
+Input: windy
+Output: calm
+
+Input: worried
+Output:
 ```
 
 #### Select by similarity
@@ -231,7 +287,6 @@ example_selector = MaxMarginalRelevanceExampleSelector.from_examples(
 例子
 
 ```python
-
 from langchain_chroma import Chroma
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
@@ -250,7 +305,6 @@ examples = [
     {"input": "sunny", "output": "gloomy"},
     {"input": "windy", "output": "calm"},
 ]
-
 example_selector = SemanticSimilarityExampleSelector.from_examples(
     # The list of examples available to select from.
     examples,
@@ -261,15 +315,30 @@ example_selector = SemanticSimilarityExampleSelector.from_examples(
     # The number of examples to produce.
     k=1,
 )
-
-example_selector.select_examples({"adjective": "large"})
-
+similar_prompt = FewShotPromptTemplate(
+    # We provide an ExampleSelector instead of examples.
+    example_selector=example_selector,
+    example_prompt=example_prompt,
+    prefix="Give the antonym of every input",
+    suffix="Input: {adjective}\nOutput:",
+    input_variables=["adjective"],
+)
 ```
-
+输入:
+```python
+# Input is a feeling, so should select the happy/sad example
+print(similar_prompt.format(adjective="worried"))
+```
 输出
 
 ```plaintext
-[{'input': 'tall', 'output': 'short'}]
+Give the antonym of every input
+
+Input: happy
+Output: sad
+
+Input: worried
+Output:
 ```
 
 #### Select by n-gram overlap
@@ -313,18 +382,39 @@ example_selector = NGramOverlapExampleSelector(
     # Selector sorts examples by ngram overlap score,
     # and excludes those with no ngram overlap with input.
 )
-
-# 虽然  "My dog barks." 与 输入不相关, 但是还是输出了
-example_selector.select_examples({"sentence": "Spot can run fast."})
+dynamic_prompt = FewShotPromptTemplate(
+    # We provide an ExampleSelector instead of examples.
+    example_selector=example_selector,
+    example_prompt=example_prompt,
+    prefix="Give the Spanish translation of every input",
+    suffix="Input: {sentence}\nOutput:",
+    input_variables=["sentence"],
+)
 
 ```
-
-输出 :
+输入:
+```python
+# An example input with large ngram overlap with "Spot can run."
+# and no overlap with "My dog barks."
+print(dynamic_prompt.format(sentence="Spot can run fast."))
+```
+输出:
 
 ```plaintext
-[{'input': 'Spot can run.', 'output': 'Spot puede correr.'},
- {'input': 'See Spot run.', 'output': 'Ver correr a Spot.'},
- {'input': 'My dog barks.', 'output': 'Mi perro ladra.'}]
+# 可以看到, 即使 "My dog barks." 与输入不相关, 但还是输出了
+Give the Spanish translation of every input
+
+Input: Spot can run.
+Output: Spot puede correr.
+
+Input: See Spot run.
+Output: Ver correr a Spot.
+
+Input: My dog barks.
+Output: Mi perro ladra.
+
+Input: Spot can run fast.
+Output:
 ```
 
 输入:
@@ -339,8 +429,19 @@ print(dynamic_prompt.format(sentence="Spot can run fast."))
 输出:
 
 ```plaintext
-[{'input': 'Spot can run.', 'output': 'Spot puede correr.'},
- {'input': 'See Spot run.', 'output': 'Ver correr a Spot.'}]
+Give the Spanish translation of every input
+
+Input: Spot can run.
+Output: Spot puede correr.
+
+Input: See Spot run.
+Output: Ver correr a Spot.
+
+Input: Spot plays fetch.
+Output: Spot juega a buscar.
+
+Input: Spot can run fast.
+Output:
 ```
 
 ### 1.3 Few-shot prompt templates
@@ -607,7 +708,7 @@ LangChain 给的例子是继承 BaseLoader, 然后将读到的文本初始化为
 例子:
 
 <details markdown="1">
-<summary> 详细信息 </summary>
+<summary> 详细代码 </summary>
 
 ```python
 from typing import AsyncIterator, Iterator
@@ -769,6 +870,7 @@ text_splitter.split_text(
 #### Split by tokens
 
 这个就是使用 NLP 中 token 进行切割, 不同的 tokenizer 有不同的切割方式. 举个例子, 如果一个单词算一个 token, 那就按单词切割.
+为什么需要这个呢, 就是有些 LLM 的输入具有 token 数目的限制, 因此最好分割存储的 tokenizer 和 LLM 使用一样的.
 
 这里使用 OpenAI BPE tokenizer : tiktoken, 是[BPE 算法](https://huggingface.co/learn/nlp-course/chapter6/5)的一个实现.
 
@@ -801,6 +903,7 @@ texts = text_splitter.split_text("text")
 ```python
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai.embeddings import OpenAIEmbeddings
+text_splitter = SemanticChunker(OpenAIEmbeddings())
 texts = text_splitter.split_text("text")
 ```
 
@@ -1069,7 +1172,7 @@ len(unique_docs)
 输出
 
 ```plaintext
-# 可以看到默认生成了3个问题
+# 可以看到日志默认生成了3个问题(注意这不是最终输出哈~)
 ['1. How can Task Decomposition be approached?',
  '2. What are the different methods for Task Decomposition?',
  '3. What are the various approaches to decomposing tasks?']
@@ -1078,7 +1181,7 @@ len(unique_docs)
 
 #### Contextual Compression Retriever
 
-这个实际上算是一个 wrapper, 本意是用来解决:因为我们不知道用户到低想搜索什么, 所以以会直接放大量的文档给 store 中, 但是这就会导致一个问题, 当我们输入 query 的时候, 有用的信息可能会被淹没在大量的文档中, 这就需要我们对文档信息进行压缩搜素, 把没用的信息过滤掉.
+这个实际上算是一个 wrapper, 本意是用来解决:因为我们不知道用户到低想搜索什么, 所以以会直接放大量的文档给 store 中, 但是这就会导致一个问题, 当我们输入 query 的时候, 有用的信息可能会被淹没在大量的文档中, 这就需要我们对文档信息进行压缩, 把没用的信息过滤掉.
 
 例子:
 
@@ -1179,7 +1282,7 @@ compressed_docs = compression_retriever.invoke(
 )
 pretty_print_docs(compressed_docs)
 ```
-但是这个 compression 会使用 LLM 对抽回的文档进行处理(万一他处理的不好呢?). 官方提供了一种可以不改变原始文档, 但能保留核心信息的 : filters.
+但是这个 compression 会使用 LLM 对抽回的文档进行处理压缩(万一他处理的不好呢?). 官方提供了一种可以不改变原始文档, 但能保留核心信息的 : filters.
 
 例子:
 
