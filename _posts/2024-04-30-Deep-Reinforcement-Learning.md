@@ -724,7 +724,7 @@ $$
 
 ## Footnotes
 
-[^footnote]: [Reinforcement Learning: An Introduction](http://incompleteideas.net/book/the-book-2nd.html)
+[^footnote]: [Reinforcement Learning: An Introduction](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)
 
 [^fn-nth-2]: [Monte Carlo Methods](https://www.youtube.com/watch?v=P0ZvxeQqv0A)
 
