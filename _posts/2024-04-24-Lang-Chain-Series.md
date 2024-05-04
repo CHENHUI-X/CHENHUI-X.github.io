@@ -1,8 +1,8 @@
 ---
 title: Lang Chain Series
 date: 2024-04-24 19:0000 +0800
-categories: [Deep Learning, LLM, LangChain]
-tags: [deep learning, llm, langchain] # TAG names should always be lowercase
+categories: [Deep Learning]
+tags: [deep learning, llm, langchain, nlp] # TAG names should always be lowercase
 math: true
 ---
 

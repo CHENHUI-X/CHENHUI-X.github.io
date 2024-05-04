@@ -1,7 +1,7 @@
 ---
 title: Introduction to Causal Inference Series (I)
 date: 2024-04-26 14:15:00 +0800
-categories: [Machine Learning , Causal Inference]
+categories: [Causal Inference]
 tags: [machine learning,  mathematics, statistics, causal inference]     # TAG names should always be lowercase
 math: true
 ---

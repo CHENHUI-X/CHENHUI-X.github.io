@@ -1,8 +1,8 @@
 ---
 title: Sampling Method
 date: 2024-04-11 17:07:00 +0800
-categories: [Machine Learning ,  Mathematics,  Statistical]
-tags: [machine learning,  mathematics]     # TAG names should always be lowercase
+categories: [Mathematics]
+tags: [machine learning, mathematics, statistical]     # TAG names should always be lowercase
 math: true
 ---
 

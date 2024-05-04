@@ -1,7 +1,7 @@
 ---
 title: L1 and L2 Regularization
 date: 2024-04-20 15:08:00 +0800
-categories: [Machine Learning,Statistical, Mathematics]
+categories: [Machine Learning]
 tags: [machine learning,  mathematics, statistics]     # TAG names should always be lowercase
 math: true
 ---

@@ -1,7 +1,7 @@
 ---
 title: Kullback–Leibler divergence
 date: 2024-04-19 00:04:00 +0800
-categories: [Machine Learning, Deep Learning, Statistical, Mathematics]
+categories: [Deep Learning]
 tags: [machine learning, mathematics, statistics, deep learning]     # TAG names should always be lowercase
 math: true
 ---
