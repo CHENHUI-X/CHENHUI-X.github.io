@@ -2,7 +2,7 @@
 title: Deep Reinforcement Learning Series
 date: 2024-04-30 12:08:00 +0800
 categories: [Deep Learning]
-tags: [reinforcement  learning,  deep learning ]     # TAG names should always be lowercase
+tags: [reinforcement learning,  deep learning ]     # TAG names should always be lowercase
 math: true
 ---
 
@@ -13,8 +13,6 @@ math: true
 
 > 阅读前, 需要你 : 有高数基础知识, 线代基础知识, 统计学习基础知识, 当然还要有 ML和 DL 的知识背景.
 {: .prompt-info }
-
-
 
 
 
@@ -373,7 +371,7 @@ $$
 
 ### 3.2 Bellman equation
 
-### 3.2.1 Bellman equation for $V^{\pi}(s)$
+#### 3.2.1 Bellman equation for $V^{\pi}(s)$
 
 $$
 \begin{align*}
@@ -390,12 +388,11 @@ V^{\pi}(s) &= \mathbb{E}_{\pi}[R_t | S_t = s]
 \end{align*}
 $$
 
-上边这个式子称为 $V^{\pi}(s)$ 的 `Bellman equation`, 它揭示了当前 $\text{state s}$ 下的 $V^{\pi}$ 与下一时刻的 $\text{state s'}$ 的 $V^{\pi'}$ 之间的关系.
+上边这个式子称为 $V^{\pi}(s)$ 的 `Bellman equation`, 它揭示了当前 $\text{state s}$ 下的 $V^{\pi}$ 与下一时刻的 $\text{state s'}$ 的 $V^{\pi}$ 之间的关系.
 
-### 3.2.2 Bellman optimality equation for $V^{\pi}(s)$
+#### 3.2.2 Bellman optimality equation for $V^{\pi}(s)$
 
 从定义上我们有:
-
 
 $$
 \begin{align*}
@@ -416,7 +413,7 @@ $$
 上式称为 Bellman optimality equation for $V^{\pi}(s)$
 
 
-### 3.2.3 Bellman optimality equation for $Q^{\pi}(s,a)$
+#### 3.2.3 Bellman optimality equation for $Q^{\pi}(s,a)$
 
 按定义我们有:
 
@@ -436,7 +433,7 @@ $$
 
 ### 3.3 Dynamic Programming Based
 
-####  Policy Evaluation
+#### 3.3.1  Policy Evaluation
 动态规划的思想就很直观, 直接根据我们之前的 Bellman equation 迭代就行了, 因为 Bellman equation 描述的就是 $\pi_{\ast}$ 本身的性质. 更新迭代公式如下:
 
 $$
@@ -448,7 +445,7 @@ $$
 
 上述迭代过程称为 iterative policy evaluation.
 
-####  Policy Improvement
+#### 3.3.2 Policy Improvement
 
 我们的目是找一个 policy, 能够面对不同的 state 采取一个action. 已知
 
@@ -503,20 +500,22 @@ $$
 
 可以看到, 这就是 3.2.2 的 Bellman optimality equation for $V^{\pi}(s)$. 换句话说, 此时的 $\pi' = \pi$ 就是最优的 $\pi$.
 
-#### Policy Iteration
+#### 3.3.3 Policy Iteration
 
 ![image.png](https://s2.loli.net/2024/05/03/9s3hY5weflTpL6d.png){: width="400" height="300" }_source from refer[^footnote]_
 
 我们使用 Policy Evaluation 去迭代 $V^{\pi}(s)$, 实现让 $V^{\pi}(s)$ 预估的更加准确.
 
-然后, 我们使用 Policy Improvement 去找到一个更好的 $\pi$. 这个过程 Policy Evaluation 和 Policy Improvement 是交替循环的, 如下:
+然后, 我们使用 Policy Improvement 去找到一个更好的 $\pi$. 上述过程称为 Policy Iteration.
+
+这个过程 Policy Evaluation 和 Policy Improvement 是交替循环的, 如下:
 
 ![image.png](https://s2.loli.net/2024/05/04/MlOrPbRqevAgFU1.png){: width="300" height="200" }_source from refer[^footnote]_
 
-上述过程称为 Policy Iteration.
+后续, 多个方法思路都是类似的, 上述循环过程称为 Generalized Policy Iteration.
 
 
-#### Value Iteration
+#### 3.3.4 Value Iteration
 
 Policy Iteration 有 2 个步骤, 首先要让 V 预估准确, 然后再使用 Policy Improvement, 步骤比较繁琐, Value Iteration 的思想是, 直接从 Bellman optimality equation for $V^{\pi}(s)$ 入手 :
 
@@ -539,7 +538,7 @@ $$
 
 ![image.png](https://s2.loli.net/2024/05/04/Px6KeON8TqJmHVn.png){: width="400" height="300" }_source from refer[^footnote]_
 
-#### DP 方法总结
+#### 3.3.5 DP 方法总结
 
 DP 方法总体思路为迭代方法, 主要基于 Bellman equation 进行迭代更新. 它基于当前状态, 观察所有可能的下一步来更新. 如图所示:
 
@@ -548,7 +547,7 @@ DP 方法总体思路为迭代方法, 主要基于 Bellman equation 进行迭代
 
 ### 3.4 Monte-Carlo based
 
-#### state value based
+#### 3.4.1 state value based
 
 Monte-Carlo 方法就很质朴, 直接基于当前 state, 然后你玩游戏直到结束, 记录分数, 最后求和得到累计奖励 $R$, 然后 minimize 二者的差距:
 
@@ -564,7 +563,7 @@ $$
 
 ![image.png](https://s2.loli.net/2024/05/04/1TUgNV5yYWfdeF3.png){: width="400" height="300" }_source from refer[^fn-nth-2]_
 
-#### state action value based
+#### 3.4.2 state action value based
 
 但是 state value based 可能比较困难, 因为要预估当前 state 下, 所有 action 的结果. 如果直接预估当前 state 下, 采取一个 action 之后的值可能好一点. 具体的, 收集一批以 state s , action a 为起点的  trajectory , 最后计算 reward 的均值作为  $Q^{\pi}(s,a)$:
 
@@ -578,6 +577,36 @@ $$
 
 
 ### 3.5 Temporal-difference based
+
+#### 3.5.1 迭代公式
+回顾 $V^{\pi}(s)$ 的定义: 计算 $\pi$ 面对当前 state s 能够获得的奖励, 记 $N_{a}^{k}(s)$ 表示基于当前 state 采样的 action 数目.
+
+$$
+\begin{align*}
+V_{k}^{\pi}(s) &= \mathbb{E}_{\pi}[R_t | S_t = s]
+\newline
+&= \frac {1} {N_{a}^{k}(s)} (R_1 + R_2 + ... + R_{N_{a}^{k}(s)}) \ \ (采样)
+\newline
+&= \frac {1} {N_{a}^{k}(s)} (  R_{N_{a}^{k}(s)} + \sum_{i}^{N_{a}^{k}(s) - 1 } R_i )
+\newline
+&= \frac {1} {N_{a}^{k}(s)} (  R_{N_{a}^{k}(s)} + (N_{a}^{k}(s)-1) V_{k -1 }^{\pi}(s) + V_{k -1 }^{\pi}(s) - V_{k -1 }^{\pi}(s))
+\newline
+&= \frac {1} {N_{a}^{k}(s)} (  R_{N_{a}^{k}(s)} + N_{a}^{k}(s) V_{k -1 }^{\pi}(s)  - V_{k -1 }^{\pi}(s))
+\newline
+&= V_{k -1 }^{\pi}(s) + \frac {1} {N_{a}^{k}(s)} (  R_{N_{a}^{k}(s)}   - V_{k -1 }^{\pi}(s))
+\newline
+\end{align*}
+$$
+
+抽象一下, 可以表示为下边的迭代公式:
+
+$$
+\text{NewEstimate ← OldEstimate + StepSize [Target − OldEstimate]}
+$$
+
+$V_{k -1 }^{\pi}(s)$ 告诉我们当前的预估, $R_{N_{a}^{k}(s)}$ 是真实看到的结果, $R_{N_{a}^{k}(s)}   - V_{k -1 }^{\pi}(s)$ 告诉我们应该向实际看到的 reward 方向走, 这很像智能优化中的粒子群算法(关于该算法可以看我的[视频讲解](https://www.bilibili.com/video/BV1uY41187rK)).
+
+#### 3.5.2 TD-Prediction
 
 假设我们的 critic 是准确的, 应该有:
 
@@ -606,7 +635,7 @@ $$
 
 上式中, $\gamma V^{\pi}(s_{t+1}) + r_t $ 描述的是向后预估一个 state $s_{t+1}$ 的 value. 然后再回过头来, 结合当前的预估值看预估的准不准, **$\gamma V^{\pi}(s_{t+1}) + r_t - V^{\pi}(s_t)$  也称为 temporal difference error (TD-error)**.
 
-那如果不准确 $V^{\pi}(s)$ 不准确, 我们可以使用 $\gamma V^{\pi}(s_{t+1}) + r_t$ 来纠正 $V^{\pi}$(因为 $r_t$ 至少是确定的).
+那如果 $V^{\pi}(s)$ 不准确, 我们可以使用 $\gamma V^{\pi}(s_{t+1}) + r_t$ 来纠正 $V^{\pi}$(因为 $r_t$ 至少是确定的).
 
 于是,可以使用如下迭代公式更新 $V^{\pi}(s)$ :
 
@@ -625,54 +654,58 @@ V^{\pi}(s_t) \leftarrow  V^{\pi}(s_t) + \alpha ( R_t - V^{\pi}(s_t))
 $$
 >
 > 所以 Monte-Carlo based 就是直接用**真实的**、整个 trajectory 的 reward 与 $V^{\pi}(s)$ 做比较, 而 Temporal-difference based 则是向后玩一步或者多步, 剩余的使用 $V^{\pi}$ 进行预估.
+>
 {: .prompt-info }
 
-此外, 也可以直接 minimize 以下差异[^fn-nth-3]:
+当然, 由于现在大家都是 neural network , 因此也可以直接使用梯度下降 minimize 以下差异[^fn-nth-3]:
 
 $$
 minimize \ V^{\pi}(s_t) - \gamma V^{\pi}(s_{t+1}) \leftrightarrow  r_t
 $$
 
-$Q^{\pi}(s,a)$ 计算方法同理, 不过需要注意的是, MC 方法和 TD 方法有时候预估出来的结果可能不一样:
+不过需要注意的是, MC 方法和 TD 方法有时候预估出来的结果可能不一样:
 ![image.png](https://s2.loli.net/2024/04/30/QveSp4AUZ7ykamt.png){: width="400" height="300" }_source from refer[^fn-nth-3]_
 
 > 二者没有说谁对谁错, 只是基于当前的数据, 作出的合理的判断. 不过由于便捷性和效率, **通常使用 TD 方法, 毕竟 MC 方法太磨叽了.**
 {: .prompt-info }
 
+#### 3.5.3 SARSA: ON-POLICY TD CONTROL
+
+我们也可以直接对 $Q^{\pi}(s,a)$ 进行 TD-Prediction, 该算法也叫 SARSA (State-Action-Reward-State-Action) .
+
+![image.png](https://s2.loli.net/2024/05/05/aZwMWOVS2yA1hKQ.png){: width="400" height="300" }_source from refer[^footnote]_
+
+这个地方 ON-POLICY 是说我们对下一个 action $s_{t+1}$ 的 Q value 预估用的 policy 和获取下一个 action $s_{t+1}$ 的 policy 是同一个.
+
+#### 3.5.4 Q-Learning: Off-Policy TD Control
+
+Q Learning 则是直接类似 3.3.4 节的 Value Iteration. 我们可以直接将 improvement 嵌入到更新公式里边, 直接期望 Q function 收敛到最优的 policy $\pi_{\ast}$ 对应的 Q. 算法如下:
 
 
+![image.png](https://s2.loli.net/2024/05/05/xVeEJQyK5LqDYtA.png){: width="400" height="300" }_source from refer[^fn-nth-3]_
 
+Q-Learning 也被称为 Off-Policy, 是因为我们计算 $r_t + \mathop{\max}\limits_{a}  \ Q^{\pi}(s_{t+1},a)$ 的时候用的是 $\mathop{\max}\limits_{a}  \ Q^{\pi}(s_{t+1},a)$, 而不是 $\pi$ 真正想输出的 action.
 
-### 3.2 Q Learning
-
-Q Learning 就是上边 $Q^{\pi}(s,a)$ 的情况, 给定一个 state s, 然后 actor 能够采取一些 action a, critic 输出当前 Actor 在这个 state 下, 不同 action 能够获得分数(平均).
-
-![image.png](https://s2.loli.net/2024/04/30/CQn1kP5XhpbvE27.png){: width="400" height="300" }_source from refer[^fn-nth-3]_
-
-#### 3.2.1 定理
-
-Q Learning 给出一个很重要的定理, 就是如果你 train 好一个 $Q^{\pi}(s,a)$, 你就能得到一个更好的 $\pi'$.
-
-**证明:**
-
-证明其实很简单, 如果能找到新的  $\pi'$, 做到下式成立, 那么 $\pi'$ 就比 $\pi$ 好.
-
-$$
-\pi'(s) = a^* = \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s,a)
-$$
-
-因为有:
+可以这样理解, 存在一个 $\pi_{\ast}$, 使得:
 
 $$
-Q^{\pi}(s,\pi'(s)) >= Q^{\pi}(s,a) >= Q^{\pi}(s,\pi(s))
+\pi_{\ast}(s_{t+1}) = \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{t+1},a) \ \text{或者} \  Q^{\pi}(s_{t+1},\pi_{\ast}(s_{t+1})) = \mathop{\max}\limits_{a}  \ Q^{\pi}(s_{t+1},a)
 $$
 
+于是每次对下一个 action $s_{t+1}$ 的 Q value 预估的时候, 实际上用的 policy 是 $\pi_{\ast}$, 而获取下一个 action $s_{t+1}$ 的 policy 是 $\pi$. 二者不是同一个, 因此叫 Off-Policy.
 
-> 可以这样理解, 就是面对每个 state, $\pi$ 可以采取不同的 action, 每个 action 采取后, 就会对应生成一个具体的 $\pi$ 分身, 直到游戏结束. 回过头来看(上帝视角), 这么多的分身(路径), 那个每次采取分数最高的 action 对应的分身(路径),就是最好的分身(路径). 我们就把这个 分身 称为 $\pi'$.
->![image.png](https://s2.loli.net/2024/04/30/5PNHJcfzabesY8D.png)
-{: .prompt-info }
+> 这个过程就是"培养" $\pi$, 去尽量的接近潜在的、最优的 $\pi_{\ast}$.
 
-#### 3.2.2 TD 方法求解 $Q^{\pi}(s,a)$
+--------------------------------
+
+实作上, 由于大家现在都是 neural network 了, 可以直接使用梯度下降去 $\text{minimize}$ 误差:
+
+$$
+\text{minimize} \ Q^{\pi}(s_i,a_i) \leftrightarrow  r_i + \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{i+1},a), where \ a = \pi(s_{i+1})
+$$
+
+算法如下:
+
 
 [1]. 初始化 Q-function $Q^{\pi}(s,a)$, target Q-function $\tilde{Q^{\pi}}(s,a)$
 
@@ -682,40 +715,140 @@ $$
 
 [4]. 从 buffer 里边 sample 一笔数据, {$s_i,a_i,r_i,s_{i+1}$}.
 
-[5]. 使用 TD 方法优化:
+[5]. 由于等式左右两边都在变, 考虑到稳定性, 我们用 target Q-function (fixed) 去替换 $\mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{i+1},a)$, 于是优化目标变为:
 
 $$
-minimize \ Q^{\pi}(s_i,a_i) \leftrightarrow  r_i + \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{i+1},a), where \ a = \pi(s_{i+1})
-$$
-
-> 这个过程就是"培养" $\pi$, 让他能够给那个最优的 action 给出最大的分数. 于是 $\pi >= \pi'$
-
-由于等式左右两边都在变, 考虑到稳定性, 我们用 fixed target Q-function and $\pi'$ 去替换 $\mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{i+1},a)$, 于是优化目标变为:
-
-$$
-minimize \ Q^{\pi}(s_i,a_i) \leftrightarrow  r_i + \mathop{\arg\max}\limits_{a}  \boldsymbol{\tilde{Q^{\pi}}(s_{i+1},a)}, where \ a = \pi'(s_{i+1})
+minimize \ Q^{\pi}(s_i,a_i) \leftrightarrow  r_i + \mathop{\arg\max}\limits_{a}  \boldsymbol{\tilde{Q^{\pi}}(s_{i+1},a)}
 $$
 
 上边的式子还有一个问题, 就是后边
 
 $$
-\mathop{\arg\max}\limits_{a}  \ \tilde{Q^{\pi}}(s_{i+1},a), where \ a = \pi'(s_{i+1})
+\mathop{\arg\max}\limits_{a}  \ \tilde{Q^{\pi}}(s_{i+1},a)
 $$
 
-完全是由 Target Net 掌握, 包括 action 的输出和 Q value 的打分. Paper [Double DQN](https://arxiv.org/abs/1509.06461) 发现, Target Net 总是高估自己的 action 的分数, 于是提出用 2 个 net 相互制衡, 打分使用 $\tilde{Q^{\pi}}$, 但是动作的输出使用 $\pi$:
+完全是由 Target Net 来选择高分的 action. [Double DQN](https://arxiv.org/abs/1509.06461) 发现, Target Net 总是高估自己的 action 的分数, 于是提出用 2 个 net 相互制衡, 实作很简单, 直接 action 输出使用正在更新的 $\pi$ 即可, 然后打分还是用 $\tilde{Q^{\pi}}$ :
 
 $$
-\mathop{\arg\max}\limits_{a}  \ \tilde{Q^{\pi}}(s_{i+1},a), where \ \boldsymbol{a = \pi(s_{i+1})}
+\mathop{\arg\max}\limits_{a}  \ \tilde{Q^{\pi}}(s_{i+1},Q^{\pi}(s_{i+1},a))
 $$
 
 换个更常见的写法, 优化目标最终变为:
 
 $$
-minimize \ Q^{\pi}(s_i,a_i) \leftrightarrow  r_i + \boldsymbol{\tilde{Q^{\pi}}(s_{i+1},\mathop{\arg\max}\limits_{a} \pi(s_{i+1}))}
+minimize \ Q^{\pi}(s_i,a_i) \leftrightarrow  r_i + \boldsymbol{\tilde{Q^{\pi}}(s_{i+1},\mathop{\arg\max}\limits_{a} Q^{\pi}(s_{i+1},a))}
+$$
+
+[7]. if step % C = 0, $\tilde{Q^{\pi}} = Q^{\pi}$
+
+> 这里需要注意的是, $\pi$ 只有一个, 只是 Q function 有 2 个, 其中 $\tilde{Q^{\pi}}$ 的引入只是为了更新的稳定性(如果不考虑稳定性, 那就是原始算法). 但是无论如何, 目标就是要让  $\pi$  逼近潜在的最优的 $\pi_{\ast}$. (off-policy)
+{: .prompt-info }
+
+
+#### 3.5.5 SARSA VS Q-Learning
+
+这里有一个例子, 图中 Cliff 区域的奖励是 -100, 其他区域奖励为 -1. 可以看到 Q-Learning 尽管每次 action 的选取用到了 $\epsilon - greedy$, 但是我们做 Q 值预测的时候, 总是选择 $\text{max}$ 的, 这就导致最后 Q-Learning 收敛到 optimize policy. 而 SARSA 得到则是相对次优的:
+
+![image.png](https://s2.loli.net/2024/05/05/Dhf3iG1WpzymvdF.png){: width="300" height="200" }_source from refer[^footnote]_
+
+#### 3.5.6 TD-$\lambda$
+
+前边我们只是向后观察 1 步:
+
+$$
+Q(s_t,a_t) = Q(s_t,a_t)  + \alpha (r_t + \gamma Q(s_{t+1},a_{t+1}) -  Q(s_t,a_t))
+$$
+
+我们可以向后观察 2 步:
+
+$$
+Q(s_t,a_t) = Q(s_t,a_t)  + \alpha (r_t + r_{t+1} + \gamma ^ 2 Q(s_{t+2},a_{t+2}) -  Q(s_t,a_t))
+$$
+
+可以向后观察 k 步:
+
+$$
+Q(s_t,a_t) = Q(s_t,a_t)  + \alpha (r_t + r_{t+1} + ... + r_{t+k-1}  + \gamma ^ k Q(s_{t+k},a_{t+k}) -  Q(s_t,a_t))
+$$
+
+上式全部为 $Q(s_t,a_t)$, 我们可以使用加权取平均对所有结果, 记:
+
+$$
+\begin{align*}
+G_1 &= r_t + \gamma Q(s_{t+1},a_{t+1})
+\newline
+G_2 &= r_t + r_{t+1} + \gamma ^ 2 Q(s_{t+2},a_{t+2})
+\newline
+...
+\newline
+G_k &= r_t + r_{t+1} + ... + r_{t+k-1}  + \gamma ^ k Q(s_{t+k},a_{t+k})
+\newline
+
+\end{align*}
+$$
+
+$\lambda$ 加权平均:
+
+
+$$
+\begin{align*}
+G &= \sum^{k \rightarrow \infty} \frac {1}{1 + \lambda + ... + \lambda^{k-1} } (G_1 + \lambda G_2 + \lambda^2 G_3 + ... + \lambda^{k-1} G_k)
+\newline
+&= (1 - \lambda ) (G_1 + \lambda G_2 + \lambda^2 G_3 + ... + \lambda^{k-1} G_k)
+\newline
+&= (1 - \lambda ) \sum^{k \rightarrow \infty} \lambda^{k-1} G_k
+\end{align*}
+$$
+
+![image.png](https://s2.loli.net/2024/05/05/yB2vdxL4s9eqQKD.png){: width="300" height="200" }_source from refer[^footnote]_
+
+
+上述版本称为 Forward View of TD(λ). 原因是我们站在当前 time step 向后观察每个 state 的情况, 越往后的 state, 所分配的更新权重越小(对当前的 state $s_t$ 影响越小):
+
+![image.png](https://s2.loli.net/2024/05/07/XJTtUIEQxjAO2mR.png){: width="300" height="200" }_source from refer[^footnote]_
+
+#### 3.5.7 Backward View of TD-$\lambda$
+
+这里需要引入 eligibility trace. 其定义公式如下:
+
+$$
+E(S) \leftarrow \gamma \lambda E(S) + \mathbb{1}(S = s)
+$$
+
+上述公式的逻辑是这样的. 假设有一个特定的 state s. 如果当前这轮更新 Q 的时候, 遇到的 state 就是 s, 那么
+
+$$
+E(s) \leftarrow \gamma \lambda E(s) + 1
+$$
+
+否则, 就是当前 state 是其他的 $\text{s'}$, 那么
+
+$$
+E(s) \leftarrow \gamma \lambda E(s)
 $$
 
 
-[7]. if step % C = 0, $\tilde{Q^{\pi}} = Q^{\pi}$
+如果一个 state s 经常多次出现, 那么属于这个 s 的 $E(s)$ 就会比较大, 反之就会由于 $\gamma \lambda$ 的存在衰减到 0.
+
+
+此外 Dutch traces, 当 visit 一个 state 时, 会在之前的基础上先做一个衰减, 然后再加 1. 还有一种是 replacing trace, 当 visit 一个 state 时, 直接会把 traces 置为 1 :
+
+![image.png](https://s2.loli.net/2024/05/09/3fkGFpXTNZbI16y.png){: width="300" height="200" }_source from refer[^footnote]_
+
+算法过程如下:
+
+![image.png](https://s2.loli.net/2024/05/09/cgxYrhOWDmblPs7.png){: width="300" height="200" }_source from refer[^footnote]_
+
+> 需要注意的是, 虽然当前遇到的 state 是 S, 内部的 for 循环在更新 $V(s)$ 的时候, 都使用同一个 $\delta \leftarrow R + \gamma V(S') - V(S) $  对所有的 state 更新.
+{: .prompt-info }
+
+这个被称为 Backward View of TD-$\lambda$, 是因为我们对每个 sate s 更新的时候, 是基于当前 state S 的 TD-error, 只不过同时还基于 state s 对应的 $E(s)$. 如果 state s 距当前 state S 很远(表现为出现次数很少, 因为我们按时序 visit state), 那么其 $E(s)$ 就会很小, 最后分配的权重就会很小:
+
+![image.png](https://s2.loli.net/2024/05/09/ePOLlfxAQijUC42.png){: width="300" height="200" }_source from refer[^footnote]_
+
+#### 3.5.8 Equivalences of Forward and Backward Views
+
+二者实际是等价的, 只不过前向的更加容易理解, 后向的则更加方便计算. 相关的证明可以参考:[Proof](http://www.incompleteideas.net/book/ebook/node76.html), 证明过程主要涉及到求和的转换, 建议手动算一遍.
 
 
 
