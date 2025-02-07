@@ -1,5 +1,5 @@
 ---
-title: Introduction to Causal Inference Series (I)
+title: Causal Inference Series (I)
 date: 2024-04-26 14:15:00 +0800
 categories: [Causal Inference]
 tags: [machine learning,  mathematics, statistics, causal inference]     # TAG names should always be lowercase
@@ -14,7 +14,7 @@ Causal Inference (因果推断) 已经在多个领域发挥出巨大作用, 尽�
 由于是入门学习, 因此课程和书籍选择了相对简单的. 根据网上的推荐和实际体验, 感觉 Brady Neal 的系列介绍比较合适, 因此这个系列都将会以 Brady Neal 的课程为基础. 课程链接: [https://www.bradyneal.com/causal-inference-course](https://www.bradyneal.com/causal-inference-course)
 
 
-> 由于这是个人学习笔记, 我作为初学者, 在博客中记录的内容和理解难免会有错误. 希望各位能够指正, 并请不吝赐教, 在下将不胜感激。
+> 由于这是个人学习笔记, 我作为初学者, 在博客中记录的内容和理解难免会有错误. 希望各位能够指正, 并请不吝赐教, 在下将不胜感激.
 {: .prompt-info }
 
 
@@ -72,12 +72,12 @@ Causal Inference (因果推断) 已经在多个领域发挥出巨大作用, 尽�
 
 ### 2.1 Potential Outcomes and Individual Treatment Effects
 
-考虑一个例子：假设有个人心情不太好，有人想送给他一只狗。如果他接受了这只狗，那他可能会变得开心。但如果他拒绝了呢？他会不会继续感到不高兴呢？反过来想，如果他接受了这只狗，但他仍然感到不高兴，那么我怎么知道，如果不送给他，他是否会变得更开心呢？
+考虑一个例子：假设有个人心情不太好，有人想送给他一只狗.如果他接受了这只狗，那他可能会变得开心.但如果他拒绝了呢？他会不会继续感到不高兴呢？反过来想，如果他接受了这只狗，但他仍然感到不高兴，那么我怎么知道，如果不送给他，他是否会变得更开心呢？
 
 
 #### 2.1.1  Potential Outcomes
 
-根据前面的分析，实际上针对某个人采取不同的处理方式会产生不同的结果，这是一个潜在的结论。我们在之后的讨论中, 称这个潜在的输出为 $\mathit {Y}$ .
+根据前面的分析，实际上针对某个人采取不同的处理方式会产生不同的结果，这是一个潜在的结论.我们在之后的讨论中, 称这个潜在的输出为 $\mathit {Y}$ .
 
 在上边的例子中, $\mathit {Y} = 1$ 表示高兴, $\mathit {Y} = 0$ 为不高兴.
 
@@ -110,7 +110,7 @@ $$
 \mathbb{E}[Y(1) - Y(0)] = \mathbb{E}[Y(1)] - \mathbb{E}[Y(0)] \neq \mathbb{E}[Y(1) | T = 1 ] - \mathbb{E}[Y(0) | T = 0]
 $$
 
-可以看到, treatment 0 对应的集合只是一部分, 不能作为全部的结果, $\mathbb{E}[Y(1)]$ 理应是最右边的结果.
+可以看到, treatment 0 对应的集合只是一部分, 不能作为全部的结果, $\mathbb{E}[Y(1)]$ 理应是最右边的结果(Intervening).
 
 ![image.png](https://s2.loli.net/2024/04/27/vtybfejVDn4QNKA.png){: width="600" height="400" }
 

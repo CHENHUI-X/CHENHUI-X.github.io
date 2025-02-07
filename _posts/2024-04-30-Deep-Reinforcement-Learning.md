@@ -48,7 +48,7 @@ math: true
 
 - episode
 
-这里拿飞机大战举例子, 从你进入游戏, 左右闪躲腾挪, 开枪击毁对面飞机, 直到游戏结束, 这就叫一个 episode.
+这里拿飞机大战举例子, 从你进入游戏, 左右闪躲腾挪, 开枪击毁对面飞机,**直到游戏结束**, 这就叫一个 episode.
 
 - trajectory
 
@@ -72,7 +72,7 @@ $a_t$
  的概率 :
  $p(a_t | s_t,\theta)$.
 
-那么怎么训练呢? 假设已经有一个 trajectory $\tau$, 这样的序列除了第一个 state 是初始化, 后续你遇到的每一个 state 都是 Actor 选择的 action 导致的, 因此只需要收集这样一批 trajectory, 每个 trajectory 我们都能收集到相应的奖励 $R(\tau)$, 我们希望这个 Actor 能够在平均的,期望上的奖励能够最大:
+那怎么训练呢? 假设已经有一个 trajectory $\tau$, 这样的序列除了第一个 state 是初始化, 后续你遇到的每一个 state 都是 Actor 选择的 action 导致的, 因此只需要收集这样一批 trajectory, 每个 trajectory 我们都能收集到相应的奖励 $R(\tau)$, 我们希望这个 Actor 能够在平均的,期望上的奖励能够最大:
 
 $$
 max \ \mathbb{E}_{\tau} [R(\tau)] = \sum_{\tau}  R(\tau) p(\tau | \theta)
@@ -94,7 +94,7 @@ $$
 
 #### 2.2.1 计算梯度
 
-通常我们使用梯度更新参数, 所以需要计算
+通常我们利用梯度方向更新参数, 所以需要计算
 $\mathbb{E}_{\tau} [R(\tau)]$
 关于 $\theta$
 的梯度:
@@ -177,7 +177,11 @@ $b \approx \mathbb{E}_{\tau} [R(\tau)] $.
 此外, 上边式子可以理解为是对
 $log \ p(a_t^n|s_t^n,\theta)$
 的一个 sum weight. 其中 $R(\tau^n) - b$
-表示的是, 在 state $s_t$ 时采取 action $a_t$ 时对后来获得的总奖励的影响是多大. 来在上边的公式中, 这个 weight 对每个时间步 t 都一样, 均为 $R(\tau^n) - b$. 直觉上, 当前时间步 t 采取的动作, 只能影响 时间步 t 之后的奖励或者状态等. 并且随着时间流逝, 时间步 t 采取的动作对后续的影响应该越来越小, 因此对 $R(\tau)$ 进行修改(忽略 b ):
+表示的是, 在 state $s_t$ 时采取 action $a_t$ 时对后来获得的总奖励的影响是多大.
+> 另外还可以从减少 variance 的角度来理解, 可移步至此([点击跳转](/posts/A-Series-on-Training-LLMM-odels-(I)/#11-ppo-目标))
+
+
+在上边的公式中, 这个 weight 对每个时间步 t 都一样, 均为 $R(\tau^n) - b$. 直觉上, 当前时间步 t 采取的动作, 只能影响 时间步 t 之后的奖励或者状态等. 并且随着时间流逝, 时间步 t 采取的动作对后续的影响应该越来越小, 因此对 $R(\tau)$ 进行修改(忽略 b ):
 
 $$
 R(\tau^n) = \sum_{t' = t}^{T_n} \gamma^{t'-t}r_{t'}^{n}
@@ -189,7 +193,7 @@ $$
 R(\tau^n) = r_3 + 0.99*r_4 + 0.99^2*r_5
 $$
 
-> 注意到, 这里 $R(\tau^n)$ 其实就是想评估当前 actor 基于当前 state $s_t$ 和  action $a_t$ 的分数, 不妨记为 $Q^{\pi}(s_t,a_t)$, 而 $b$ 可以理解为度量面对当前 state $s_t$ (不与 action 有关), 这个 actor 能够取得的分数, 不妨记为 $V^{\pi}(s_t)$, 那如果把 $Q^{\pi}(s_t,a_t) - V^{\pi}(s_t)$ 记为 $A^{\theta}(s_t,a_t)$, 其实这就是 Value Based 方法 (也就是一个 critic). 二者结合, 就是 Actor - Critic. 我们后续讨论. 之前的期望公式就可以写为:
+> 注意到, 此时 $R(\tau^n)$ 是想评估当前 actor 基于当前 state $s_t$ 和  action $a_t$ 的分数, 不妨记为 $Q^{\pi}(s_t,a_t)$, 而 $b$ 可以理解为度量面对当前 state $s_t$ (不与 action 有关), 这个 actor 平均能够取得的分数, 不妨记为 $V^{\pi}(s_t)$, 那如果把 $Q^{\pi}(s_t,a_t) - V^{\pi}(s_t)$ 记为 $A^{\theta}(s_t,a_t)$, 其实这就是 Value Based 方法 (也就是一个 critic). 二者结合, 就是 Actor - Critic, 我们后续会讨论. 此时, 之前的期望公式就可以写为:
 >
 $$
 \begin{align*}
@@ -200,7 +204,7 @@ $$
 
 ### 2.3 实际怎么做
 
-前边的更新策略有个大问题就是, 我们要收集数据, 这个需要一轮一轮的玩下去才能收集到这些信息. 而且更新的这个 Actor 和 环境进行交互的 Actor 是同一个, 这就导致收集一批数据, 更新 Actor 之后, 整个过程就得停下来, 用新的 Actor 再次和环境进行交互 (这个过程称为 On-policy). 这样就会很慢, 我们想着能不能让当前的 Actor 借助别人的力量, 使用别人的历史数据去更新?(这个过程称为 Off-policy)
+前边的更新策略有个大问题就是, 我们要收集数据, 这个需要一轮一轮的玩下去才能收集到这些信息. 而且更新的这个 Actor 和 环境进行交互的 Actor 是同一个, 这就导致收集一批数据, 更新 Actor 之后, 整个过程就得停下来, 用新的 Actor 再次和环境进行交互 (这个过程称为 Online-policy). 这样就会很慢, 我们想着能不能让当前的 Actor 借助别人的力量, 使用别人的历史数据去更新?(这个过程称为 Offline-policy)
 
 
 #### 2.3.1 Importance Sampling
@@ -268,16 +272,8 @@ $$
 \end{align*}
 $$
 
-上式 $p_{\theta}(s_t) \approx p_{\theta_{old}}(s_t)$ 是我们进行的假设, 假设环境在第 t 步出现的状态和 Actor 无关( 看起来不太合适, 这个也是没办法的办法 ). 此外 policy ${\theta_{old}}$ 是固定的, 用来和环境交互, policy ${\theta}$ 是我们要更新的. 更新一段时间后, 我们可以执行 $\theta_{old} = \theta$ 以防二者差距太大.
+上式 $p_{\theta}(s_t) \approx p_{\theta_{old}}(s_t)$ 是我们进行的假设, 假设环境在第 t 步出现的状态和 Actor 无关( 看起来不太合适, 这个也是没办法的办法 ). 此外 policy ${\theta_{old}}$ 是固定的, 用来和环境交互, policy ${\theta}$ 是我们要更新的. 更新一段时间后, 我们可以执行 $\theta_{old} <-- \theta$ 以防二者差距太大.
 
-> 如果使用 critic 评估 $R(\tau)$,之前的期望公式就可以写为:
->
-$$
-\begin{align*}
-\nabla  \tilde{R}_{\theta} &= \mathbb{E}_{(s_t,a_t) \sim p_{\theta_{old}}} [\frac { p_{\theta}(a_t | s_t)} { p_{\theta_{old}}(a_t | s_t)} A^{\theta_{old}}(s_t,a_t)  \nabla log \ p_{\theta}(\tau) ]
-\end{align*}
-$$
-{: .prompt-info }
 
 这样, 反推得到:
 
@@ -287,7 +283,15 @@ $$
 \end{align*}
 $$
 
-> 如果使用 critic 评估 $R(\tau)$,之前的期望公式就可以写为:
+> 如果使用 Actor - Critic 的方式评估 $R(\tau)$,之前的期望公式就可以写为:
+>
+$$
+\begin{align*}
+\nabla  \tilde{R}_{\theta} &= \mathbb{E}_{(s_t,a_t) \sim p_{\theta_{old}}} [\frac { p_{\theta}(a_t | s_t)} { p_{\theta_{old}}(a_t | s_t)} A^{\theta_{old}}(s_t,a_t)  \nabla log \ p_{\theta}(\tau) ]
+\end{align*}
+$$
+>
+> 反推得到
 >
 $$
 \begin{align*}
@@ -298,7 +302,7 @@ $$
 
 ### 2.4 PPO
 
-在上边的基础上, 我们来看经典算法 PPO. PPO 其实就是在上边的基础上, 加了一个 KL 散度(可以看我这篇[Blog](https://chenhui-x.github.io/posts/Kullback-Leibler-divergence/)), 这是因为我们要尽量保证 $\theta_{old} \approx \theta$. 这里直接贴出原始 [paper](https://arxiv.org/abs/1707.06347) 的公式, 现在一目了然:
+在上边的基础上, 我们来看经典算法 PPO. PPO 其实就是在上边的基础上, 加了一个 KL 散度([什么是 KL 散度?](https://chenhui-x.github.io/posts/Kullback-Leibler-divergence/)), 这是因为我们要尽量保证 $\theta_{old} \approx \theta$. 这里直接贴出原始 [paper](https://arxiv.org/abs/1707.06347) 的公式, 现在一目了然:
 
 ![image.png](https://s2.loli.net/2024/04/30/ShDp81dTJAUbjKF.png)
 
@@ -848,7 +852,7 @@ $$
 
 #### 3.5.8 Equivalences of Forward and Backward Views
 
-二者实际是等价的, 只不过前向的更加容易理解, 后向的则更加方便计算. 相关的证明可以参考:http://www.incompleteideas.net/book/ebook/node76.html, 证明过程主要涉及到求和的转换, 建议手动算一遍.
+二者实际是等价的, 只不过前向的更加容易理解, 后向的则更加方便计算. 相关的证明可以参考: [http://www.incompleteideas.net/book/ebook/node76.html](http://www.incompleteideas.net/book/ebook/node76.html), 证明过程主要涉及到求和的转换, 建议手动算一遍.
 
 
 
