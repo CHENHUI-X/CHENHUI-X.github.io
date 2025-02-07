@@ -852,7 +852,7 @@ $$
 
 #### 3.5.8 Equivalences of Forward and Backward Views
 
-二者实际是等价的, 只不过前向的更加容易理解, 后向的则更加方便计算. 相关的证明可以参考: [http://www.incompleteideas.net/book/ebook/node76.html](http://www.incompleteideas.net/book/ebook/node76.html), 证明过程主要涉及到求和的转换, 建议手动算一遍.
+二者实际是等价的, 只不过前向的更加容易理解, 后向的则更加方便计算. 相关的证明可以参考: http://www.incompleteideas.net/book/ebook/node76.html, 证明过程主要涉及到求和的转换, 建议手动算一遍.
 
 
 
