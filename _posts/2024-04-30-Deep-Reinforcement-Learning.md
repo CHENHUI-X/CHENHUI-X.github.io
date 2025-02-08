@@ -443,7 +443,7 @@ V^{\pi}(s) \Leftarrow \sum_{a} \pi(a | s) \sum_{s', \ r} p(s', r | s, a) [r + \g
 \end{align*}
 $$
 
-上述迭代过程称为 iterative policy evaluation.
+上述迭代过程称为 iterative policy evaluation. 此外, 也可以使用 Bellman equation for $Q^{\pi}(s,a)$ 做迭代, 就是直接对  $Q^{\pi}(s,a)$ 迭代. 这个称为 Q-policy Iteration.
 
 #### 3.3.2 Policy Improvement
 
@@ -692,9 +692,9 @@ $$
 \pi_{\ast}(s_{t+1}) = \mathop{\arg\max}\limits_{a}  \ Q^{\pi}(s_{t+1},a) \ \text{或者} \  Q^{\pi}(s_{t+1},\pi_{\ast}(s_{t+1})) = \mathop{\max}\limits_{a}  \ Q^{\pi}(s_{t+1},a)
 $$
 
-于是每次对下一个 action $s_{t+1}$ 的 Q value 预估的时候, 实际上用的 policy 是 $\pi_{\ast}$, 而获取下一个 action $s_{t+1}$ 的 policy 是 $\pi$. 二者不是同一个, 因此叫 Off-Policy.
+于是, 每次对下一个 action $s_{t+1}$ 的 Q value 预估的时候, 实际上用的 policy 是 $\pi_{\ast}$, 而基于当前 state $s_t$ 采取 action 的 policy 是 $\pi$. 二者不是同一个, 因此叫 Off-Policy.
 
-> 这个过程就是"培养" $\pi$, 去尽量的接近潜在的、最优的 $\pi_{\ast}$.
+> 这个过程就是"培养" $\pi$, 去尽量向着最优的 $\pi_{\ast}$ 给的方向走.
 
 --------------------------------
 
@@ -751,7 +751,16 @@ $$
 
 ![image.png](https://s2.loli.net/2024/05/05/Dhf3iG1WpzymvdF.png){: width="300" height="200" }_source from refer[^footnote]_
 
-#### 3.5.6 TD-$\lambda$
+#### 3.5.6 DP VS TD
+
+DP 方法参考 3.3节. 下边给出 DP 和 TD 方法的区别和联系.
+
+![image.png](https://s2.loli.net/2024/05/10/RHEGAv73d5Wru9t.png)
+
+![image.png](https://s2.loli.net/2024/05/10/KENkys8WxcmGUVo.png)
+
+
+#### 3.5.7 Forward View of TD-$\lambda$
 
 前边我们只是向后观察 1 步:
 
@@ -775,13 +784,13 @@ $$
 
 $$
 \begin{align*}
-G_1 &= r_t + \gamma Q(s_{t+1},a_{t+1})
+G_t^1 &= r_t + \gamma Q(s_{t+1},a_{t+1})
 \newline
-G_2 &= r_t + r_{t+1} + \gamma ^ 2 Q(s_{t+2},a_{t+2})
+G_t^2 &= r_t + r_{t+1} + \gamma ^ 2 Q(s_{t+2},a_{t+2})
 \newline
 ...
 \newline
-G_k &= r_t + r_{t+1} + ... + r_{t+k-1}  + \gamma ^ k Q(s_{t+k},a_{t+k})
+G_t^k &= r_t + r_{t+1} + ... + r_{t+k-1}  + \gamma ^ k Q(s_{t+k},a_{t+k})
 \newline
 
 \end{align*}
@@ -792,13 +801,15 @@ $\lambda$ 加权平均:
 
 $$
 \begin{align*}
-G &= \sum^{k \rightarrow \infty} \frac {1}{1 + \lambda + ... + \lambda^{k-1} } (G_1 + \lambda G_2 + \lambda^2 G_3 + ... + \lambda^{k-1} G_k)
+G &= \sum^{k \rightarrow \infty} \frac {1}{1 + \lambda + ... + \lambda^{k-1} } (G_t^1  + \lambda G_t^2 + \lambda^2 G_t^3 + ... + \lambda^{k-1} G_t^k)
 \newline
-&= (1 - \lambda ) (G_1 + \lambda G_2 + \lambda^2 G_3 + ... + \lambda^{k-1} G_k)
+&= (1 - \lambda ) \sum^{k \rightarrow \infty} (G_t^1  + \lambda G_t^2 + \lambda^2 G_t^3 + ... + \lambda^{k-1} G_t^k)
 \newline
-&= (1 - \lambda ) \sum^{k \rightarrow \infty} \lambda^{k-1} G_k
+&= (1 - \lambda ) \sum^{k \rightarrow \infty} \lambda^{k-1} G_t^k
 \end{align*}
 $$
+
+其中, $\frac {1}{1 + \lambda + ... + \lambda^{k-1} }$ 使得权重求和为 1.
 
 ![image.png](https://s2.loli.net/2024/05/05/yB2vdxL4s9eqQKD.png){: width="300" height="200" }_source from refer[^footnote]_
 
@@ -807,7 +818,7 @@ $$
 
 ![image.png](https://s2.loli.net/2024/05/07/XJTtUIEQxjAO2mR.png){: width="300" height="200" }_source from refer[^footnote]_
 
-#### 3.5.7 Backward View of TD-$\lambda$
+#### 3.5.8 Backward View of TD-$\lambda$
 
 这里需要引入 eligibility trace. 其定义公式如下:
 
@@ -846,13 +857,58 @@ $$
 
 ![image.png](https://s2.loli.net/2024/05/09/ePOLlfxAQijUC42.png){: width="300" height="200" }_source from refer[^footnote]_
 
-#### 3.5.8 Equivalences of Forward and Backward Views
+#### 3.5.9  Equivalences of TD-$\lambda$
 
-二者实际是等价的, 只不过前向的更加容易理解, 后向的则更加方便计算. 相关的证明可以参考:http://www.incompleteideas.net/book/ebook/node76.html, 证明过程主要涉及到求和的转换, 建议手动算一遍.
+- $\lambda = 0$
+    - forward view
+
+        这个按定义的计算方式, 易知此时就是 TD(0).
+
+
+    - backward view
+
+        当 $\lambda = 0$ 时,  只有当前 state S 对应的 $E(S) = 1$ , 其他的永远恒为 0. 此时就是 TD(0).
+
+> 对于 Online(实时更新) 和 Offline(重复收集多个 episode 的数据, 最后进行 batch update) 的学习方式, 由于 $\lambda = 0$ 时, TD(0) 的 reward 计算方式 : $G_t = r_t + \gamma V(s_{t+1})$, 此时的 TD-error 就只关注相邻的 2个 state, 因此最终结果是一样的.
+
+- $\lambda = 1$
+    - forward view
+
+        $$
+        \begin{align*}
+        G &= \sum^{k \rightarrow \infty} \frac {1}{1 + \lambda + ... + \lambda^{k-1} } (G_t^1 + \lambda t^2 + \lambda^2 G_t^3 + ... + \lambda^{k-1} G_t^k)
+        \newline
+        &\approx  \frac {1}{N } \sum (G_t^1 +  G_t^2 +  G_t^3 + ... + G_t^N) \ \ (MC 方法)
+
+        \end{align*}
+        $$
+
+    - backward view
+
+![image.png](https://s2.loli.net/2024/05/10/ZBuCeAhLFRGHj1z.png)
+![image.png](https://s2.loli.net/2024/05/10/W68YFtuprE15RXL.png)
+
+可以看到, 如果看直到 episode 结束的累计错误, 最后再进行 batch update, backward view 的 TD(1) 就是 MC error. 因此, $\lambda = 1 { \& } \ \text{Offinline}$ 时, forward view 和 backward view 是等价的, 均为 MC 方法.
+
+> 但是, 当进行 Online 更新时, forward view 的 TD(1) 仍然是 MC 方法. 但是 backward view 的 TD(1) 不是了.
+{: .prompt-info }
+
+
+- general $\lambda$
+
+![image.png](https://s2.loli.net/2024/05/10/AM3xHzmPfY8EK4h.png)
+
+![image.png](https://s2.loli.net/2024/05/10/vTABbxalfpOFM7L.png)
+
+当 $\lambda \in (0,1)$ 结论同理. 同时上述推导过程还显式的证明了在 Offline 的更新方式下, forward view 和 back view 是等价的. 最终给出以下表格:
+> 另外 backward view 和 forward view 的等价证明也可以参考:http://www.incompleteideas.net/book/ebook/node76.html
+
+![image.png](https://s2.loli.net/2024/05/10/NpAGwybmcLeRvH1.png)
 
 
 
 ## Reference
+1. [UCL Course on RL](https://www.davidsilver.uk/teaching/)
 
 
 ## Footnotes

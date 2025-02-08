@@ -1389,4 +1389,400 @@ And if we are to advance liberty and justice, we need to secure the Border and f
 We can do both
 ```
 
+## 3. Tools
+
+[Tools](https://python.langchain.com/v0.1/docs/modules/tools/) 通常和 Agent 搭配使用. 面对复杂的任务, Agent(通常是一个LLM) 通过上下文信息去使用合适的 tool 以完成任务. 一个 tool 通常有以下几个组件:
+
+1. The name of the tool
+
+2. A description of what the tool is
+
+3. JSON schema of what the inputs to the tool are
+
+4. The function to call
+
+5. Whether the result of a tool should be returned directly to the user
+
+The name, description, and JSON schema can be used to prompt the LLM so it knows how to specify what action to take. The function to call is equivalent to taking that action.
+
+> Importantly, the name, description, and JSON schema (if used) are **all used in the prompt**.
+{: .prompt-info }
+
+### Basic Usage Tutorial
+
+这里使用官方的 Wikipedia tool.
+
+```python
+from langchain_community.tools import WikipediaQueryRun
+from langchain_community.utilities import WikipediaAPIWrapper
+
+api_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=100)
+tool = WikipediaQueryRun(api_wrapper=api_wrapper)
+pritn(tool.name,tool.description,tool.args,tool.return_direct)
+tool.run({"query": "langchain"}) # 或者 tool.run("langchain")
+```
+
+输出:
+
+```plaintext
+'Page: LangChain\nSummary: LangChain is a framework designed to simplify the creation of applications '
+```
+
+### Custom Tools
+
+官方提供了一些[第三方 tool](https://python.langchain.com/v0.1/docs/integrations/tools/) 可供使用. 不过通常我们会定义自己的 tool.
+
+
+定义一个 tool 的时候, 需要指定以下信息:
+
+name(required) : 一个 agent 可调用的 tools 的名字需要是 unique 的.
+
+description(recommended) : 告知 agent 这个 tool 的用途是什么.
+
+args_schema(recommended) : [Pydantic](https://docs.pydantic.dev/latest/) 类型, 可以用于类型检测, 也可以用于添加一些额外的信息, 最后都会作为 prompt 的一部分.
+
+#### decorator
+
+```python
+# Import things that are needed generically
+from langchain.pydantic_v1 import BaseModel, Field
+from langchain.tools import BaseTool, StructuredTool, tool
+
+@tool
+def search(query: str) -> str:
+    """Look up things online."""
+    return "LangChain"
+print(search.name)
+print(search.description)
+print(search.args)
+```
+
+输出
+
+```plaintext
+search
+search(query: str) -> str - Look up things online.
+{'query': {'title': 'Query', 'type': 'string'}}
+
+```
+
+```python
+
+@tool
+def multiply(a: int, b: int) -> int:
+    """Multiply two numbers."""
+    return a * b
+
+print(multiply.name)
+print(multiply.description)
+print(multiply.args)
+
+```
+输出:
+
+```plaintext
+multiply
+multiply(a: int, b: int) -> int - Multiply two numbers.
+{'a': {'title': 'A', 'type': 'integer'}, 'b': {'title': 'B', 'type': 'integer'}}
+```
+
+可以使用 @tool 的参数指定 tool 的名字, 或者对参数进行描述, 提供额外的信息.
+
+```python
+class SearchInput(BaseModel):
+    query: str = Field(description="should be a search query")
+
+
+@tool("search-tool", args_schema=SearchInput, return_direct=True)
+def search(query: str) -> str:
+    """Look up things online."""
+    return "LangChain"
+print(search.name)
+print(search.description)
+print(search.args)
+print(search.return_direct)
+
+```
+
+输出:
+
+
+```plaintext
+
+search-tool
+search-tool(query: str) -> str - Look up things online.
+{'query': {'title': 'Query', 'description': 'should be a search query', 'type': 'string'}}
+True
+
+```
+
+#### Subclassing  BaseTool (**Recommend**)
+
+更加的自定义化, 但是稍微麻烦一些.
+
+```python
+
+from typing import Optional, Type
+from langchain.pydantic_v1 import BaseModel, Field
+from langchain.tools import BaseTool, StructuredTool, tool
+from langchain.callbacks.manager import (
+    AsyncCallbackManagerForToolRun,
+    CallbackManagerForToolRun,
+)
+
+class SearchInput(BaseModel):
+    query: str = Field(description="should be a search query")
+
+class CustomSearchTool(BaseTool):
+    name = "custom_search"
+    description = "useful for when you need to answer questions about current events"
+    args_schema: Type[BaseModel] = SearchInput # 指定 schema
+
+    def _run(
+        self, query: str, run_manager: Optional[CallbackManagerForToolRun] = None
+    ) -> str:
+        """Use the tool."""
+        return "LangChain"
+
+    async def _arun(
+        self, query: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
+    ) -> str:
+        """Use the tool asynchronously."""
+        raise NotImplementedError("custom_search does not support async")
+
+
+class CalculatorInput(BaseModel):
+    a: int = Field(description="first number")
+    b: int = Field(description="second number")
+
+class CustomCalculatorTool(BaseTool):
+    name = "Calculator"
+    description = "useful for when you need to answer questions about math"
+    args_schema: Type[BaseModel] = CalculatorInput
+    return_direct: bool = True
+
+    def _run(
+        self, a: int, b: int, run_manager: Optional[CallbackManagerForToolRun] = None
+    ) -> str:
+        """Use the tool."""
+        return a * b
+
+    async def _arun(
+        self,
+        a: int,
+        b: int,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        """Use the tool asynchronously."""
+        raise NotImplementedError("Calculator does not support async")
+
+```
+
+
+输出:
+
+```python
+search = CustomSearchTool()
+print(search.name)
+print(search.description)
+print(search.args)
+'''
+custom_search
+useful for when you need to answer questions about current events
+{'query': {'title': 'Query', 'description': 'should be a search query', 'type': 'string'}}
+'''
+
+multiply = CustomCalculatorTool()
+print(multiply.name)
+print(multiply.description)
+print(multiply.args)
+print(multiply.return_direct)
+'''
+Calculator
+useful for when you need to answer questions about math
+{'a': {'title': 'A', 'description': 'first number', 'type': 'integer'}, 'b': {'title': 'B', 'description': 'second number', 'type': 'integer'}}
+True
+'''
+```
+
+第三方的 tool 基本都是上述的方法, 这里以 [ArXiv tool](https://python.langchain.com/v0.1/docs/integrations/tools/arxiv/) 为例. 其源代码见: [arxiv_tool.py](https://github.com/langchain-ai/langchain/blob/master/libs/community/langchain_community/tools/arxiv/tool.py), [utilities_tool.py](https://github.com/langchain-ai/langchain/blob/480c02bf553de894cedc60504b126807dd6dea00/libs/community/langchain_community/utilities/arxiv.py#L13). 核心代码如下:
+
+```python
+# 在 arxiv_tool.py 文件中
+
+"""Tool for the Arxiv API."""
+from typing import Optional, Type
+from langchain_core.callbacks import CallbackManagerForToolRun
+from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.tools import BaseTool
+from langchain_community.utilities.arxiv import ArxivAPIWrapper
+
+class ArxivInput(BaseModel):
+    """Input for the Arxiv tool."""
+    query: str = Field(description="search query to look up") # 用于指定 args_schema
+
+class ArxivQueryRun(BaseTool):
+    """Tool that searches the Arxiv API."""
+    name: str = "arxiv"
+    description: str = (
+        "A wrapper around Arxiv.org "
+        "Useful for when you need to answer questions about Physics, Mathematics, "
+        "Computer Science, Quantitative Biology, Quantitative Finance, Statistics, "
+        "Electrical Engineering, and Economics "
+        "from scientific articles on arxiv.org. "
+        "Input should be a search query."
+    )
+    api_wrapper: ArxivAPIWrapper = Field(default_factory=ArxivAPIWrapper) # 这里做了一个 Wrapper
+    args_schema: Type[BaseModel] = ArxivInput
+
+    def _run(
+        self,
+        query: str,
+        run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        """Use the Arxiv tool."""
+        return self.api_wrapper.run(query) # 调用的是 Wrapper 的 run
+
+# ===================================
+# 在 utilities_tool.py 中
+
+"""Util that calls Arxiv."""
+"""Util that calls Arxiv."""
+import logging
+import os
+import re
+from typing import Any, Dict, Iterator, List, Optional
+
+from langchain_core.documents import Document
+from langchain_core.pydantic_v1 import BaseModel, root_validator
+
+logger = logging.getLogger(__name__)
+
+
+class ArxivAPIWrapper(BaseModel):
+    # 其他函数省略, 就是一些 import 导入检测之类的.
+    def run(self, query: str) -> str:
+
+        try:
+            if self.is_arxiv_identifier(query):
+                results = self.arxiv_search(
+                    id_list=query.split(),
+                    max_results=self.top_k_results,
+                ).results()
+            else:
+                results = self.arxiv_search(  # type: ignore
+                    query[: self.ARXIV_MAX_QUERY_LENGTH], max_results=self.top_k_results
+                ).results()
+        except self.arxiv_exceptions as ex:
+            return f"Arxiv exception: {ex}"
+        docs = [
+            f"Published: {result.updated.date()}\n"
+            f"Title: {result.title}\n"
+            f"Authors: {', '.join(a.name for a in result.authors)}\n"
+            f"Summary: {result.summary}"
+            for result in results
+        ]
+        if docs:
+            return "\n\n".join(docs)[: self.doc_content_chars_max]
+        else:
+            return "No good Arxiv Result was found"
+
+```
+
+####  StructuredTool dataclass
+
+StructuredTool  方法将上述 "直接定义方法" 与 "SubClass" 的方法结合起来. 阅读[其源代码](https://github.com/langchain-ai/langchain/blob/b53548dcda8fe1dd820f7db31db6b1f3bff6c360/libs/core/langchain_core/tools.py#L702), StructuredTool 内部也是继承的 Base tool.
+
+```python
+
+class CalculatorInput(BaseModel):
+    a: int = Field(description="first number")
+    b: int = Field(description="second number")
+
+def multiply(a: int, b: int) -> int:
+    """Multiply two numbers."""
+    return a * b
+
+
+calculator = StructuredTool.from_function(
+    func=multiply,
+    name="Calculator",
+    description="multiply numbers",
+    args_schema=CalculatorInput,
+    return_direct=True,
+    # coroutine= ... <- you can specify an async method if desired as well
+)
+
+print(calculator.name)
+print(calculator.description)
+print(calculator.args)
+```
+输出:
+
+```plaintext
+
+Calculator
+Calculator(a: int, b: int) -> int - multiply numbers
+{'a': {'title': 'A', 'description': 'first number', 'type': 'integer'}, 'b': {'title': 'B', 'description': 'second number', 'type': 'integer'}}
+
+```
+
+#### Handling Tool Errors
+
+```python
+from langchain_core.tools import ToolException
+
+def search_tool1(s: str):
+    raise ToolException("The search tool1 is not available.")
+
+search = StructuredTool.from_function(
+    func=search_tool1,
+    name="Search_tool1",
+    description="A bad tool",
+)
+
+search.run("test")
+
+```
+![image.png](https://s2.loli.net/2024/05/13/u2lFsqzKwxGUrnX.png)
+
+设置 handle_tool_error = True, 可以将 ToolException 的字符串输出:
+
+```python
+search = StructuredTool.from_function(
+    func=search_tool1,
+    name="Search_tool1",
+    description="A bad tool",
+    handle_tool_error=True,
+)
+
+search.run("test") # 输出 'The search tool1 is not available.'
+```
+
+也可以将 handle_tool_error 设置为一个函数, 这个函数必须接受一个 `ToolException`, 然后给一个字符串输出 `str`
+
+```python
+def _handle_error(error: ToolException) -> str:
+    return (
+        "The following errors occurred during tool execution:"
+        + error.args[0]
+        + "Please try another tool."
+    )
+
+search = StructuredTool.from_function(
+    func=search_tool1,
+    name="Search_tool1",
+    description="A bad tool",
+    handle_tool_error=_handle_error,
+)
+
+search.run("test")
+# 输出 : 'The following errors occurred during tool execution:The search tool1 is not available.Please try another tool.'
+
+```
+
+## 4. Agent
+
+
+
 ## Reference
