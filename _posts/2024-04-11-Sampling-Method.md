@@ -144,7 +144,9 @@ $$
 $$P(\theta|X) = \frac {P(X|\theta)P(\theta)} {\int P(X|\theta)P(\theta) d \theta}$$
 
 上述提到分母有时候很难进行积分，对于这个问题，一个直观的想法就是 ，能不能通过某个手段把 分母去掉？
+
 $$P(\theta_a|X) = \frac {P(X|\theta_a)P(\theta_a)} {P(X)}$$
+
 
 $$P(\theta_b|X) = \frac {P(X|\theta_b)P(\theta_b)} {P(X)}$$
 
