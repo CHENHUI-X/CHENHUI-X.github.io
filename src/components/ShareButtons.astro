@@ -1,0 +1,97 @@
+---
+import { Icon } from "astro-icon/components";
+
+const { title, url } = Astro.props;
+const encodedTitle = encodeURIComponent(title);
+const encodedUrl = encodeURIComponent(url);
+const fullText = `${encodedTitle}%0A${encodedUrl}`;
+
+const shareLinks = [
+	{
+		name: "Twitter",
+		icon: "fa6-brands:square-x-twitter",
+		href: `https://twitter.com/intent/tweet?text=${fullText}`,
+	},
+	{
+		name: "Facebook",
+		icon: "fa6-brands:facebook",
+		href: `https://www.facebook.com/sharer/sharer.php?title=${encodedTitle}&u=${encodedUrl}`,
+	},
+	{
+		name: "Telegram",
+		icon: "fa6-brands:telegram",
+		href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`,
+	},
+	{
+		name: "WeChat",
+		icon: "fa6-brands:weixin",
+		href: "#",
+		wechat: true,
+	},
+];
+---
+
+<div class="share-buttons flex items-center gap-2 mt-6 pt-5 border-t border-dashed border-[var(--line-divider)]">
+	<span class="text-sm text-[var(--secondary)] mr-1">分享</span>
+	{shareLinks.map((link) =>
+		link.wechat ? (
+			<button
+				id="wechat-share-btn"
+				class="btn-regular rounded-lg h-9 w-9 active:scale-90 cursor-pointer"
+				title="WeChat"
+				aria-label="Share to WeChat"
+			>
+				<Icon name={link.icon} class="text-[1.2rem]" />
+			</button>
+		) : (
+			<a
+				href={link.href}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="btn-regular rounded-lg h-9 w-9 active:scale-90"
+				title={link.name}
+				aria-label={`Share to ${link.name}`}
+			>
+				<Icon name={link.icon} class="text-[1.2rem]" />
+			</a>
+		)
+	)}
+</div>
+
+<!-- WeChat QR Code Modal -->
+<div
+	id="wechat-qr-modal"
+	class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 hidden"
+	onclick="this.classList.add('hidden')"
+>
+	<div
+		class="bg-white dark:bg-[var(--card-bg)] rounded-2xl p-6 shadow-xl flex flex-col items-center"
+		onclick="event.stopPropagation()"
+	>
+		<div class="text-sm font-medium mb-3 text-black/75 dark:text-white/75">微信扫码分享</div>
+		<img
+			id="wechat-qr-img"
+			src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encodedUrl}"
+			alt="QR Code for WeChat sharing"
+			width="200"
+			height="200"
+			class="rounded-lg"
+		/>
+		<button
+			class="mt-3 text-xs text-[var(--secondary)] hover:text-[var(--primary)] transition"
+			onclick="document.getElementById('wechat-qr-modal').classList.add('hidden')"
+		>
+			关闭
+		</button>
+	</div>
+</div>
+
+<script>
+const wechatBtn = document.getElementById('wechat-share-btn');
+const modal = document.getElementById('wechat-qr-modal');
+if (wechatBtn && modal) {
+	wechatBtn.addEventListener('click', () => {
+		modal.classList.remove('hidden');
+	});
+}
+</script>
