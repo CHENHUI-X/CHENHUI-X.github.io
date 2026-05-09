@@ -40,6 +40,7 @@ const shareLinks = [
 				class="btn-regular rounded-lg h-9 w-9 active:scale-90 cursor-pointer"
 				title="WeChat"
 				aria-label="Share to WeChat"
+				onclick="document.getElementById('wechat-qr-modal').classList.remove('hidden')"
 			>
 				<Icon name={link.icon} class="text-[1.2rem]" />
 			</button>
@@ -85,13 +86,3 @@ const shareLinks = [
 		</button>
 	</div>
 </div>
-
-<script>
-const wechatBtn = document.getElementById('wechat-share-btn');
-const modal = document.getElementById('wechat-qr-modal');
-if (wechatBtn && modal) {
-	wechatBtn.addEventListener('click', () => {
-		modal.classList.remove('hidden');
-	});
-}
-</script>
