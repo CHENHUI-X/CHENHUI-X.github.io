@@ -164,7 +164,7 @@ const bannerOffset =
 		  data-overlayscrollbars-initialize
 	>
 		<ConfigCarrier></ConfigCarrier>
-		<div id="page-bg-layer" class="fixed inset-0 pointer-events-none" style="z-index:1;background:var(--page-bg);opacity:0.92"></div>
+		<div id="page-bg-layer" class="fixed inset-0 pointer-events-none" style="z-index:1;background:var(--page-bg);opacity:0.85"></div>
 		<div id="content-layer" class="relative" style="z-index:2">
 			<slot />
 		</div>
@@ -179,55 +179,68 @@ const bannerOffset =
 		<script is:inline>
 		(function() {
 			let vantaEffect = null;
+			let lastIsDark = document.documentElement.classList.contains('dark');
 
-			function getThemeColors() {
-				const isDark = document.documentElement.classList.contains('dark');
+			function getThemeColors(isDark) {
 				return isDark
-					? { baseColor: 0x1a0a1e, midtoneColor: 0x3d1a30, highlightColor: 0x8e4a6b }
-					: { baseColor: 0xfce4ec, midtoneColor: 0xf8bbd0, highlightColor: 0xf48fb1 };
+					? { base: 0x2d1b2e, mid: 0x4a2040, high: 0x9b6b8a }
+					: { base: 0xfff0f5, mid: 0xf8c8d8, high: 0xf090b0 };
 			}
 
 			function initVanta() {
 				const el = document.getElementById('vanta-bg');
 				if (!el) return;
-				if (vantaEffect && vantaEffect.destroy) { vantaEffect.destroy(); vantaEffect = null; }
-				if (typeof VANTA !== 'undefined' && VANTA.FOG) {
+				if (vantaEffect) {
+					try { vantaEffect.destroy(); } catch(e) {}
+					vantaEffect = null;
+				}
+				if (typeof VANTA === 'undefined' || !VANTA.FOG || !window.THREE) {
+					return setTimeout(initVanta, 500);
+				}
+				try {
+					const isDark = document.documentElement.classList.contains('dark');
+					lastIsDark = isDark;
+					const c = getThemeColors(isDark);
 					vantaEffect = VANTA.FOG({
-						el: el, mouseControls: true, touchControls: true, gyroControls: false,
-						baseColor: getThemeColors().baseColor,
-						midtoneColor: getThemeColors().midtoneColor,
-						highlightColor: getThemeColors().highlightColor,
-						blurFactor: 0.6, speed: 0.8, zoom: 0.8,
+						el: el,
+						mouseControls: true,
+						touchControls: true,
+						gyroControls: false,
+						minHeight: 200,
+						minWidth: 200,
+						baseColor: c.base,
+						midtoneColor: c.mid,
+						highlightColor: c.high,
+						blurFactor: 0.6,
+						speed: 0.5,
+						zoom: 0.7,
 					});
+				} catch(e) {
+					setTimeout(initVanta, 500);
 				}
 			}
 
-			function waitForVanta() {
-				if (typeof VANTA !== 'undefined' && VANTA.FOG) initVanta();
-				else setTimeout(waitForVanta, 200);
-			}
-			waitForVanta();
+			// Start when ready
+			if (document.readyState === 'complete') initVanta();
+			else window.addEventListener('load', initVanta);
 
 			// Watch theme changes
 			setInterval(function() {
-				const el = document.getElementById('vanta-bg');
-				if (!el) return;
-				if (vantaEffect) {
-					const isDark = document.documentElement.classList.contains('dark');
-					const currentBase = vantaEffect.options?.baseColor;
-					const expectedBase = isDark ? 0x1a0a1e : 0xfce4ec;
-					if (currentBase !== undefined && currentBase !== expectedBase) {
-						initVanta();
-					}
+				const isDark = document.documentElement.classList.contains('dark');
+				if (isDark !== lastIsDark && vantaEffect) {
+					lastIsDark = isDark;
+					initVanta();
 				}
-			}, 1000);
+			}, 500);
 
-			// Handle Swup
-			document.addEventListener('swup:enable', function() {
+			// Swup page transitions
+			function onSwup() {
 				if (window.swup) {
-					window.swup.hooks.on('page:view', function() { setTimeout(initVanta, 100); });
+					window.swup.hooks.on('page:view', function() { setTimeout(initVanta, 300); });
 				}
-			});
+			}
+			if (window.swup) onSwup();
+			else document.addEventListener('swup:enable', onSwup);
 
 			window.addEventListener('beforeunload', function() {
 				if (vantaEffect && vantaEffect.destroy) vantaEffect.destroy();
