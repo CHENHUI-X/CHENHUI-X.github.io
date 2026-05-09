@@ -2,9 +2,12 @@
 import { Icon } from "astro-icon/components";
 
 const { title, url } = Astro.props;
+
+const urlStr = typeof url === "string" ? url : url.toString();
 const encodedTitle = encodeURIComponent(title);
-const encodedUrl = encodeURIComponent(url);
+const encodedUrl = encodeURIComponent(urlStr);
 const fullText = `${encodedTitle}%0A${encodedUrl}`;
+const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUrl}`;
 
 const shareLinks = [
 	{
@@ -25,7 +28,6 @@ const shareLinks = [
 	{
 		name: "WeChat",
 		icon: "fa6-brands:weixin",
-		href: "#",
 		wechat: true,
 	},
 ];
@@ -36,11 +38,12 @@ const shareLinks = [
 	{shareLinks.map((link) =>
 		link.wechat ? (
 			<button
+				type="button"
 				id="wechat-share-btn"
 				class="btn-regular rounded-lg h-9 w-9 active:scale-90 cursor-pointer"
 				title="WeChat"
 				aria-label="Share to WeChat"
-				onclick="document.getElementById('wechat-qr-modal').classList.remove('hidden')"
+				onclick="document.getElementById('wechat-overlay').style.display='flex'"
 			>
 				<Icon name={link.icon} class="text-[1.2rem]" />
 			</button>
@@ -59,30 +62,60 @@ const shareLinks = [
 	)}
 </div>
 
-<!-- WeChat QR Code Modal -->
-<div
-	id="wechat-qr-modal"
-	class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 hidden"
-	onclick="this.classList.add('hidden')"
+<div id="wechat-overlay"
+	style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center"
+	onclick="this.style.display='none'"
 >
 	<div
-		class="bg-white dark:bg-[var(--card-bg)] rounded-2xl p-6 shadow-xl flex flex-col items-center"
+		style="background:white;border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;align-items:center;min-width:260px"
 		onclick="event.stopPropagation()"
 	>
-		<div class="text-sm font-medium mb-3 text-black/75 dark:text-white/75">微信扫码分享</div>
-		<img
-			id="wechat-qr-img"
-			src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encodedUrl}"
-			alt="QR Code for WeChat sharing"
-			width="200"
-			height="200"
-			class="rounded-lg"
-		/>
+		<div style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.75)">
+			微信扫码分享
+		</div>
+		<div style="background:white;padding:12px;border-radius:12px">
+			<img
+				src={qrSrc}
+				alt="QR Code"
+				width="200"
+				height="200"
+				style="display:block"
+				loading="lazy"
+			/>
+		</div>
+		<p style="margin-top:8px;font-size:12px;color:var(--secondary);word-break:break-all;max-width:240px;text-align:center;-webkit-user-select:all;user-select:all">
+			{urlStr}
+		</p>
 		<button
-			class="mt-3 text-xs text-[var(--secondary)] hover:text-[var(--primary)] transition"
-			onclick="document.getElementById('wechat-qr-modal').classList.add('hidden')"
+			style="margin-top:12px;padding:4px 16px;height:32px;border-radius:8px;border:none;font-size:12px;font-weight:500;cursor:pointer;background:var(--btn-regular-bg);color:var(--btn-content);transition:all 0.15s"
+			onclick="document.getElementById('wechat-overlay').style.display='none'"
+			onmouseover="this.style.background='var(--btn-regular-bg-hover)'"
+			onmouseout="this.style.background='var(--btn-regular-bg)'"
 		>
 			关闭
 		</button>
 	</div>
 </div>
+
+<script>
+function mountOverlay() {
+	let overlay = document.getElementById('wechat-overlay');
+	// Remove stale overlay from previous Swup navigation
+	const old = document.body.querySelector('#wechat-overlay');
+	if (old && old !== overlay) old.remove();
+	if (overlay && overlay.parentElement !== document.body) {
+		document.body.appendChild(overlay);
+	}
+}
+mountOverlay();
+const setup = () => {
+	if (window.swup) {
+		window.swup.hooks.on('page:view', mountOverlay);
+	}
+};
+if (window.swup) {
+	setup();
+} else {
+	document.addEventListener('swup:enable', setup);
+}
+</script>

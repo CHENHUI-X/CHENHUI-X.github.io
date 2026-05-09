@@ -101,6 +101,7 @@ export type BlogPostData = {
 	description: string;
 	tags: string[];
 	draft?: boolean;
+	pin?: boolean;
 	image?: string;
 	category?: string;
 	prevTitle?: string;
