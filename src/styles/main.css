@@ -150,3 +150,30 @@
     }
   }
 }
+
+/* Animated gradient background */
+@keyframes bg-drift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+#bg-animation {
+  background: linear-gradient(-45deg,
+    oklch(0.95 0.03 var(--hue)),
+    oklch(0.92 0.05 var(--hue)),
+    oklch(0.90 0.06 var(--hue)),
+    oklch(0.93 0.04 var(--hue))
+  );
+  background-size: 400% 400%;
+  animation: bg-drift 20s ease infinite;
+}
+:root.dark #bg-animation {
+  background: linear-gradient(-45deg,
+    oklch(0.18 0.02 var(--hue)),
+    oklch(0.20 0.04 var(--hue)),
+    oklch(0.14 0.03 var(--hue)),
+    oklch(0.22 0.05 var(--hue))
+  );
+  background-size: 400% 400%;
+  animation: bg-drift 20s ease infinite;
+}
