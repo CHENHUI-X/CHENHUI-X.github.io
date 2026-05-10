@@ -13,7 +13,10 @@ const className = Astro.props.class;
 </div>
 
 <script>
-document.addEventListener("click", function (e: MouseEvent) {
+// 用模块级 flag 保证 click 监听器只注册一次，避免 Swup 多次导航后叠加
+let copyListenerRegistered = false;
+
+function handleCopyClick(e: MouseEvent) {
     const target = e.target as Element | null;
     if (target && target.classList.contains("copy-btn")) {
         const preEle = target.closest("pre");
@@ -31,14 +34,18 @@ document.addEventListener("click", function (e: MouseEvent) {
 
         target.classList.add("success");
 
-        // 设置新的timeout并保存ID到按钮的自定义属性中
         const newTimeoutId = setTimeout(() => {
             target.classList.remove("success");
         }, 1000);
 
         target.setAttribute("data-timeout-id", newTimeoutId.toString());
     }
-});
+}
+
+if (!copyListenerRegistered) {
+    document.addEventListener("click", handleCopyClick);
+    copyListenerRegistered = true;
+}
 </script>
 
 <style is:global>
