@@ -25,9 +25,8 @@
 ## Waline 配置参考
 - 服务端：https://waline-comment-smoky.vercel.app
 - 管理后台：https://waline-comment-smoky.vercel.app/ui/
-- 管理员邮箱：`chenhui2422.xu@gmail.com`
-- MongoDB Atlas 节点 3 个，副本集 `atlas-p0fz2s-shard-0`
 - 客户端必须 `requiredMeta: ["nick", "mail"]` 禁止匿名评论
+- SECURE_DOMAINS 必须包含 Waline 服务端自身域名才能登录管理后台
 
 ## 注意事项
 - ⚠️ 修改代码后**不要自动推送**，等用户确认后再推送

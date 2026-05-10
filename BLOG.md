@@ -76,21 +76,10 @@
 - **版本**：Waline 1.39.3（ThinkJS 框架）
 - **数据库**：MongoDB Atlas（免费 512M 档）
 - **管理后台**：https://waline-comment-smoky.vercel.app/ui/
-- **管理员登录**：邮箱 `chenhui2422.xu@gmail.com` / 密码 `admin888`
-
-### 服务端环境变量
-
-```
-MONGO_HOST=["ac-fyjagd6-shard-00-00.ruazaa0.mongodb.net","ac-fyjagd6-shard-00-01.ruazaa0.mongodb.net","ac-fyjagd6-shard-00-02.ruazaa0.mongodb.net"]
-MONGO_PORT=[27017,27017,27017]
-MONGO_DB=waline
-MONGO_USER=chenhui2422xu_db_user
-MONGO_PASSWORD=habUtVwtLCUUHfPh
-MONGO_REPLICASET=atlas-p0fz2s-shard-0
-MONGO_AUTHSOURCE=admin
-MONGO_OPT_SSL=true
-SECURE_DOMAINS=xuchenhui.cc,haibarai.dpdns.org,waline-comment-smoky.vercel.app
-```
+- **环境变量**：MongoDB 连接信息（`MONGO_HOST`/`PORT`/`DB`/`USER`/`PASSWORD`/`REPLICASET` 等）+ `SECURE_DOMAINS` + `MONGO_OPT_SSL=true`
+  - 注意：Waline 1.x 不支持 `MONGODB_URI`，需用散装 `MONGO_*` 变量，`MONGO_HOST` 用 JSON 数组格式
+  - `SECURE_DOMAINS` 必须包含 Waline 服务端自身域名，否则管理后台无法登录
+- **管理员登录**：在管理后台用注册邮箱 + 密码登录
 
 ### 客户端组件
 - 文件：`src/components/WalineComment.astro`
