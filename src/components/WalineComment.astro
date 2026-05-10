@@ -1,0 +1,55 @@
+---
+const { postEntry } = Astro.props;
+const slug = postEntry.slug;
+---
+
+<div id="waline-container" class="waline-wrapper" data-slug={slug}></div>
+
+<script>
+(function () {
+	// 加载 Waline CSS
+	var link = document.createElement("link");
+	link.rel = "stylesheet";
+	link.href = "https://unpkg.com/@waline/client@3/dist/waline.css";
+	document.head.appendChild(link);
+
+	function initWaline() {
+		var container = document.getElementById("waline-container");
+		if (!container) return;
+		if (container.querySelector(".wl-panel")) return;
+
+		var slug = container.getAttribute("data-slug") || "";
+
+		import("@waline/client").then(function (mod) {
+			mod.init({
+				el: "#waline-container",
+				serverURL: "https://waline-comment-smoky.vercel.app",
+				path: "/" + slug,
+				lang: "zh-CN",
+				reaction: true,
+				pageview: true,
+				dark: "html.dark",
+			});
+		});
+	}
+
+	// Swup 导航：新页面渲染后初始化评论
+	if (window.swup) {
+		window.swup.hooks.on("page:view", initWaline);
+	} else {
+		document.addEventListener("swup:enable", function () {
+			window.swup.hooks.on("page:view", initWaline);
+		});
+	}
+
+	// 首次加载直接初始化
+	initWaline();
+})();
+</script>
+
+<style>
+.waline-wrapper {
+	margin-top: 2rem;
+	width: 100%;
+}
+</style>

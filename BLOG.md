@@ -19,7 +19,7 @@
 | 滚动条 | [OverlayScrollbars](https://kingsora.github.io/OverlayScrollbars) |
 | 图标 | [Astro Icon](https://github.com/natemoo-re/astro-icon) — Material Symbols + Font Awesome 6 |
 | 字体 | Roboto（界面）· JetBrains Mono Variable（代码），均通过 `@fontsource` 引入 |
-| 评论 | [Giscus](https://giscus.app) — 基于 GitHub Discussions |
+| 评论 | [Waline](https://waline.js.org) — 基于 LeanCloud / MongoDB，支持表情反应、阅读量 |
 | 访问统计 | Google Analytics（`G-P9JSV1JJEK`） |
 | 页面浏览量 | [不蒜子 Busuanzi](https://busuanzi.ibruce.info) |
 | 站点地图 | `@astrojs/sitemap` |
@@ -74,7 +74,7 @@
 | 赫萝 (horosama.com) | 壁纸备用接口 | `https://api.horosama.com/random.php?type=pc&format=json` |
 | Google Analytics | 访问分析 | `https://www.googletagmanager.com/gtag/js?id=G-P9JSV1JJEK` |
 | 不蒜子 Busuanzi | 页面浏览量 | `https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js` |
-| Giscus | 评论系统 | 通过 `<script>` 嵌入文章布局 |
+| Waline | 评论系统 | `@waline/client` 客户端组件嵌入文章布局 |
 
 > 壁纸请求设有 8 秒 `AbortController` 超时，主接口失败时自动切换到赫萝备用接口。
 

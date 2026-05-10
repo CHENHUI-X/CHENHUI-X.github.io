@@ -75,9 +75,9 @@ function backToTop() {
 
 function goToBottom() {
     // 优先滚动到评论区，没有评论区则滚到页面底部
-    var giscus = document.getElementById('giscus-wrapper');
-    if (giscus) {
-        giscus.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    var waline = document.getElementById('waline-container');
+    if (waline) {
+        waline.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
         window.scroll({ top: document.body.scrollHeight, behavior: 'smooth' });
     }

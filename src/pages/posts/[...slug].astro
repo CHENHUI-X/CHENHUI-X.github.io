@@ -1,6 +1,6 @@
 ---
 import path from "node:path";
-import Giscus from "@components/Giscus.astro";
+import WalineComment from "@components/WalineComment.astro";
 import License from "@components/misc/License.astro";
 import Markdown from "@components/misc/Markdown.astro";
 import ShareButtons from "@components/ShareButtons.astro";
@@ -123,7 +123,7 @@ const jsonLd = {
 
             <ShareButtons title={entry.data.title} url={Astro.url} />
 
-            <Giscus />
+            <WalineComment postEntry={entry} />
 
         </div>
     </div>
