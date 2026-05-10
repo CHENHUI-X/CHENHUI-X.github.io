@@ -1,15 +1,28 @@
-/* Page transition animations with Swup */
+/* ── 页面切换动画（Swup） ─────────────────────────────────────────────────── */
+
+/* 切换开始：启用 transition，淡出时轻微缩小 */
 html.is-changing .transition-swup-fade {
-    @apply transition-all duration-200
+    transition: opacity 150ms ease-in, transform 150ms ease-in;
 }
+/* 淡出状态：透明 + 轻微缩小下移（Apple 风格：快速离场） */
 html.is-animating .transition-swup-fade {
-    @apply opacity-0 translate-y-4
+    opacity: 0;
+    transform: scale(0.98) translateY(0.5rem);
+}
+/* 新页面初始状态：由 JS 在 visit:start 添加 is-rendering，page:view 时移除触发淡入 */
+html.is-rendering .transition-swup-fade {
+    opacity: 0;
+    transform: scale(0.99) translateY(0.5rem);
+    transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Fade-in animations for components */
+/* ── 首屏入场动画（onload-animation） ────────────────────────────────────── */
+
+/* easeOutExpo：快速到位，不拖泥带水，Apple 标志性曲线 */
 @keyframes fade-in-up {
     0% {
-        transform: translateY(2rem);
+        transform: translateY(0.75rem);
         opacity: 0;
     }
     100% {
@@ -18,17 +31,18 @@ html.is-animating .transition-swup-fade {
     }
 }
 
-/* Main components */
 .onload-animation {
     opacity: 0;
-    animation: 300ms fade-in-up;
+    animation: 600ms fade-in-up cubic-bezier(0.16, 1, 0.3, 1);
     animation-fill-mode: forwards;
 }
+
+/* 各区块错落入场，形成节奏感 */
 #navbar {
-    animation-delay: 0ms
+    animation-delay: 0ms;
 }
 #sidebar {
-    animation-delay: 100ms
+    animation-delay: 80ms;
 }
 #swup-container {
     outline: none;
@@ -37,17 +51,16 @@ html.is-animating .transition-swup-fade {
     animation-delay: var(--content-delay);
 }
 .footer {
-    animation-delay: 250ms;
+    animation-delay: 200ms;
 }
 #banner-credit {
-    animation-delay: 400ms;
+    animation-delay: 350ms;
 }
 
-/* Post content */
+/* 文章内容子元素逐步入场，间隔 60ms */
 #post-container :nth-child(1) { animation-delay: calc(var(--content-delay) + 0ms) }
-#post-container :nth-child(2) { animation-delay: calc(var(--content-delay) + 50ms) }
-#post-container :nth-child(3) { animation-delay: calc(var(--content-delay) + 100ms) }
-#post-container :nth-child(4) { animation-delay: calc(var(--content-delay) + 175ms) }
-#post-container :nth-child(5) { animation-delay: calc(var(--content-delay) + 250ms) }
-#post-container :nth-child(6) { animation-delay: calc(var(--content-delay) + 325ms) }
-
+#post-container :nth-child(2) { animation-delay: calc(var(--content-delay) + 60ms) }
+#post-container :nth-child(3) { animation-delay: calc(var(--content-delay) + 120ms) }
+#post-container :nth-child(4) { animation-delay: calc(var(--content-delay) + 200ms) }
+#post-container :nth-child(5) { animation-delay: calc(var(--content-delay) + 280ms) }
+#post-container :nth-child(6) { animation-delay: calc(var(--content-delay) + 360ms) }

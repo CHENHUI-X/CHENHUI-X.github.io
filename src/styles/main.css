@@ -2,7 +2,24 @@
 
 @layer components {
     .card-base {
-        @apply rounded-[var(--radius-large)] overflow-hidden bg-[var(--card-bg)] transition;
+        @apply rounded-[var(--radius-large)] overflow-hidden bg-[var(--card-bg)];
+        /* 毛玻璃：半透明白底 + 背景模糊，让背景图隐约透过来 */
+        background-color: rgba(255, 255, 255, 0.75) !important;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        /* 弹性 hover：spring 曲线让卡片轻弹上浮，阴影同步加深 */
+        transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .card-base:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+    :root.dark .card-base {
+        background-color: rgba(30, 20, 40, 0.72) !important;
+    }
+    :root.dark .card-base:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     }
     h1, h2, h3, h4, h5, h6, p, a, span, li, ul, ol, blockquote, code, pre, table, th, td, strong {
         @apply transition;
