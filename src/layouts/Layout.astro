@@ -164,7 +164,7 @@ const bannerOffset =
 		  data-overlayscrollbars-initialize
 	>
 		<ConfigCarrier></ConfigCarrier>
-		<div id="page-bg-layer" class="fixed inset-0 pointer-events-none" style="z-index:1;background:var(--page-bg);opacity:0.7"></div>
+		<div id="page-bg-layer" class="fixed inset-0 pointer-events-none" style="z-index:1;background:var(--page-bg);opacity:0.55"></div>
 		<div id="content-layer" class="relative" style="z-index:2">
 			<slot />
 		</div>
@@ -209,6 +209,35 @@ const bannerOffset =
 	.navbar-hidden {
 		@apply opacity-0 -translate-y-16
 	}
+}
+</style>
+
+<style is:global>
+/* Animated gradient background */
+@keyframes bg-drift {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+#bg-animation {
+	background: linear-gradient(-45deg,
+		oklch(0.88 0.10 var(--hue)),
+		oklch(0.85 0.14 calc(var(--hue) + 20)),
+		oklch(0.82 0.12 calc(var(--hue) - 15)),
+		oklch(0.90 0.08 var(--hue))
+	);
+	background-size: 400% 400%;
+	animation: bg-drift 12s ease infinite;
+}
+:root.dark #bg-animation {
+	background: linear-gradient(-45deg,
+		oklch(0.25 0.08 var(--hue)),
+		oklch(0.20 0.12 calc(var(--hue) + 20)),
+		oklch(0.15 0.10 calc(var(--hue) + 40)),
+		oklch(0.28 0.06 calc(var(--hue) - 10))
+	);
+	background-size: 400% 400%;
+	animation: bg-drift 12s ease infinite;
 }
 </style>
 
