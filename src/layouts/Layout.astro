@@ -461,25 +461,20 @@ const bannerOffset =
 			}
 		});
 		window.swup.hooks.on('visit:end', (_visit: {to: {url: string}}) => {
-			// 移除旧的 scroll/resize 监听器，防止 Swup 导航后监听器叠加
-			window.removeEventListener('scroll', scrollFunction)
-			window.removeEventListener('resize', resizeHandler)
-			// 重新注册，绑定到新页面的 DOM 引用
-			backToTopBtn = document.getElementById('back-to-top-btn')
-			goToBottomBtn = document.getElementById('go-to-bottom-btn')
-			toc = document.getElementById('toc-wrapper')
-			navbar = document.getElementById('navbar-wrapper')
-			window.addEventListener('scroll', scrollFunction)
-			window.addEventListener('resize', resizeHandler)
-
 			setTimeout(() => {
+				// 页面 DOM 已更新，重新获取按钮/目录/导航栏引用
+				backToTopBtn = document.getElementById('back-to-top-btn')
+				goToBottomBtn = document.getElementById('go-to-bottom-btn')
+				toc = document.getElementById('toc-wrapper')
+				navbar = document.getElementById('navbar-wrapper')
+
 				const heightExtend = document.getElementById('page-height-extend')
 				if (heightExtend) {
 					heightExtend.classList.add('hidden')
 				}
 
 	            // Just make the transition looks better
-	            const toc = document.getElementById('toc-wrapper');
+	            /* toc already updated above */
 	            if (toc) {
 	                toc.classList.remove('toc-not-ready')
 	            }
@@ -541,7 +536,7 @@ const bannerOffset =
 			}
 		}
 	}
-	window.addEventListener('scroll', scrollFunction)
+	window.onscroll = scrollFunction
 
 	function resizeHandler() {
 		// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text
@@ -549,7 +544,7 @@ const bannerOffset =
 		offset = offset - offset % 4;
 		document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
 	}
-	window.addEventListener('resize', resizeHandler)
+	window.onresize = resizeHandler
 
 	</script>
 
