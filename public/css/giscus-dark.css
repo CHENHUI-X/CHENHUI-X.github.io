@@ -1,112 +1,124 @@
 /*
  * Giscus 自定义主题 — 暗色
- * 与博客暗色毛玻璃卡片风格保持一致
+ * 通过 CSS 变量覆盖，比 .gsc-* 选择器更稳定
  */
 
-/* ── 整体容器 ── */
-.gsc-main {
-  color: oklch(0.88 0.01 var(--hue, 250));
+main {
+  /* ── 背景 ── */
+  --color-canvas-default:      rgba(22, 14, 36, 0.85);
+  --color-canvas-overlay:      rgba(28, 18, 44, 0.95);
+  --color-canvas-inset:        rgba(15, 10, 26, 0.7);
+  --color-canvas-subtle:       rgba(30, 20, 46, 0.75);
+
+  /* ── 文字 ── */
+  --color-fg-default:          #e2e0f0;
+  --color-fg-muted:            #a09ab8;
+  --color-fg-subtle:           #6b6585;
+
+  /* ── 边框 ── */
+  --color-border-default:      rgba(160, 140, 200, 0.15);
+  --color-border-muted:        rgba(160, 140, 200, 0.10);
+  --color-neutral-muted:       rgba(160, 140, 200, 0.12);
+
+  /* ── 强调色 ── */
+  --color-accent-fg:           #818cf8;
+  --color-accent-emphasis:     #6366f1;
+  --color-accent-muted:        rgba(129, 140, 248, 0.2);
+  --color-accent-subtle:       rgba(129, 140, 248, 0.08);
+
+  /* ── 普通按钮 ── */
+  --color-btn-text:            #d4d0e8;
+  --color-btn-bg:              rgba(40, 28, 60, 0.8);
+  --color-btn-border:          rgba(160, 140, 200, 0.2);
+  --color-btn-hover-bg:        rgba(55, 40, 80, 0.9);
+  --color-btn-hover-border:    rgba(129, 140, 248, 0.35);
+  --color-btn-active-bg:       rgba(65, 48, 95, 0.9);
+  --color-btn-shadow:          0 1px 4px rgba(0, 0, 0, 0.3);
+  --color-btn-inset-shadow:    inset 0 1px 0 rgba(255,255,255,0.06);
+
+  /* ── 主要按钮（提交评论） ── */
+  --color-btn-primary-text:              #ffffff;
+  --color-btn-primary-bg:                #6366f1;
+  --color-btn-primary-border:            #4f46e5;
+  --color-btn-primary-hover-bg:          #818cf8;
+  --color-btn-primary-hover-border:      #6366f1;
+  --color-btn-primary-selected-bg:       #4f46e5;
+  --color-btn-primary-disabled-text:     rgba(255,255,255,0.35);
+  --color-btn-primary-disabled-bg:       rgba(99,102,241,0.3);
+  --color-btn-primary-disabled-border:   transparent;
+
+  /* ── 表情反应 ── */
+  --color-social-reaction-bg-hover:          rgba(129, 140, 248, 0.1);
+  --color-social-reaction-bg-reacted-hover:  rgba(129, 140, 248, 0.18);
+
+  /* ── 其他 ── */
+  --color-action-list-item-default-hover-bg: rgba(129, 140, 248, 0.08);
+  --color-primer-shadow-inset:               inset 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* ── 评论输入框 ── */
+/* ── 全局圆角 & 毛玻璃 ── */
 .gsc-comment-box {
-  background: rgba(30, 20, 40, 0.82) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 12px !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 14px !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(160, 140, 200, 0.15) !important;
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.35) !important;
+  overflow: hidden !important;
 }
 
 .gsc-comment-box-tabs {
-  background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
-  border-radius: 12px 12px 0 0 !important;
-  padding: 0 12px !important;
+  border-radius: 14px 14px 0 0 !important;
 }
 
-.gsc-comment-box-tabs .color-text-primary {
-  color: oklch(0.72 0.14 var(--hue, 250)) !important;
+/* 每条评论卡片 */
+.gsc-comment,
+.gsc-reply {
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(160, 140, 200, 0.12) !important;
+  margin-bottom: 10px !important;
+  overflow: hidden !important;
+  transition: box-shadow 0.25s ease, transform 0.25s ease !important;
 }
 
-.gsc-comment-box-textarea-extras {
-  background: transparent !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
-}
-
-.gsc-comment-box-textarea {
-  background: transparent !important;
-  color: oklch(0.88 0.01 var(--hue, 250)) !important;
-  border: none !important;
-  resize: vertical;
-}
-
-.gsc-comment-box-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.3) !important;
-}
-
-/* ── 提交按钮 ── */
-.gsc-comment-box-bottom .btn-primary {
-  background: oklch(0.55 0.18 var(--hue, 250)) !important;
-  border: none !important;
-  border-radius: 8px !important;
-  color: #fff !important;
-  font-weight: 600 !important;
-  transition: opacity 0.2s, transform 0.2s !important;
-}
-
-.gsc-comment-box-bottom .btn-primary:hover {
-  opacity: 0.88 !important;
+.gsc-comment:hover,
+.gsc-reply:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4) !important;
   transform: translateY(-1px) !important;
 }
 
-/* ── 单条评论 ── */
-.gsc-comment {
-  background: rgba(30, 20, 40, 0.72) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
-  border-radius: 12px !important;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  margin-bottom: 12px !important;
-}
-
-.gsc-comment-header {
-  background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-}
-
-.gsc-comment-content {
-  background: transparent !important;
-}
-
-/* ── 回复区 ── */
-.gsc-replies {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
-  border-radius: 0 0 12px 12px !important;
-}
-
-/* ── 表情反应 ── */
-.gsc-reactions-button {
+/* 按钮圆角 & 过渡动画 */
+.btn,
+button {
   border-radius: 8px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  transition: background 0.2s !important;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
 }
 
-.gsc-reactions-button:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
+.btn:hover,
+button:hover {
+  transform: translateY(-1px) !important;
 }
 
-/* ── 链接 ── */
-a {
-  color: oklch(0.72 0.14 var(--hue, 250)) !important;
+.btn:active,
+button:active {
+  transform: translateY(0) scale(0.97) !important;
 }
 
-/* ── 分页按钮 ── */
-.gsc-pagination .btn {
+/* 输入框 */
+textarea,
+input[type="text"] {
   border-radius: 8px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  color: oklch(0.88 0.01 var(--hue, 250)) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+textarea:focus,
+input[type="text"]:focus {
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2) !important;
+  outline: none !important;
+}
+
+/* 分页按钮 */
+.pagination-loader-container button {
+  border-radius: 8px !important;
 }
