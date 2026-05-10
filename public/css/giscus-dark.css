@@ -60,6 +60,11 @@ main {
   /* ── 其他 ── */
   --color-action-list-item-default-hover-bg: rgba(129, 140, 248, 0.08);
   --color-primer-shadow-inset:               inset 0 1px 2px rgba(0,0,0,0.3);
+
+  /* ── Primer 圆角覆盖 ── */
+  --border-radius-medium: 8px;
+  --border-radius-1: 8px;
+  --border-radius-2: 8px;
 }
 
 /* ════════════════════════════════════════════
@@ -152,7 +157,14 @@ input[type="text"]:focus {
 .btn,
 button {
   border-radius: 8px !important;
+  overflow: hidden !important;
   transition: background 0.2s ease, transform 0.15s ease !important;
+}
+
+/* 按钮内部图标/子元素继承一致圆角 */
+.btn > *,
+button > * {
+  border-radius: inherit !important;
 }
 
 .gsc-reactions-button {

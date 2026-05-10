@@ -17,18 +17,68 @@ const {
 	runningDays,
 } = Astro.props;
 
-// 字数对应的书籍类比
-function wordEquivalent(words: number): string {
-	if (words < 3000) return "刚够一篇课程报告 📄";
-	if (words < 10000) return "约等于一篇期末论文 📝";
-	if (words < 30000) return "快赶上一篇毕业论文了 🎓";
-	if (words < 80000) return "相当于半本小说 📖";
-	if (words < 200000) return "快写完一本书了 📚";
-	return "著作等身，大佬！🏆";
+// 书籍数据集：按字数升序排列
+const BOOKS: { title: string; words: number; lang: string }[] = [
+	{ title: "《长恨歌》", words: 840, lang: "zh" },
+	{ title: "《诗经》名篇选", words: 2000, lang: "zh" },
+	{ title: "《道德经》", words: 5000, lang: "zh" },
+	{ title: "《论语》", words: 16000, lang: "zh" },
+	{ title: "The Little Prince", words: 20000, lang: "en" },
+	{ title: "《边城》", words: 30000, lang: "zh" },
+	{ title: "《老人与海》", words: 40000, lang: "zh" },
+	{ title: "The Great Gatsby", words: 47000, lang: "en" },
+	{ title: "《局外人》", words: 50000, lang: "zh" },
+	{ title: "《城南旧事》", words: 60000, lang: "zh" },
+	{ title: "The Catcher in the Rye", words: 73000, lang: "en" },
+	{ title: "1984", words: 89000, lang: "en" },
+	{ title: "To Kill a Mockingbird", words: 100000, lang: "en" },
+	{ title: "《活着》", words: 120000, lang: "zh" },
+	{ title: "Pride and Prejudice", words: 122000, lang: "en" },
+	{ title: "《围城》", words: 170000, lang: "zh" },
+	{ title: "《三体》第一部", words: 200000, lang: "zh" },
+	{ title: "《白夜行》", words: 250000, lang: "zh" },
+	{ title: "《平凡的世界》", words: 300000, lang: "zh" },
+	{ title: "《百年孤独》", words: 350000, lang: "zh" },
+	{ title: "Gone with the Wind", words: 400000, lang: "en" },
+	{ title: "The Lord of the Rings", words: 455000, lang: "en" },
+	{ title: "《三国演义》", words: 486000, lang: "zh" },
+	{ title: "Les Misérables", words: 530000, lang: "en" },
+	{ title: "《西游记》", words: 560000, lang: "zh" },
+	{ title: "War and Peace", words: 587000, lang: "en" },
+	{ title: "《红楼梦》", words: 730000, lang: "zh" },
+];
+
+// 找到字数最接近的书籍并生成对比文案
+function findBookComparison(totalWords: number): string {
+	if (totalWords === 0) return "还没有内容，快开始写吧 ✍️";
+
+	let closest = BOOKS[0];
+	let minDiff = Math.abs(totalWords - closest.words);
+
+	for (const book of BOOKS) {
+		const diff = Math.abs(totalWords - book.words);
+		if (diff < minDiff) {
+			minDiff = diff;
+			closest = book;
+		}
+	}
+
+	const ratio = totalWords / closest.words;
+
+	if (ratio >= 0.95 && ratio <= 1.05) {
+		return `恰好相当于${closest.title}`;
+	}
+	if (ratio >= 0.65 && ratio < 0.95) {
+		return `接近${closest.title}了`;
+	}
+	if (ratio >= 0.35 && ratio < 0.65) {
+		return `相当于${closest.title}的一半`;
+	}
+	return `已经超过了${closest.title}`;
 }
 
 const formattedWords = totalWords.toLocaleString("zh-CN");
-const equivalent = wordEquivalent(totalWords);
+const equivalent = findBookComparison(totalWords);
 ---
 
 <div class="blog-stats-grid">
