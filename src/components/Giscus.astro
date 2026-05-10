@@ -13,7 +13,10 @@ const {
 	lang = "zh-CN",
 } = giscusConfig;
 
-const theme = "preferred_color_scheme";
+// 自定义主题 CSS 的公开 URL（Giscus 需要能直接访问）
+const siteOrigin = Astro.site ? Astro.site.origin : "https://xuchenhui.cc";
+const lightTheme = `${siteOrigin}/css/giscus-light.css`;
+const darkTheme = `${siteOrigin}/css/giscus-dark.css`;
 ---
 
 {enable && repoId && categoryId && (
@@ -27,27 +30,31 @@ const theme = "preferred_color_scheme";
 			</div>
 		</div>
 		<div class="px-6 md:px-9 pb-6" id="giscus-wrapper">
-			<script is:inline
-				src="https://giscus.app/client.js"
-				data-repo={repo}
-				data-repo-id={repoId}
-				data-category={category}
-				data-category-id={categoryId}
-				data-mapping={mapping}
-				data-strict="0"
-				data-reactions-enabled={reactionsEnabled ? "1" : "0"}
-				data-emit-metadata="0"
-				data-input-position={inputPosition}
-				data-theme={theme}
-				data-lang={lang}
-				crossorigin="anonymous"
-				async
-			></script>
 		</div>
 	</div>
 )}
 
-<script define:vars={{ repo, repoId, category, categoryId, mapping, reactionsEnabled, inputPosition, lang, theme }}>
+<script define:vars={{ repo, repoId, category, categoryId, mapping, reactionsEnabled, inputPosition, lang, lightTheme, darkTheme }}>
+
+// 判断当前是否暗色模式
+function isDark() {
+	return document.documentElement.classList.contains('dark');
+}
+
+function getThemeUrl() {
+	return isDark() ? darkTheme : lightTheme;
+}
+
+// 向 Giscus iframe 发送主题切换消息
+function sendThemeToGiscus(themeUrl) {
+	const iframe = document.querySelector('iframe.giscus-frame');
+	if (!iframe) return;
+	iframe.contentWindow.postMessage(
+		{ giscus: { setConfig: { theme: themeUrl } } },
+		'https://giscus.app'
+	);
+}
+
 function initGiscus() {
 	const wrapper = document.getElementById('giscus-wrapper');
 	if (!wrapper) return;
@@ -64,7 +71,7 @@ function initGiscus() {
 	script.setAttribute('data-reactions-enabled', reactionsEnabled ? '1' : '0');
 	script.setAttribute('data-emit-metadata', '0');
 	script.setAttribute('data-input-position', inputPosition);
-	script.setAttribute('data-theme', theme);
+	script.setAttribute('data-theme', getThemeUrl());
 	script.setAttribute('data-lang', lang);
 	script.setAttribute('crossorigin', 'anonymous');
 	script.async = true;
@@ -76,12 +83,18 @@ function destroyGiscus() {
 	if (!wrapper) return;
 	const iframe = wrapper.querySelector('iframe');
 	if (iframe) iframe.remove();
-	const scripts = wrapper.querySelectorAll('script');
-	const staticScript = wrapper.querySelector('script[data-repo]');
-	scripts.forEach(s => {
-		if (s !== staticScript) s.remove();
-	});
+	wrapper.querySelectorAll('script').forEach(s => s.remove());
 }
+
+// 监听博客自身的主题切换（setting-utils 里 setTheme 会派发这个事件）
+document.addEventListener('theme-change', () => {
+	sendThemeToGiscus(getThemeUrl());
+});
+
+// 也监听系统主题变化（AUTO 模式下）
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+	sendThemeToGiscus(getThemeUrl());
+});
 
 const setup = () => {
 	if (window.swup) {
@@ -89,6 +102,9 @@ const setup = () => {
 		window.swup.hooks.on('page:view', initGiscus);
 	}
 };
+
+// 初始化
+initGiscus();
 
 if (window.swup) {
 	setup();

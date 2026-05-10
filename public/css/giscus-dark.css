@@ -1,0 +1,112 @@
+/*
+ * Giscus 自定义主题 — 暗色
+ * 与博客暗色毛玻璃卡片风格保持一致
+ */
+
+/* ── 整体容器 ── */
+.gsc-main {
+  color: oklch(0.88 0.01 var(--hue, 250));
+}
+
+/* ── 评论输入框 ── */
+.gsc-comment-box {
+  background: rgba(30, 20, 40, 0.82) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.gsc-comment-box-tabs {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 0 12px !important;
+}
+
+.gsc-comment-box-tabs .color-text-primary {
+  color: oklch(0.72 0.14 var(--hue, 250)) !important;
+}
+
+.gsc-comment-box-textarea-extras {
+  background: transparent !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+.gsc-comment-box-textarea {
+  background: transparent !important;
+  color: oklch(0.88 0.01 var(--hue, 250)) !important;
+  border: none !important;
+  resize: vertical;
+}
+
+.gsc-comment-box-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* ── 提交按钮 ── */
+.gsc-comment-box-bottom .btn-primary {
+  background: oklch(0.55 0.18 var(--hue, 250)) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  transition: opacity 0.2s, transform 0.2s !important;
+}
+
+.gsc-comment-box-bottom .btn-primary:hover {
+  opacity: 0.88 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── 单条评论 ── */
+.gsc-comment {
+  background: rgba(30, 20, 40, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  margin-bottom: 12px !important;
+}
+
+.gsc-comment-header {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.gsc-comment-content {
+  background: transparent !important;
+}
+
+/* ── 回复区 ── */
+.gsc-replies {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 0 0 12px 12px !important;
+}
+
+/* ── 表情反应 ── */
+.gsc-reactions-button {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  transition: background 0.2s !important;
+}
+
+.gsc-reactions-button:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ── 链接 ── */
+a {
+  color: oklch(0.72 0.14 var(--hue, 250)) !important;
+}
+
+/* ── 分页按钮 ── */
+.gsc-pagination .btn {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: oklch(0.88 0.01 var(--hue, 250)) !important;
+}

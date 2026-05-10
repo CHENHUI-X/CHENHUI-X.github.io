@@ -20,26 +20,26 @@ const allPosts = await getCollection("posts", ({ data }) => !data.draft);
 
 // 文章数 & 标签数
 const postCount = allPosts.length;
-const tagCount = new Set(allPosts.flatMap(p => p.data.tags ?? [])).size;
+const tagCount = new Set(allPosts.flatMap((p) => p.data.tags ?? [])).size;
 
 // 全站字数：需要 render() 才能拿到 remarkPluginFrontmatter.words
 const wordCounts = await Promise.all(
-    allPosts.map(async (p) => {
-        const { remarkPluginFrontmatter } = await render(p);
-        return (remarkPluginFrontmatter.words as number) ?? 0;
-    })
+	allPosts.map(async (p) => {
+		const { remarkPluginFrontmatter } = await render(p);
+		return (remarkPluginFrontmatter.words as number) ?? 0;
+	}),
 );
 const totalWords = wordCounts.reduce((sum, w) => sum + w, 0);
 
 // 最后更新：取所有文章中最新的 updated 或 published
 const lastUpdatedDate = allPosts.reduce((latest, p) => {
-    const d = p.data.updated ?? p.data.published;
-    return d > latest ? d : latest;
+	const d = p.data.updated ?? p.data.published;
+	return d > latest ? d : latest;
 }, new Date(0));
 const lastUpdated = lastUpdatedDate.toISOString().slice(0, 10);
 
 // 建站日期（固定）& 已运行天数
-const FOUNDED = "2025-04-01";
+const FOUNDED = "2024-01-01";
 const foundedMs = new Date(FOUNDED).getTime();
 const runningDays = Math.floor((Date.now() - foundedMs) / 86400000);
 ---

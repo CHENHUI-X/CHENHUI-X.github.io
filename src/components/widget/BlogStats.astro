@@ -1,23 +1,30 @@
 ---
 interface Props {
-    postCount: number;
-    tagCount: number;
-    totalWords: number;
-    foundedDate: string;   // 建站日期，格式 YYYY-MM-DD
-    lastUpdated: string;   // 最后更新，格式 YYYY-MM-DD
-    runningDays: number;
+	postCount: number;
+	tagCount: number;
+	totalWords: number;
+	foundedDate: string; // 建站日期，格式 YYYY-MM-DD
+	lastUpdated: string; // 最后更新，格式 YYYY-MM-DD
+	runningDays: number;
 }
 
-const { postCount, tagCount, totalWords, foundedDate, lastUpdated, runningDays } = Astro.props;
+const {
+	postCount,
+	tagCount,
+	totalWords,
+	foundedDate,
+	lastUpdated,
+	runningDays,
+} = Astro.props;
 
 // 字数对应的书籍类比
 function wordEquivalent(words: number): string {
-    if (words < 3000)  return "刚够一篇课程报告 📄";
-    if (words < 10000) return "约等于一篇期末论文 📝";
-    if (words < 30000) return "快赶上一篇毕业论文了 🎓";
-    if (words < 80000) return "相当于半本小说 📖";
-    if (words < 200000) return "快写完一本书了 📚";
-    return "著作等身，大佬！🏆";
+	if (words < 3000) return "刚够一篇课程报告 📄";
+	if (words < 10000) return "约等于一篇期末论文 📝";
+	if (words < 30000) return "快赶上一篇毕业论文了 🎓";
+	if (words < 80000) return "相当于半本小说 📖";
+	if (words < 200000) return "快写完一本书了 📚";
+	return "著作等身，大佬！🏆";
 }
 
 const formattedWords = totalWords.toLocaleString("zh-CN");
