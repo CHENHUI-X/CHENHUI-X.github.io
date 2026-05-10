@@ -34,3 +34,6 @@ yarn.lock
 
 # claude
 .claude/
+
+# dev utility scripts
+find_adjacent.py
