@@ -1,6 +1,6 @@
 /*
- * Giscus 自定义主题 — 暗色
- * 通过 CSS 变量覆盖，比 .gsc-* 选择器更稳定
+ * Giscus 自定义主题 — 暗色毛玻璃
+ * 覆盖所有状态：loading / 未登录提示 / 评论输入框 / 评论列表
  */
 
 main {
@@ -33,15 +33,16 @@ main {
   --color-btn-hover-bg:        rgba(55, 40, 80, 0.9);
   --color-btn-hover-border:    rgba(129, 140, 248, 0.35);
   --color-btn-active-bg:       rgba(65, 48, 95, 0.9);
+  --color-btn-selected-bg:     rgba(65, 48, 95, 0.7);
   --color-btn-shadow:          0 1px 4px rgba(0, 0, 0, 0.3);
   --color-btn-inset-shadow:    inset 0 1px 0 rgba(255,255,255,0.06);
 
-  /* ── 主要按钮（提交评论） ── */
+  /* ── 主要按钮（提交/登录） ── */
   --color-btn-primary-text:              #ffffff;
   --color-btn-primary-bg:                #6366f1;
-  --color-btn-primary-border:            #4f46e5;
+  --color-btn-primary-border:            transparent;
   --color-btn-primary-hover-bg:          #818cf8;
-  --color-btn-primary-hover-border:      #6366f1;
+  --color-btn-primary-hover-border:      transparent;
   --color-btn-primary-selected-bg:       #4f46e5;
   --color-btn-primary-disabled-text:     rgba(255,255,255,0.35);
   --color-btn-primary-disabled-bg:       rgba(99,102,241,0.3);
@@ -56,21 +57,32 @@ main {
   --color-primer-shadow-inset:               inset 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* ── 全局圆角 & 毛玻璃 ── */
-.gsc-comment-box {
-  border-radius: 14px !important;
+/* ═══ 全局容器：圆角 + 毛玻璃 + 溢出隐藏 ═══ */
+.gsc-comment-box,
+.gsc-comment-box-main,
+.gsc-comment-box-tabs,
+.gsc-comment-box-textarea-extras,
+.gsc-comment-box-bottom {
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(160, 140, 200, 0.15) !important;
-  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.35) !important;
+  border-radius: 14px !important;
   overflow: hidden !important;
 }
 
-.gsc-comment-box-tabs {
-  border-radius: 14px 14px 0 0 !important;
+/* 大容器：外边框 + 阴影 */
+.gsc-comment-box {
+  border: 1px solid rgba(160, 140, 200, 0.15) !important;
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.35) !important;
+  background: var(--color-canvas-default) !important;
 }
 
-/* 每条评论卡片 */
+/* 只有顶部圆角 */
+.gsc-comment-box-tabs {
+  border-radius: 14px 14px 0 0 !important;
+  border-bottom: 1px solid rgba(160, 140, 200, 0.10) !important;
+}
+
+/* ═══ 单条评论卡片 ═══ */
 .gsc-comment,
 .gsc-reply {
   border-radius: 12px !important;
@@ -80,6 +92,7 @@ main {
   margin-bottom: 10px !important;
   overflow: hidden !important;
   transition: box-shadow 0.25s ease, transform 0.25s ease !important;
+  background: var(--color-canvas-default) !important;
 }
 
 .gsc-comment:hover,
@@ -88,37 +101,57 @@ main {
   transform: translateY(-1px) !important;
 }
 
-/* 按钮圆角 & 过渡动画 */
-.btn,
-button {
+/* 回复区 */
+.gsc-replies {
+  border-radius: 0 0 12px 12px !important;
+  overflow: hidden !important;
+}
+
+/* ═══ 按钮 ═══ */
+.btn, button {
   border-radius: 8px !important;
   transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
 }
 
-.btn:hover,
-button:hover {
+.btn:hover, button:hover {
   transform: translateY(-1px) !important;
 }
 
-.btn:active,
-button:active {
+.btn:active, button:active {
   transform: translateY(0) scale(0.97) !important;
 }
 
-/* 输入框 */
-textarea,
-input[type="text"] {
+/* GitHub 登录按钮 */
+button.btn-primary {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  padding: 8px 20px !important;
+}
+
+/* ═══ 输入框 ═══ */
+textarea, input[type="text"] {
   border-radius: 8px !important;
   transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-textarea:focus,
-input[type="text"]:focus {
+textarea:focus, input[type="text"]:focus {
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2) !important;
   outline: none !important;
 }
 
-/* 分页按钮 */
+/* ═══ 其他 ═══ */
+.gsc-reactions-button {
+  border-radius: 8px !important;
+}
+
+.gsc-header {
+  border-radius: 12px 12px 0 0 !important;
+}
+
 .pagination-loader-container button {
   border-radius: 8px !important;
+}
+
+.gsc-loading-image {
+  opacity: 0.6 !important;
 }
