@@ -56,11 +56,3 @@ html.is-rendering .transition-swup-fade {
 #banner-credit {
     animation-delay: 350ms;
 }
-
-/* 文章内容子元素逐步入场，间隔 60ms */
-#post-container :nth-child(1) { animation-delay: calc(var(--content-delay) + 0ms) }
-#post-container :nth-child(2) { animation-delay: calc(var(--content-delay) + 60ms) }
-#post-container :nth-child(3) { animation-delay: calc(var(--content-delay) + 120ms) }
-#post-container :nth-child(4) { animation-delay: calc(var(--content-delay) + 200ms) }
-#post-container :nth-child(5) { animation-delay: calc(var(--content-delay) + 280ms) }
-#post-container :nth-child(6) { animation-delay: calc(var(--content-delay) + 360ms) }

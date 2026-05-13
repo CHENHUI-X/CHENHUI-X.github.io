@@ -3,20 +3,66 @@ const { postEntry } = Astro.props;
 const slug = postEntry.slug;
 ---
 
-<div id="waline-container" class="waline-wrapper" data-slug={slug}></div>
+<div id="waline-container" class="waline-wrapper" data-slug={slug}>
+	<!-- 加载骨架屏：在 Waline 初始化前展示 -->
+	<div id="waline-loading" class="waline-loading">
+		<div class="wl-skeleton">
+			<div class="wl-skeleton-header">
+				<div class="wl-skeleton-avatar"></div>
+				<div class="wl-skeleton-input"></div>
+			</div>
+			<div class="wl-skeleton-comments">
+				<div class="wl-skeleton-item">
+					<div class="wl-skeleton-avatar-sm"></div>
+					<div class="wl-skeleton-body">
+						<div class="wl-skeleton-line wl-skeleton-line--short"></div>
+						<div class="wl-skeleton-line wl-skeleton-line--medium"></div>
+						<div class="wl-skeleton-line wl-skeleton-line--long"></div>
+					</div>
+				</div>
+				<div class="wl-skeleton-item">
+					<div class="wl-skeleton-avatar-sm"></div>
+					<div class="wl-skeleton-body">
+						<div class="wl-skeleton-line wl-skeleton-line--short"></div>
+						<div class="wl-skeleton-line wl-skeleton-line--medium"></div>
+					</div>
+				</div>
+				<div class="wl-skeleton-item">
+					<div class="wl-skeleton-body wl-skeleton-body--offset">
+						<div class="wl-skeleton-line wl-skeleton-line--short"></div>
+						<div class="wl-skeleton-line wl-skeleton-line--long"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 
 <script>
 (function () {
-	// 加载 Waline CSS
+	// 加载 Waline CSS（改用 jsdelivr CDN，国内访问更快）
 	var link = document.createElement("link");
 	link.rel = "stylesheet";
-	link.href = "https://unpkg.com/@waline/client@3/dist/waline.css";
+	link.href = "https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.css";
 	document.head.appendChild(link);
+
+	function hideLoading() {
+		var loading = document.getElementById("waline-loading");
+		if (loading) {
+			loading.classList.add("wl-loading-done");
+			setTimeout(function () {
+				loading.style.display = "none";
+			}, 300); // 等过渡动画结束
+		}
+	}
 
 	function initWaline() {
 		var container = document.getElementById("waline-container");
 		if (!container) return;
-		if (container.querySelector(".wl-panel")) return;
+		if (container.querySelector(".wl-panel")) {
+			hideLoading();
+			return;
+		}
 
 		var slug = container.getAttribute("data-slug") || "";
 
@@ -31,6 +77,18 @@ const slug = postEntry.slug;
 				dark: "html.dark",
 				requiredMeta: ["nick", "mail"],
 			});
+			// Waline 初始化后会立即渲染 .wl-panel，检测到就隐藏骨架
+			var checkLoaded = setInterval(function () {
+				if (container.querySelector(".wl-panel")) {
+					clearInterval(checkLoaded);
+					hideLoading();
+				}
+			}, 100);
+			// 安全兜底：10 秒后无论如何隐藏骨架
+			setTimeout(function () {
+				clearInterval(checkLoaded);
+				hideLoading();
+			}, 10000);
 		});
 	}
 
@@ -52,5 +110,90 @@ const slug = postEntry.slug;
 .waline-wrapper {
 	margin-top: 2rem;
 	width: 100%;
+}
+
+/* ── 加载骨架屏 ────────────────────────────────────────────── */
+.wl-skeleton {
+	padding: 1.5rem;
+	border-radius: 1rem;
+	background: var(--card-bg, rgba(255,255,255,0.75));
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+}
+:root.dark .wl-skeleton {
+	background: rgba(30, 20, 40, 0.72);
+}
+
+/* 脉冲动画 */
+@keyframes wl-pulse {
+	0%, 100% { opacity: 0.3; }
+	50% { opacity: 0.7; }
+}
+.wl-skeleton * {
+	animation: wl-pulse 1.5s ease-in-out infinite;
+}
+
+/* 评论区表单骨架 */
+.wl-skeleton-header {
+	display: flex;
+	gap: 0.75rem;
+	align-items: flex-start;
+	margin-bottom: 1.75rem;
+}
+.wl-skeleton-avatar {
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 50%;
+	background: currentColor;
+	flex-shrink: 0;
+}
+.wl-skeleton-input {
+	flex: 1;
+	height: 5rem;
+	border-radius: 0.75rem;
+	background: currentColor;
+}
+
+/* 评论列表骨架 */
+.wl-skeleton-comments {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+.wl-skeleton-item {
+	display: flex;
+	gap: 0.75rem;
+	align-items: flex-start;
+}
+.wl-skeleton-avatar-sm {
+	width: 2rem;
+	height: 2rem;
+	border-radius: 50%;
+	background: currentColor;
+	flex-shrink: 0;
+}
+.wl-skeleton-body {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.wl-skeleton-body--offset {
+	margin-left: 2.75rem;
+}
+.wl-skeleton-line {
+	height: 0.8rem;
+	border-radius: 0.375rem;
+	background: currentColor;
+}
+.wl-skeleton-line--short { width: 25%; }
+.wl-skeleton-line--medium { width: 55%; }
+.wl-skeleton-line--long { width: 85%; }
+
+/* 隐藏动画 */
+.wl-loading-done {
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	pointer-events: none;
 }
 </style>

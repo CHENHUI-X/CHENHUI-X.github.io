@@ -3,6 +3,10 @@
         @apply text-3xl;
     }
 
+    /* 性能优化：视口外的文章内容跳过渲染，大幅减少长页面首屏渲染时间 */
+    content-visibility: auto;
+    contain-intrinsic-size: 800px;
+
     h1, h2, h3, h4, h5, h6 {
         .anchor {
             @apply transition -m-0.5 ml-[0.2ch] p-0.5 select-none opacity-0 no-underline !important;
