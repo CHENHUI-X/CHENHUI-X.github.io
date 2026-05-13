@@ -8,6 +8,7 @@ import { Icon } from "astro-icon/components";
 import ImageWrapper from "../components/misc/ImageWrapper.astro";
 import TOC from "../components/widget/TOC.astro";
 import { siteConfig } from "../config";
+import { url } from "../utils/url-utils";
 import {
 	BANNER_HEIGHT,
 	BANNER_HEIGHT_EXTEND,
@@ -39,6 +40,7 @@ const hasBannerLink = !!siteConfig.banner.credit.url;
 const mainPanelTop = siteConfig.banner.enable
 	? `calc(${BANNER_HEIGHT}vh - ${MAIN_PANEL_OVERLAPS_BANNER_HEIGHT}rem)`
 	: "5.5rem";
+const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
 ---
 
 <Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle}>
@@ -80,7 +82,20 @@ const mainPanelTop = siteConfig.banner.enable
             </a>}
 
 
-            <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[14rem] onload-animation" headings={headings}></SideBar>
+            {!isPostsRoute && (
+                <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[14rem] onload-animation" headings={headings}></SideBar>
+            )}
+            {isPostsRoute && headings.length > 0 && (
+                <div id="toc-left-wrapper" class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[14rem] onload-animation toc-left">
+                    <div id="toc-left-inner" class="sticky top-24">
+                        <div class="card-base !overflow-visible">
+                            <div class="overflow-y-auto max-h-[calc(100vh-10rem)] hide-scrollbar px-3 md:px-4 py-4">
+                                <TOC headings={headings} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <main id="swup-container" class="transition-swup-fade col-span-2 lg:col-span-1 overflow-hidden">
                 <div id="content-wrapper" class="onload-animation">
@@ -103,7 +118,7 @@ const mainPanelTop = siteConfig.banner.enable
 </div>
 
 <!-- The things that should be under the banner, only the TOC for now -->
-<div class="absolute w-full z-10 hidden xl:block">
+{!isPostsRoute && <div class="absolute w-full z-10 hidden xl:block">
     <div class="relative max-w-[var(--page-width)] mx-auto">
         <!-- TOC component -->
         {siteConfig.toc.enable && <div id="toc-wrapper" class:list={["hidden lg:block transition absolute top-0 -right-[var(--toc-width)] w-[var(--toc-width)] items-center",
@@ -121,5 +136,24 @@ const mainPanelTop = siteConfig.banner.enable
         <!-- #toc needs to exist for Swup to work normally -->
         {!siteConfig.toc.enable && <div id="toc"></div>}
     </div>
-</div>
+</div>}
+<!-- #toc 空占位：供 Swup SPA 导航使用，必须始终存在 -->
+<div id="toc" style="display:none"></div>
 </Layout>
+
+<style>
+/* 文章页 TOC 从上滑入动画 */
+@keyframes toc-slide-in {
+	from {
+		opacity: 0;
+		transform: translateY(-1.5rem);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.toc-left {
+	animation: toc-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+</style>
