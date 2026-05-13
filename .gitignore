@@ -37,3 +37,4 @@ yarn.lock
 
 # dev utility scripts
 find_adjacent.py
+.hermes/
