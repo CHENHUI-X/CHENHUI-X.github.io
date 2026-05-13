@@ -159,15 +159,65 @@ const bannerOffset =
 
 		<link rel="alternate" type="application/rss+xml" title={profileConfig.name} href={`${Astro.site}rss.xml`}/>
 
+		<!-- Preconnect to CDNs for faster Waline loading -->
+		<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+		<link rel="preconnect" href="https://waline-comment-smoky.vercel.app" />
+		<link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+		<link rel="dns-prefetch" href="https://waline-comment-smoky.vercel.app" />
+
+		<!-- ═══ 背景渐变动画：内联 CSS，首帧即生效，零 JS 延迟 ═══ -->
+		<style>
+			@keyframes bg-grad-light {
+				0%   { background-color: rgb(255,150,170); }
+				20%  { background-color: rgb(255,195,130); }
+				40%  { background-color: rgb(185,145,255); }
+				60%  { background-color: rgb(130,200,255); }
+				80%  { background-color: rgb(140,235,200); }
+				100% { background-color: rgb(255,150,170); }
+			}
+			@keyframes bg-grad-dark {
+				0%   { background-color: rgb(90,20,45); }
+				20%  { background-color: rgb(85,48,12); }
+				40%  { background-color: rgb(38,12,88); }
+				60%  { background-color: rgb(12,38,88); }
+				80%  { background-color: rgb(12,65,52); }
+				100% { background-color: rgb(90,20,45); }
+			}
+			@keyframes bg-float-square {
+				0%   { transform:translateY(0) rotate(0deg); opacity:1; border-radius:0; }
+				100% { transform:translateY(-1200px) rotate(720deg); opacity:0; border-radius:50%; }
+			}
+			@keyframes bg-float-shape {
+				0%   { transform:translateY(0) rotate(0deg); opacity:1; }
+				100% { transform:translateY(-1200px) rotate(720deg); opacity:0; }
+			}
+			@keyframes bg-float-circle {
+				0%   { transform:translateY(0) rotate(0deg); opacity:1; border-radius:50%; }
+				100% { transform:translateY(-1200px) rotate(720deg); opacity:0; border-radius:50%; }
+			}
+			#bg-gradient-layer {
+				animation: bg-grad-light 25s ease-in-out infinite;
+			}
+			.dark #bg-gradient-layer {
+				animation: bg-grad-dark 25s ease-in-out infinite;
+			}
+			.bg-scroll-active #bg-gradient-layer,
+			.bg-scroll-active [class*="bg-float-"] {
+				animation-play-state: paused !important;
+			}
+		</style>
+
 	</head>
 	<body class=" min-h-screen transition relative" class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  data-overlayscrollbars-initialize
 	>
 		<ConfigCarrier></ConfigCarrier>
 
-			<!-- Background: animated gradient on body + floating shapes -->
-			<div id="bg-shapes" style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;"></div>
-		<div id="content-layer" class="relative" style="z-index:1">
+			<!-- Background: animated gradient + floating shapes -->
+			<div id="bg-shapes" style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;">
+				<div id="bg-gradient-layer" style="position:absolute;inset:0;pointer-events:none;"></div>
+			</div>
+		<div id="content-layer" class="relative" style="z-index:1;will-change:transform">
 			<slot />
 		</div>
 
@@ -536,7 +586,17 @@ const bannerOffset =
 			}
 		}
 	}
-	window.onscroll = scrollFunction
+	// 性能优化：使用 rAF 节流，避免每帧多次 DOM 操作
+	let ticking = false;
+	window.addEventListener('scroll', () => {
+		if (!ticking) {
+			requestAnimationFrame(() => {
+				scrollFunction();
+				ticking = false;
+			});
+			ticking = true;
+		}
+	});
 
 	function resizeHandler() {
 		// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text
@@ -544,7 +604,12 @@ const bannerOffset =
 		offset = offset - offset % 4;
 		document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
 	}
-	window.onresize = resizeHandler
+	// 性能优化：resize 事件防抖，窗口停止变化后再执行
+	let resizeTimer;
+	window.addEventListener('resize', () => {
+		clearTimeout(resizeTimer);
+		resizeTimer = setTimeout(resizeHandler, 150);
+	});
 
 	</script>
 
