@@ -605,7 +605,7 @@ const bannerOffset =
 		document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
 	}
 	// 性能优化：resize 事件防抖，窗口停止变化后再执行
-	let resizeTimer;
+	let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 	window.addEventListener('resize', () => {
 		clearTimeout(resizeTimer);
 		resizeTimer = setTimeout(resizeHandler, 150);

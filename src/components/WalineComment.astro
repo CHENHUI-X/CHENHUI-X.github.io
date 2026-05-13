@@ -40,19 +40,18 @@ const slug = postEntry.slug;
 
 <script>
 (function () {
-	// 加载 Waline CSS（改用 jsdelivr CDN，国内访问更快）
 	var link = document.createElement("link");
 	link.rel = "stylesheet";
 	link.href = "https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.css";
 	document.head.appendChild(link);
 
 	function hideLoading() {
-		var loading = document.getElementById("waline-loading");
-		if (loading) {
-			loading.classList.add("wl-loading-done");
+		var el = document.getElementById("waline-loading");
+		if (el) {
+			el.classList.add("wl-loading-done");
 			setTimeout(function () {
-				loading.style.display = "none";
-			}, 300); // 等过渡动画结束
+				el!.style.display = "none";
+			}, 300);
 		}
 	}
 
@@ -77,14 +76,15 @@ const slug = postEntry.slug;
 				dark: "html.dark",
 				requiredMeta: ["nick", "mail"],
 			});
-			// Waline 初始化后会立即渲染 .wl-panel，检测到就隐藏骨架
+			// 检测 Waline 渲染完毕就隐藏骨架
 			var checkLoaded = setInterval(function () {
-				if (container.querySelector(".wl-panel")) {
+				var el = document.getElementById("waline-container");
+				if (el && el.querySelector(".wl-panel")) {
 					clearInterval(checkLoaded);
 					hideLoading();
 				}
 			}, 100);
-			// 安全兜底：10 秒后无论如何隐藏骨架
+			// 10 秒安全兜底
 			setTimeout(function () {
 				clearInterval(checkLoaded);
 				hideLoading();
@@ -92,7 +92,7 @@ const slug = postEntry.slug;
 		});
 	}
 
-	// Swup 导航：新页面渲染后初始化评论
+	// Swup 导航
 	if (window.swup) {
 		window.swup.hooks.on("page:view", initWaline);
 	} else {
@@ -101,7 +101,6 @@ const slug = postEntry.slug;
 		});
 	}
 
-	// 首次加载直接初始化
 	initWaline();
 })();
 </script>
@@ -112,7 +111,7 @@ const slug = postEntry.slug;
 	width: 100%;
 }
 
-/* ── 加载骨架屏 ────────────────────────────────────────────── */
+/* ── 加载骨架屏 ── */
 .wl-skeleton {
 	padding: 1.5rem;
 	border-radius: 1rem;
@@ -124,7 +123,6 @@ const slug = postEntry.slug;
 	background: rgba(30, 20, 40, 0.72);
 }
 
-/* 脉冲动画 */
 @keyframes wl-pulse {
 	0%, 100% { opacity: 0.3; }
 	50% { opacity: 0.7; }
@@ -133,7 +131,6 @@ const slug = postEntry.slug;
 	animation: wl-pulse 1.5s ease-in-out infinite;
 }
 
-/* 评论区表单骨架 */
 .wl-skeleton-header {
 	display: flex;
 	gap: 0.75rem;
@@ -154,7 +151,6 @@ const slug = postEntry.slug;
 	background: currentColor;
 }
 
-/* 评论列表骨架 */
 .wl-skeleton-comments {
 	display: flex;
 	flex-direction: column;
@@ -190,7 +186,6 @@ const slug = postEntry.slug;
 .wl-skeleton-line--medium { width: 55%; }
 .wl-skeleton-line--long { width: 85%; }
 
-/* 隐藏动画 */
 .wl-loading-done {
 	opacity: 0;
 	transition: opacity 0.3s ease;
