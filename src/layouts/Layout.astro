@@ -184,7 +184,7 @@ const bannerOffset =
 				100% { background-color: rgb(90,20,45); }
 			}
 			@keyframes bg-float-square {
-				0%   { transform:translateY(0) rotate(0deg); opacity:1; border-radius:0; }
+				0%   { transform:translateY(0) rotate(0deg); opacity:1; }
 				100% { transform:translateY(-1200px) rotate(720deg); opacity:0; border-radius:50%; }
 			}
 			@keyframes bg-float-shape {
@@ -504,6 +504,13 @@ const bannerOffset =
 			requestAnimationFrame(() => {
 				document.documentElement.classList.remove('is-rendering');
 			});
+
+			// 瀑布流卡片错落：每张卡片递增 80ms delay
+			const cards = document.querySelectorAll('#swup-container .card-base');
+			cards.forEach((card, i) => {
+				card.style.setProperty('--card-delay', `${i * 80}ms`);
+			});
+
 			// hide the temp high element when the transition is done
 			const heightExtend = document.getElementById('page-height-extend')
 			if (heightExtend) {

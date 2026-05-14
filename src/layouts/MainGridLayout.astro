@@ -82,27 +82,29 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
             </a>}
 
 
-            {!isPostsRoute && (
-                <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[14rem] onload-animation" headings={headings}></SideBar>
-            )}
-            {isPostsRoute && headings.length > 0 && (
-                <div id="toc-left-wrapper" class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[14rem] onload-animation toc-left">
-                    <div id="toc-left-inner" class="sticky top-24">
+            <div id="toc-left-wrapper"
+                 class:list={["mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[14rem] onload-animation"]}
+            >
+                {!isPostsRoute && (
+                    <SideBar class="" headings={headings}></SideBar>
+                )}
+                {isPostsRoute && headings.length > 0 && (
+                    <div id="toc-left-inner" class="sticky top-24 transition-swup-fade">
                         <div class="card-base !overflow-visible">
                             <div class="overflow-y-auto max-h-[calc(100vh-10rem)] hide-scrollbar px-3 md:px-4 py-4">
                                 <TOC headings={headings} />
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             <main id="swup-container" class="transition-swup-fade col-span-2 lg:col-span-1 overflow-hidden">
-                <div id="content-wrapper" class="onload-animation">
+                <div id="content-wrapper">
                     <!-- the overflow-hidden here prevent long text break the layout-->
                     <!-- make id different from windows.swup global property -->
                     <slot></slot>
-                    <div class="footer col-span-2 onload-animation hidden lg:block">
+                    <div class="footer col-span-2 hidden lg:block">
                         <Footer></Footer>
                     </div>
                 </div>
@@ -141,19 +143,4 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
 <div id="toc" style="display:none"></div>
 </Layout>
 
-<style>
-/* 文章页 TOC 从上滑入动画 */
-@keyframes toc-slide-in {
-	from {
-		opacity: 0;
-		transform: translateY(-1.5rem);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-.toc-left {
-	animation: toc-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-}
-</style>
+

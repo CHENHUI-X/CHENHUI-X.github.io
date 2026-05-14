@@ -1,23 +1,59 @@
 /* ── 页面切换动画（Swup） ─────────────────────────────────────────────────── */
+/*
+ * Apple 风格动画设计：
+ * - 离场（is-animating）：500ms — 缩放 + 淡出，不卡顿
+ * - 入场（is-rendering → 移除）：1000ms — easeOutQuart 曲线，丝滑落地
+ * - 左栏（sidebar/TOC）比主内容晚 100ms 入场，形成波浪层次感
+ * - 博客卡片逐步错落（瀑布流），间隔 80ms
+ */
 
-/* 切换开始：启用 transition，淡出时轻微缩小 */
-html.is-changing .transition-swup-fade {
-    transition: opacity 150ms ease-in, transform 150ms ease-in;
+/* ── 过渡基定义：transition 放在基础选择器上，确保移除 is-rendering 后仍生效 ── */
+.transition-swup-fade {
+    transition: opacity 800ms cubic-bezier(0.25, 1, 0.5, 1),
+                transform 800ms cubic-bezier(0.25, 0.55, 0.45, 1);
 }
-/* 淡出状态：透明 + 轻微缩小下移（Apple 风格：快速离场） */
+
+/* ── 离场：当前页面淡出 ── */
+html.is-changing .transition-swup-fade {
+    transition: opacity 400ms ease-out,
+                transform 400ms ease-out;
+}
 html.is-animating .transition-swup-fade {
     opacity: 0;
-    transform: scale(0.98) translateY(0.5rem);
-}
-/* 新页面初始状态：由 JS 在 visit:start 添加 is-rendering，page:view 时移除触发淡入 */
-html.is-rendering .transition-swup-fade {
-    opacity: 0;
-    transform: scale(0.99) translateY(0.5rem);
-    transition: opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
-                transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform: scale(0.97) translateY(-0.5rem);
 }
 
-/* ── 首屏入场动画（onload-animation） ────────────────────────────────────── */
+/* ── 入场：新页面淡入 — 只设初始值，transition 由基础选择器提供 ── */
+html.is-rendering .transition-swup-fade {
+    opacity: 0;
+    transform: scale(0.97) translateY(0.5rem);
+}
+
+/* 左栏（sidebar / TOC）比主内容晚 100ms 入场，形成波浪层次 */
+#toc-left-wrapper > [class*="transition-swup"],
+#toc-left-wrapper > * > .transition-swup-fade,
+#sidebar.transition-swup-fade {
+    transition-delay: 100ms;
+}
+
+/* ── 博客卡片瀑布流：Swup 导航时逐个错落入场 ──────────────────────────── */
+
+/* 卡片默认不可见：等待 is-rendering 移除后触发过渡 */
+html.is-rendering #swup-container .card-base {
+    opacity: 0;
+    transform: translateY(0.75rem);
+}
+
+/* is-rendering 移除后，卡片逐个弹入（delay 由 JS 动态设置） */
+html:not(.is-rendering) #swup-container .card-base {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 800ms cubic-bezier(0.25, 1, 0.5, 1),
+                transform 800ms cubic-bezier(0.25, 0.55, 0.45, 1);
+    transition-delay: var(--card-delay, 0ms);
+}
+
+/* ── 首屏入场动画（onload-animation） — 仅首屏加载时生效 ─────────── */
 
 /* easeOutExpo：快速到位，不拖泥带水，Apple 标志性曲线 */
 @keyframes fade-in-up {
@@ -46,9 +82,6 @@ html.is-rendering .transition-swup-fade {
 }
 #swup-container {
     outline: none;
-}
-#content-wrapper {
-    animation-delay: var(--content-delay);
 }
 .footer {
     animation-delay: 200ms;
