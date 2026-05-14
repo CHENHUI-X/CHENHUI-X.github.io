@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes Agent on WSL — Architecture Diagram</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #020617;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  min-height: 100vh;
+}
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.pulse-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #34d399;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.4); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+}
+.header p {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.diagram-card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 1100px;
+  width: 100%;
+}
+svg { display: block; margin: 0 auto; background: #020617; border-radius: 12px; }
+.cards-row {
+  display: flex;
+  gap: 16px;
+  max-width: 1100px;
+  width: 100%;
+  margin-top: 24px;
+}
+.card {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 20px;
+  flex: 1;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.card-dot.cyan { background: #22d3ee; }
+.card-dot.emerald { background: #34d399; }
+.card-dot.violet { background: #a78bfa; }
+.card h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+.card ul {
+  list-style: none;
+}
+.card li {
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 4px 0;
+  line-height: 1.6;
+}
+.card li::before {
+  content: "• ";
+  color: #475569;
+}
+.footer {
+  text-align: center;
+  color: #475569;
+  font-size: 10px;
+  margin-top: 24px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="pulse-dot"></span> Hermes Agent on WSL <span class="pulse-dot"></span></h1>
+  <p>System Architecture — Autonomous AI Agent Deployment</p>
+</div>
+
+<div class="diagram-card">
+<svg width="1024" height="700" viewBox="0 0 1024 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+    </pattern>
+    <marker id="arrow-cyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrow-emerald" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#34d399"/>
+    </marker>
+    <marker id="arrow-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrow-slate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/>
+    </marker>
+    <filter id="glow-cyan">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="700" fill="url(#bg-grad)"/>
+  <rect width="1024" height="700" fill="url(#grid)"/>
+
+  <!-- ============================================ -->
+  <!-- REGION: Windows Host (outer boundary)        -->
+  <!-- ============================================ -->
+  <rect x="30" y="30" width="964" height="640" rx="16" fill="rgba(30, 41, 59, 0.3)" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="8,4"/>
+  <text x="50" y="55" font-size="11" fill="#fbbf24" font-weight="600">Windows 11 宿主机</text>
+
+  <!-- ============================================ -->
+  <!-- REGION: WSL Zone                             -->
+  <!-- ============================================ -->
+  <rect x="60" y="75" width="600" height="570" rx="12" fill="rgba(8, 51, 68, 0.15)" stroke="#22d3ee" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="80" y="100" font-size="9" fill="#22d3ee" font-weight="500">WSL 2 — Ubuntu 环境</text>
+
+  <!-- ============================================ -->
+  <!-- 1. WeChat Gateway                            -->
+  <!-- ============================================ -->
+  <rect x="100" y="125" width="200" height="80" rx="8" fill="#0f172a" stroke="none"/>
+  <rect x="100" y="125" width="200" height="80" rx="8" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="200" y="150" font-size="12" fill="#22d3ee" font-weight="600" text-anchor="middle">WeChat Gateway</text>
+  <text x="200" y="167" font-size="9" fill="#94a3b8" text-anchor="middle">常驻后台进程</text>
+  <text x="200" y="182" font-size="9" fill="#94a3b8" text-anchor="middle">接收/转发消息</text>
+  <text x="200" y="196" font-size="7" fill="#64748b" text-anchor="middle">PID: 35240</text>
+
+  <!-- Arrow: Gateway → Agent -->
+  <line x1="300" y1="165" x2="370" y2="165" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+
+  <!-- ============================================ -->
+  <!-- 2. Hermes Agent                              -->
+  <!-- ============================================ -->
+  <rect x="380" y="120" width="240" height="90" rx="8" fill="#0f172a" stroke="none"/>
+  <rect x="380" y="120" width="240" height="90" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+  <text x="500" y="148" font-size="12" fill="#34d399" font-weight="600" text-anchor="middle">Hermes Agent</text>
+  <text x="500" y="165" font-size="9" fill="#94a3b8" text-anchor="middle">AI 助手核心引擎</text>
+  <text x="500" y="180" font-size="9" fill="#94a3b8" text-anchor="middle">工具调用 · 持久记忆 · 技能系统</text>
+  <text x="500" y="195" font-size="7" fill="#64748b" text-anchor="middle">max_turns: 100 · timeout: 600s</text>
+
+  <!-- Arrow: Agent -> Browser -->
+  <line x1="500" y1="215" x2="500" y2="270" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-emerald)"/>
+
+  <!-- ============================================ -->
+  <!-- 3. Camoufox Browser                          -->
+  <!-- ============================================ -->
+  <rect x="380" y="275" width="240" height="85" rx="8" fill="#0f172a" stroke="none"/>
+  <rect x="380" y="275" width="240" height="85" rx="8" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="500" y="300" font-size="12" fill="#a78bfa" font-weight="600" text-anchor="middle">Camoufox 浏览器</text>
+  <text x="500" y="317" font-size="9" fill="#94a3b8" text-anchor="middle">魔改 Firefox + 反检测指纹</text>
+  <text x="500" y="332" font-size="9" fill="#94a3b8" text-anchor="middle">camofox-browser :9377</text>
+  <text x="500" y="347" font-size="7" fill="#64748b" text-anchor="middle">绕过百度/Google/天气网反爬</text>
+
+  <!-- Arrow: Browser -> Web -->
+  <line x1="620" y1="300" x2="690" y2="300" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-violet)"/>
+
+  <!-- ============================================ -->
+  <!-- 4. External Services                         -->
+  <!-- ============================================ -->
+  <rect x="700" y="265" width="210" height="100" rx="8" fill="#0f172a" stroke="none"/>
+  <rect x="700" y="265" width="210" height="100" rx="8" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="805" y="288" font-size="11" fill="#94a3b8" font-weight="600" text-anchor="middle">外部 Web 服务</text>
+  <text x="805" y="310" font-size="9" fill="#64748b" text-anchor="middle">🌐 Baidu · Google</text>
+  <text x="805" y="325" font-size="9" fill="#64748b" text-anchor="middle">🌤 Weather.com.cn</text>
+  <text x="805" y="340" font-size="9" fill="#64748b" text-anchor="middle">📖 xuchenhui.cc</text>
+  <text x="805" y="355" font-size="7" fill="#475569" text-anchor="middle">之前被拦截 → Camoufox 后访问正常</text>
+
+  <!-- ============================================ -->
+  <!-- 5. Watchdog System (bottom)                  -->
+  <!-- ============================================ -->
+  <!-- Region -->
+  <rect x="100" y="400" width="520" height="170" rx="10" fill="rgba(136, 19, 55, 0.08)" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="120" y="422" font-size="10" fill="#fb7185" font-weight="500">保活系统 (三层架构 Watchdog)</text>
+
+  <!-- Layer 1: Task Scheduler -->
+  <rect x="130" y="440" width="140" height="50" rx="6" fill="#0f172a" stroke="none"/>
+  <rect x="130" y="440" width="140" height="50" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+  <text x="200" y="460" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 3: 计划任务</text>
+  <text x="200" y="477" font-size="8" fill="#94a3b8" text-anchor="middle">每 5 分钟兜底检查</text>
+
+  <!-- Layer 2: VBS Launcher -->
+  <rect x="290" y="440" width="140" height="50" rx="6" fill="#0f172a" stroke="none"/>
+  <rect x="290" y="440" width="140" height="50" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+  <text x="360" y="460" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 2: VBS 启动器</text>
+  <text x="360" y="477" font-size="8" fill="#94a3b8" text-anchor="middle">Windows Startup 触发</text>
+
+  <!-- Layer 3: PowerShell Loop -->
+  <rect x="450" y="440" width="140" height="50" rx="6" fill="#0f172a" stroke="none"/>
+  <rect x="450" y="440" width="140" height="50" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+  <text x="520" y="460" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 1: PS1 自循环</text>
+  <text x="520" y="477" font-size="8" fill="#94a3b8" text-anchor="middle">每 5 分钟检查 WSL+Gateway</text>
+
+  <!-- Arrows between layers -->
+  <line x1="270" y1="465" x2="288" y2="465" stroke="#fb7185" stroke-width="1" marker-end="url(#arrow-slate)"/>
+  <line x1="430" y1="465" x2="448" y2="465" stroke="#fb7185" stroke-width="1" marker-end="url(#arrow-slate)"/>
+
+  <!-- Watchdog arrows up to Gateway -->
+  <line x1="200" y1="490" x2="200" y2="210" stroke="#fb7185" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+  <text x="185" y="535" font-size="8" fill="#64748b" transform="rotate(-90, 185, 535)">监控 & 自动重启</text>
+
+  <!-- ============================================ -->
+  <!-- 6. User (Phone / WeChat)                     -->
+  <!-- ============================================ -->
+  <!-- Arrow from User to Gateway -->
+  <line x1="200" y1="620" x2="200" y2="210" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow-cyan)" stroke-dasharray="6,3" opacity="0.8"/>
+  <text x="170" y="630" font-size="9" fill="#22d3ee" font-weight="500">微信消息</text>
+  <text x="170" y="645" font-size="8" fill="#64748b">← 发送 / 回复 →</text>
+
+  <!-- Phone icon representation -->
+  <rect x="690" y="440" width="220" height="120" rx="12" fill="#0f172a" stroke="none"/>
+  <rect x="690" y="440" width="220" height="120" rx="12" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="800" y="465" font-size="12" fill="#f1f5f9" font-weight="600" text-anchor="middle">📱 用户 (手机端)</text>
+  <text x="800" y="488" font-size="9" fill="#94a3b8" text-anchor="middle">通过微信与 Hermes 对话</text>
+  <text x="800" y="505" font-size="9" fill="#94a3b8" text-anchor="middle">发送指令 · 接收截图 · 语音播报</text>
+  <text x="800" y="525" font-size="8" fill="#64748b" text-anchor="middle">躺沙发上就能操作电脑 💤</text>
+
+  <!-- Arrow from Phone to Gateway (duplicate to show two-way) -->
+  <line x1="690" y1="480" x2="305" y2="185" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5" marker-end="url(#arrow-cyan)"/>
+
+  <!-- ============================================ -->
+  <!-- 7. Config notes (top right)                  -->
+  <!-- ============================================ -->
+  <rect x="700" y="75" width="260" height="160" rx="8" fill="#0f172a" stroke="none"/>
+  <rect x="700" y="75" width="260" height="160" rx="8" fill="rgba(6, 78, 59, 0.15)" stroke="#34d399" stroke-width="1" stroke-dasharray="4,4"/>
+  <text x="725" y="98" font-size="9" fill="#34d399" font-weight="500">⚙ 关键配置</text>
+  <text x="720" y="118" font-size="8" fill="#94a3b8">`~/.hermes/config.yaml`</text>
+  <text x="720" y="135" font-size="8" fill="#64748b">· agent.max_turns: 100</text>
+  <text x="720" y="150" font-size="8" fill="#64748b">· terminal.timeout: 600s</text>
+  <text x="720" y="165" font-size="8" fill="#64748b">· display.language: zh</text>
+  <text x="720" y="180" font-size="8" fill="#64748b">· browser.engine: auto</text>
+  <text x="720" y="195" font-size="8" fill="#64748b">· camofox.managed_persistence: false</text>
+  <text x="720" y="212" font-size="8" fill="#64748b">· approvals.mode: manual</text>
+  <text x="720" y="227" font-size="7" fill="#475569">路径: /home/projects/TechBlog/</text>
+
+  <!-- ============================================ -->
+  <!-- Legend                                       -->
+  <!-- ============================================ -->
+  <rect x="700" y="585" width="260" height="60" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="720" y="605" font-size="9" fill="#94a3b8" font-weight="500">图例</text>
+  <rect x="720" y="615" width="10" height="10" rx="2" fill="rgba(8, 51, 68, 0.4)" stroke="#22d3ee" stroke-width="1"/>
+  <text x="738" y="624" font-size="8" fill="#64748b">网关/通信</text>
+  <rect x="798" y="615" width="10" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+  <text x="816" y="624" font-size="8" fill="#64748b">核心引擎</text>
+  <rect x="878" y="615" width="10" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="896" y="624" font-size="8" fill="#64748b">浏览器</text>
+  <rect x="720" y="632" width="10" height="10" rx="2" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1"/>
+  <text x="738" y="641" font-size="8" fill="#64748b">监控/保活</text>
+  <rect x="798" y="632" width="10" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+  <text x="816" y="641" font-size="8" fill="#64748b">外部服务</text>
+  <rect x="878" y="632" width="10" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+  <text x="896" y="641" font-size="8" fill="#64748b">宿主机</text>
+</svg>
+</div>
+
+<!-- Info Cards -->
+<div class="cards-row">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-dot cyan"></div>
+      <h3>通信层</h3>
+    </div>
+    <ul>
+      <li>WeChat Gateway ↔ 微信消息</li>
+      <li>扫码登录 iLink Bot 协议</li>
+      <li>DM 模式: 私聊收发消息</li>
+      <li>支持图片/文件/语音</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-dot emerald"></div>
+      <h3>核心能力</h3>
+    </div>
+    <ul>
+      <li>工具调用: 终端·文件·浏览器</li>
+      <li>持久记忆: 跨会话上下文</li>
+      <li>技能系统: 自动保存工作流</li>
+      <li>多模型: OpenRouter/Anthropic/... </li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-dot violet"></div>
+      <h3>抗反爬方案</h3>
+    </div>
+    <ul>
+      <li>Camoufox: 魔改 Firefox 反检测</li>
+      <li>随机化指纹: 屏幕/WebGL/字体/时区</li>
+      <li>camofox-browser REST API :9377</li>
+      <li>三层保活: VBS → PS1 → 计划任务</li>
+    </ul>
+  </div>
+</div>
+
+<div class="footer">
+  Generated by Hermes Agent · Architecture Diagram Skill · 2026-05-15
+</div>
+
+</body>
+</html>

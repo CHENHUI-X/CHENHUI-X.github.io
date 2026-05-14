@@ -189,24 +189,28 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
 
 <script is:inline>
 (function(){'use strict';
-var btn=document.getElementById('mobile-toc-btn');
-var ov=document.getElementById('mobile-toc-overlay');
-var list=document.getElementById('mobile-toc-list');
-var closeBtn=document.getElementById('mobile-toc-close');
-if(!btn||!ov||!list||!closeBtn)return;
+// 先把按钮和遮罩移到 body 下，避免 will-change:transform 破坏 fixed 定位
+var b=document.getElementById('mobile-toc-btn');
+var o=document.getElementById('mobile-toc-overlay');
+var l=document.getElementById('mobile-toc-list');
+var cb=document.getElementById('mobile-toc-close');
+if(!b||!o||!l||!cb)return;
+document.body.appendChild(b);
+document.body.appendChild(o);
+// 重新获取（DOM 移动后 ID 不变）
+b=document.getElementById('mobile-toc-btn');
+o=document.getElementById('mobile-toc-overlay');
 
 function build(){
-  // 扫描所有 h2/h3 元素（不限于 #content-wrapper，覆盖 Swup 切换场景）
-  var all=document.querySelectorAll('h2,h3');
-  // 排除导航栏、侧边栏、抽屉内的 headings
+  var all=document.querySelectorAll('h2:not(#mobile-toc-list h2),h3:not(#mobile-toc-list h3)');
   var hs=[];
   all.forEach(function(h){
     if(h.closest('#navbar-wrapper')||h.closest('#toc-left-wrapper')||h.closest('#toc-wrapper')||h.closest('#mobile-toc-overlay'))return;
     hs.push(h);
   });
-  if(hs.length<2){btn.style.display='none';return;}
-  btn.style.display='flex';
-  list.innerHTML='';
+  if(hs.length<2){b.style.display='none';return;}
+  b.style.display='flex';
+  l.innerHTML='';
   hs.forEach(function(h){
     var id=h.id||h.textContent.trim().toLowerCase().replace(/[^\w\u4e00-\u9fff]+/g,'-');
     if(!h.id)h.id=id;
@@ -226,16 +230,16 @@ function build(){
     });
     a.addEventListener('mouseenter',function(){this.style.background='var(--toc-btn-hover)';});
     a.addEventListener('mouseleave',function(){this.style.background='transparent';});
-    list.appendChild(a);
+    l.appendChild(a);
   });
 }
 
-function openDrawer(){ov.style.opacity='1';ov.style.pointerEvents='auto';ov.querySelector('#mobile-toc-panel').style.transform='translateX(0)';}
-function closeDrawer(){ov.style.opacity='0';ov.style.pointerEvents='none';ov.querySelector('#mobile-toc-panel').style.transform='translateX(100%)';}
+function openDrawer(){o.style.opacity='1';o.style.pointerEvents='auto';o.querySelector('#mobile-toc-panel').style.transform='translateX(0)';}
+function closeDrawer(){o.style.opacity='0';o.style.pointerEvents='none';o.querySelector('#mobile-toc-panel').style.transform='translateX(100%)';}
 
-btn.addEventListener('click',openDrawer);
-closeBtn.addEventListener('click',closeDrawer);
-ov.addEventListener('click',function(e){if(e.target===ov)closeDrawer();});
+b.addEventListener('click',openDrawer);
+cb.addEventListener('click',closeDrawer);
+o.addEventListener('click',function(e){if(e.target===o)closeDrawer();});
 
 build();
 document.addEventListener('page:view',build);
