@@ -508,7 +508,7 @@ const bannerOffset =
 			// 瀑布流卡片错落：每张卡片递增 80ms delay
 			const cards = document.querySelectorAll('#swup-container .card-base');
 			cards.forEach((card, i) => {
-				card.style.setProperty('--card-delay', `${i * 80}ms`);
+				(card as HTMLElement).style.setProperty('--card-delay', `${i * 80}ms`);
 			});
 
 			// hide the temp high element when the transition is done
