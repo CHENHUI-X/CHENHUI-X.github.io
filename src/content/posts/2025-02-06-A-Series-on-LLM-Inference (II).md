@@ -1,6 +1,6 @@
 ---
 title: A Series on LLMs (II)
-published: 2025-12-05
+published: 2025-02-06
 description: 对 LLM 推理中的提效技术进行学习，如 KV-Cache、Flash-Attention 的原理、实现及其如何避免注意力机制中的重复计算。
 category: Deep Learning
 tags:

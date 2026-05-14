@@ -1,6 +1,6 @@
 ---
 title: A Series on LLMs (I)
-published: 2025-02-06
+published: 2025-12-05
 description: 深入讲解 LLM 训练中的 RLHF、PPO、DPO 三种核心方法的原理和伪代码实现，帮助理解大模型对齐技术。
 category: Deep Learning
 tags:
