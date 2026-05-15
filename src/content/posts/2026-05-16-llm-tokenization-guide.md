@@ -26,7 +26,7 @@ draft: false
 但 Tokenizer 远不止"把文字转成数字"这么简单. 选什么样的 Tokenizer, 直接决定了:
 
 - 模型能处理的词表有多大 (几万 vs 几十万)
-- 生僻词能不能表示 (会不会出现 OOV: Out Of Vocabulary)
+- 生僻词能不能表示 (会不会出现 OOV: Out-of-Vocabulary)
 - 不同语言的表现 (英语好不代表中文也好)
 - 序列有多长 (token 越多, 计算越贵)
 
@@ -48,11 +48,11 @@ $$
 
 把每个字符映射到一个数字:
 
-```
-'I' → 1, ' ' → 2, 'l' → 3, 'o' → 4, 'v' → 5, 'e' → 6, 'm' → 7, 'a' → 8, 'c' → 9, 'h' → 10, 'n' → 11
+```python
+# ' '→1, 'I'→2, 'a'→3, 'c'→4, 'e'→5, 'g'→6, 'h'→7, 'i'→8, 'l'→9, 'm'→10, 'n'→11, 'o'→12, 'r'→13, 'v'→14
 ```
 
-结果: `[1, 2, 3, 4, 5, 6, 2, 7, 8, 9, 10, 11, 12, 2, 13, 8, 14, 15, 11, 6]` — 20 个 token.
+结果: `[2, 1, 9, 12, 14, 5, 1, 10, 3, 4, 7, 8, 11, 5, 1, 9, 5, 3, 13, 11, 8, 11, 6]` — 23 个 token (和原始字符串的字符数一样).
 
 词表很小 (26 个字母 + 标点 ≈ 100 左右), 但序列太长, 而且**单个字符没有语义**——模型很难从 'm' 这个字符学会 "machine" 是什么意思.
 
@@ -66,7 +66,7 @@ $$
 
 结果: `[423, 156, 8971, 442]` — 4 个 token, 每个都有明确的语义.
 
-但问题来了: 词表要多大? 英语有几十万个词, 加上专有名词、拼写变体、新造词, 词表轻易突破百万. 而且遇到没见过的词 (OOV: Out Of Vocabulary) 就只能给 `<UNK>` (未知标记), 信息直接丢失.
+但问题来了: 词表要多大? 英语有几十万个词, 加上专有名词、拼写变体、新造词, 词表轻易突破百万. 而且遇到没见过的词 (OOV: Out-of-Vocabulary) 就只能给 `<UNK>` (未知标记), 信息直接丢失.
 
 **方案三: 子词级别 (Subword-level) — 黄金平衡点**
 
@@ -98,7 +98,7 @@ wider wider wider wider wider             (5 个 "wider")
 new new                                  (2 个 "new")
 ```
 
-目标词表大小: 假设设为 15 个 token.
+目标词表大小: 设为 18 个 token (初始 11 个, 需要做 7 次合并).
 
 **第 1 步: 初始化**
 
@@ -133,42 +133,80 @@ n e w </w>       (2 次)
 | (w, i) | 5 |
 | (i, d) | 5 |
 | (d, e) | 5 |
-| (e, w) | 5 |
+| (e, w) | 5+2 = 7 |
 
 **第 3 步: 合并频率最高的 Pair**
 
-最高频的 Pair 是 (l, o) 和 (o, w), 都是 15 次. 选 (l, o) 合并.
+最高频的 Pair 是 (l, o) 和 (o, w) 并列第一, 都是 15 次. 选 (l, o) 先合并.
 
-合并后, "low" 变成 `lo w </w>`, "lowest" 变成 `lo w e s t </w>`.
+合并后, 所有 "l o" 变成 "lo". 现在词汇变成了:
+
+```
+lo w </w>          (10 次)
+lo w e s t </w>   (5 次)
+n e w e r </w>    (5 次)
+w i d e r </w>    (5 次)
+n e w </w>        (2 次)
+```
 
 加入新 token: `lo`. 当前词表: 12 个.
 
-**第 4 步: 重复**
+注意一个关键点: (o, w) 这个 Pair **不再存在了**——因为原来的 "l o" 已经合并成了 "lo", "o" 不再是独立 token, 所以 (o, w) 无法被合并.
 
-现在 (o, w) 出现了 15 次 (在 "low" 和 "lowest" 中), 仍然是最高频. 合并 (o, w):
+所以第二次合并时, 我们要重新统计:
 
-"low" → `lo w </w>` 中的 (o, w) 实际上不直接相邻了... 不对, BPE 是在当前表示上重新统计, 不是原始字符.
+| Pair | 计数 | 来自 |
+|------|------|------|
+| (lo, w) | 10+5 = 15 | low + lowest |
+| (w, </w>)| 10+2 = 12 | low + new |
+| (w, e) | 5+5 = 10 | lowest + newer |
+| (e, r) | 5+5 = 10 | newer + wider |
+| (r, </w>)| 5+5 = 10 | newer + wider |
+| (n, e) | 5+2 = 7 | newer + new |
+| (e, w) | 5+2 = 7 | newer + new |
+| ... | ... | ... |
 
-合并后 `low` 变成 `low </w>`, `lowest` 变成 `low e s t </w>`.
+最高频的是 (lo, w) = 15 次. 合并它:
 
-新 token: `low`. 当前词表: 13 个.
+```
+low </w>          (10 次)
+low e s t </w>   (5 次)   — "lo w" 变成了 "low"
+n e w e r </w>   (5 次)
+w i d e r </w>   (5 次)
+n e w </w>       (2 次)
+```
 
-**继续重复**... 直到词表达到目标大小.
+加入新 token: `low`. 当前词表: 13 个.
 
-经过多轮合并, 最终词表可能包含: `l, o, w, e, s, t, n, r, i, d, </w>, lo, low, lowe, newest, wi, wide, ...`
+就这样反复合并, 直到词表达到目标大小. 每次合并后, 所有序列都会更新, 然后重新统计 Pair 频率.
 
-注意: BPE 是不确定性顺序的——频率相同的 Pair 谁先合并会影响最终词表, 但实际使用中影响不大.
+最终 BPE 学到的一系列合并规则类似:
+
+```
+(l, o) → lo
+(lo, w) → low
+(low, </w>) → low</w>
+(e, r) → er
+(n, e) → ne
+(ne, w) → new
+...
+```
+
+有了这些规则, 任何新词都可以按同样的方式切分. 比如 "newest":
+1. 拆成字符: `n e w e s t </w>`
+2. 按规则合并: `ne w e s t </w>` → `new e s t </w>` (不能再合并了)
+3. 最终: `['new', 'e', 's', 't', '</w>']`
 
 ### 2.3 推理时如何分词
 
 训练完后, BPE 不再统计频率, 而是直接按**学到的合并规则**来切分.
 
 具体步骤:
-1. 把输入文本拆成字符
+1. 把输入文本拆成基本单元 (字符或 byte, 取决于具体实现)
 2. 从左到右扫描, 看能不能应用学到的合并规则
 3. 尽可能合并, 直到不能再合并为止
 
-对于 GPT-2 和 GPT-3 系列, 使用的是 **Byte-level BPE**: 最小单位不是字符, 而是 **byte** (字节). 这样做的好处是: **可以表示任意 Unicode 字符**——不管中文、日文、emoji, 都能拆成 byte 序列来处理, 不会出现 `<UNK>`.
+对于 GPT-2 和 GPT-3 系列, 使用的是 **Byte-level BPE**: 最小单位不是字符, 而是 **byte** (字节). 所以"拆成基本单元"这一步是把每个 Unicode 字符先编码为 1-4 个 byte, 然后再基于 byte 序列做合并. 这样做的好处是: **可以表示任意 Unicode 字符**——不管中文、日文、emoji, 都能拆成 byte 序列来处理, 不会出现 `<UNK>`.
 
 GPT-2 的词表大小是 50,257. LLaMA 系列的词表是 32,000 (LLaMA-1) 或 128,000 (LLaMA-3).
 
@@ -212,22 +250,38 @@ $$
 
 ### 3.2 例子
 
-继续用上面的语料. 假设目前 token 集包含 `l`, `o`, `w`, 我们需要决定合并 (l, o) 还是 (o, w).
+继续用上面的语料. 假设目前 token 集包含 `l`, `o`, `w`, `e`, `s` 等字符, 我们需要决定先合并哪一对.
 
-先算 $\text{freq}(\text{l})$, $\text{freq}(\text{o})$, $\text{freq}(\text{w})$:
+计算 $\text{score}(\text{l}, \text{o})$:
 
-- freq(l): 在 "low" 和 "lowest" 中, l 出现了 15 次 (词首)
-- freq(o): l 后面总跟着 o, 也出现 15 次
-- freq(w): o 后面总跟着 w, 15 次
+- $\text{freq}(\text{lo})$: "l" 和 "o" 相邻出现 15 次 (low ×10, lowest ×5)
+- $\text{freq}(\text{l})$: "l" 本身出现 15 次 (都在词首)
+- $\text{freq}(\text{o})$: "o" 出现 15 次
 
-$score(\text{l}, \text{o}) = \frac{15}{15 \times 15} = \frac{1}{15} \approx 0.067$
-$score(\text{o}, \text{w}) = \frac{15}{15 \times 15} = \frac{1}{15} \approx 0.067$
+$$\text{score}(\text{l}, \text{o}) = \frac{15}{15 \times 15} = \frac{1}{15} \approx 0.067$$
 
-两者分数相同. 但在更复杂的语料中, 有些 pair 的 score 会显著高于其他的.
+再看 $(\text{o}, \text{w})$:
+
+- $\text{freq}(\text{ow})$: "o" 和 "w" 相邻出现 15 次 (low ×10, lowest ×5)
+- $\text{freq}(\text{o})$: 15
+- $\text{freq}(\text{w})$: **27** — 注意 "w" 不仅出现在 low (×10)、lowest (×5), 还出现在 newer (×5)、wider (×5)、new (×2) 中. 所以是 $10+5+5+5+2 = 27$.
+
+$$\text{score}(\text{o}, \text{w}) = \frac{15}{15 \times 27} \approx 0.037$$
+
+这里可以发现区别:
+
+- (l, o) 的 score 0.067 > (o, w) 的 0.037, 因为 `l` 几乎只出现在 `o` 前面——$\text{freq}(\text{l})$ 和 $\text{freq}(\text{(l, o)})$ 几乎相等, 说明 "l" 和 "o" 是近乎绑定在一起的.
+- 而 `w` 还可以接 `e` (newer)、`i` (wider)、`</w>` (low, new), 所以 `o` + `w` 不是唯一的组合——score 自然更低.
+
+**这就是 WordPiece 的本质**——它衡量的是 $x$ 和 $y$ 的**共现强度**, 而不是共现频率. 公式 $\text{score}(x, y) = \frac{\text{freq}(xy)}{\text{freq}(x) \cdot \text{freq}(y)}$ 实际上就是 **PMI (Pointwise Mutual Information)** 的变形:
+
+$$\text{PMI}(x, y) = \log \frac{P(x, y)}{P(x) P(y)} \propto \log \frac{\text{freq}(xy)}{\text{freq}(x) \cdot \text{freq}(y)}$$
+
+WordPiece 不取 log (为了保留排序等价性), 但思想完全一样: **如果两个 token 同时出现远高于随机期望, 就应该合并它们**.
 
 ### 3.3 实际使用
 
-WordPiece 在 BERT 系列 (BERT, RoBERTa, DistilBERT) 中使用. 词表大小通常是 30,000 左右. 和 BPE 一样, 训练完成后就是一个确定的合并规则集.
+WordPiece 在 BERT 和 DistilBERT 中使用 (RoBERTa 用的是 Byte-level BPE, 与 GPT-2 相同). 词表大小通常是 30,000 左右. 和 BPE 一样, 训练完成后就是一个确定的合并规则集.
 
 BERT 的 WordPiece 会在 token 前面加 `##` 表示这不是词的开头 (continuation). 比如:
 
@@ -257,18 +311,23 @@ Unigram 的具体做法:
 
 ### 4.2 损失函数
 
-Unigram 假设每个 token 的出现是独立的 (Unigram 假设), 语料的似然就是各 token 概率的乘积:
+Unigram 的词表学习和分词不是同时做的, 流程是: 先用 EM 算法迭代估计 token 概率 $P(t)$, 然后用 Viterbi 找最优切分.
+
+给定词表 $V$ 和 token 概率 $P(t)$, 一个句子 $X$ 的最优分词由 Viterbi 算法找到:
 
 $$
-P(\text{语料}) = \prod_{t \in \text{tokens}} P(t)
+\operatorname*{argmax}_{t_1, \ldots, t_k \in V} \sum_{i=1}^{k} \log P(t_i)
 $$
 
-给定一个词表 $V$, 对一个句子 $X$, 可以用 Viterbi 算法找到最优的分词方式 (使概率最大的切分).
+即: 穷举所有可能的分词方式, 选出使概率和最大的那一种. Viterbi 用动态规划做这个, 实际实现中用 trie 树限制候选数, 复杂度约 $O(L \cdot M)$, 其中 $M$ 是最大 token 长度 (通常 ≤ 50).
 
-训练过程:
-1. 初始化一个很大的词表 (启发式收集)
-2. EM 算法迭代: E 步计算每个 token 在最优分词下的频率, M 步更新 $P(t)$
-3. 删除使似然下降最小的 token
+训练过程的核心是 **EM 算法** (标准做法是 soft EM, 即用 forward-backward 算法计算每个 token 在各分词路径上的期望出现次数; 以下描述 hard EM 变体):
+
+1. **E 步**: 对每个句子, 用 Viterbi 找到当前最优分词, 统计每个 token 被选中的次数
+2. **M 步**: 根据频率更新 $P(t) = \frac{\text{count}(t)}{\sum_{v \in V} \text{count}(v)}$
+3. 重复直到收敛
+
+收敛后, 对每个 token 评估**删除它带来的似然损失**, 删除损失最小的 token, 然后重新训练. 重复直到词表降到目标大小.
 
 ### 4.3 和 BPE/WordPiece 的对比
 
@@ -289,7 +348,7 @@ $$
 
 前面讲的 BPE、WordPiece、Unigram, 都有一个共同的前提: **输入文本需要先按空格分成"词"** (pre-tokenization). 这对英语没问题, 但对中文、日文等没有空格的文字来说就尴尬了——"我喜欢你" 应该被切分成什么?
 
-SentencePiece 解决了这个问题: **它把原始文本直接当作 byte 序列处理, 不需要 pre-tokenization**.
+SentencePiece 解决了这个问题: **它把原始文本直接当作 Unicode 字符序列处理, 不需要 pre-tokenization**.
 
 ### 5.1 SentencePiece 的核心思想
 
@@ -303,18 +362,19 @@ SentencePiece 的输入不是"词", 而是**原始字符串** (Unicode 字符序
 
 ### 5.2 对比: SentencePiece BPE vs SentencePiece Unigram
 
-LLaMA、Mistral 使用的是 **SentencePiece + BPE** (LLaMA 改成了 byte-level BPE, 但训练框架还是 SentencePiece).
+LLaMA、Mistral 使用的是 **SentencePiece + BPE** (字符级别, 不是 byte-level). LLaMA-3 改用了 tiktoken 库的 byte-level BPE, 不再使用 SentencePiece.
 
 T5、ALBERT 使用的是 **SentencePiece + Unigram**.
 
 | 模型 | Tokenizer | 词表大小 | 说明 |
 |------|-----------|---------|------|
-| GPT-2/3 | Byte-level BPE | 50,257 | token 可以包含任意 byte |
+| GPT-2/3 | Byte-level BPE | 50,257 | 可以表示任意 byte 序列 |
 | BERT | WordPiece | 30,000 | 用 ## 标记续词 |
-| LLaMA | SentencePiece + BPE | 32,000 | 中文+英文混合效果好 |
-| LLaMA-3 | SentencePiece + Byte-level BPE | 128,000 | 大词表, 编码效率高 |
-| T5 | SentencePiece + Unigram | 32,000 | |
-| GPT-4 | 未知 (推测是 BPE) | ≈100K | 未公开 |
+| LLaMA | SentencePiece + BPE | 32,000 | 字符级别, 适合中英文混合 |
+| LLaMA-3 | tiktoken BPE (byte-level) | 128,000 | 大词表, 编码效率高 |
+| T5 | SentencePiece + Unigram | 32,000 | 可输出多条分词路径 |
+| Qwen | tiktoken BPE (byte-level) | 152,000 | 中文优化, 同 GPT-4 架构 |
+| GPT-4 | 未知 (推测是 tiktoken BPE) | ≈100K | 未公开 |
 
 ---
 
@@ -344,7 +404,7 @@ tokenizer.train(files, trainer)
 
 # 测试
 output = tokenizer.encode("I love machine learning")
-print(output.tokens)   # ['I', '▁love', '▁machine', '▁learning']
+print(output.tokens)   # 类似 ['I', 'Ġlove', 'Ġmachine', 'Ġlearning'] (不同 tokenizer 输出不同)
 print(output.ids)      # [32, 156, 4231, 2156]
 ```
 
@@ -375,9 +435,9 @@ print(len(ids))  # 5 个 token
 # 这是因为 LLaMA 的训练语料也包含中文, "语言" 常见, 被合并了
 ```
 
-### 6.3 token 长度分布
+### 6.3 token 长度分布 (示意)
 
-不同语言的 token 效率不一样:
+不同语言的 token 效率不一样 (以下输出为近似值, 使用 LLaMA-2 tokenizer):
 
 ```python
 texts = [
@@ -396,33 +456,32 @@ for lang, text in texts:
 
 ```
 English: 10 tokens, 4.3 chars/token
-中文: 18 tokens, 1.4 chars/token
-混合: 22 tokens, 2.1 chars/token
+中文: 10 tokens, 1.6 chars/token
+混合: 15 tokens, 2.4 chars/token
 ```
 
-中文的 chars/token 更低, 意味着**同样的信息量, 中文需要的 token 更多**. 这就解释了为什么中文模型的上下文窗口"不够用"——同样的 4096 token, 英文能读 17500 个字符, 中文只能读 5800 个字符.
+中文的 chars/token 更低, 意味着**同样的信息量, 中文需要的 token 更多**. 这就解释了为什么中文模型的上下文窗口"不够用"——同样的 4096 token, 英文能读约 17600 个字符, 中文只能读约 6600 个字符.
 
 ### 6.4 自己实现一个简化版 BPE
 
 ```python
 from collections import defaultdict
-import re
 
 def train_bpe(corpus: list[str], vocab_size: int):
     """训练一个简化版 BPE"""
-    
+
     # 1. 初始化: 把词拆成字符 + 词尾标记
     words = []
     for text in corpus:
         for word in text.split():
             words.append(" ".join(list(word)) + " </w>")
-    
+
     # 2. 初始词表 (所有字符)
     vocab = set()
     for word in words:
         for char in word.split():
             vocab.add(char)
-    
+
     # 3. 重复合并
     merges = []
     while len(vocab) < vocab_size:
@@ -490,10 +549,10 @@ print(apply_bpe("lowest", merges))
 | GPT-2 | Byte-level BPE | 50,257 | ✅ (通过 byte) | 无 |
 | BERT | WordPiece | 30,000 | ❌ (需额外中文版) | ## |
 | LLaMA-2 | SentencePiece + BPE | 32,000 | ✅ | ▁ |
-| LLaMA-3 | SentencePiece + BPE (byte-level) | 128,000 | ✅ | ▁ |
+| LLaMA-3 | tiktoken BPE (byte-level) | 128,000 | ✅ | 无 (byte-level) |
 | T5 | SentencePiece + Unigram | 32,000 | ✅ | ▁ |
 | ChatGLM | SentencePiece | 130,000 | ✅ (中文优化) | ▁ |
-| Qwen | SentencePiece + BPE | 152,000 | ✅ (中文优化) | ▁ |
+| Qwen | tiktoken BPE (byte-level) | 152,000 | ✅ (中文优化) | 无 (byte-level) |
 
 ### 7.2 怎么选?
 
@@ -508,10 +567,12 @@ print(apply_bpe("lowest", merges))
 词表大小和序列长度是 trade-off:
 
 $$
-\text{计算量} \propto \text{序列长度}^2 \times \text{词表大小}
+\text{计算量} \propto \underbrace{L^2 d}_{\text{Self-Attention}} + \underbrace{V d}_{\text{Embedding}}
 $$
 
-词表越大, 序列越短 ($O(1/\text{词表大小})$), 但 embedding 层越大 ($O(\text{词表大小})$).
+其中 $L$ 是序列长度, $d$ 是隐藏层维度, $V$ 是词表大小. (为简洁, 忽略了 FFN 层的 $L d^2$ 项, 但 trade-off 的结论不变.)
+
+词表越大, 序列越短 (因为每个 token 包含的信息更多), Self-Attention 的 $L^2$ 项显著降低; 但 Embedding 层 $V d$ 变大.
 
 LLaMA-3 选择了 128K 的大词表 (相比 LLaMA-2 的 32K), 序列更短但嵌入层更重. 实测表明好处大于坏处.
 
