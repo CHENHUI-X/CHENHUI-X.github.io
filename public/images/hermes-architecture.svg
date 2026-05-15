@@ -1,4 +1,4 @@
-<svg width="1024" height="700" viewBox="0 0 1024 700" xmlns="http://www.w3.org/2000/svg">
+<svg width="1024" height="750" viewBox="0 0 1024 750" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
@@ -46,8 +46,8 @@
   <!-- ============================================ -->
   <!-- Windows Host Boundary -->
   <!-- ============================================ -->
-  <rect x="25" y="25" width="974" height="650" rx="18" fill="rgba(251,191,36,0.04)" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4" filter="url(#shadow-sm)"/>
-  <rect x="25" y="25" width="974" height="650" rx="18" fill="url(#glow-cyan)" stroke="none"/>
+  <rect x="25" y="25" width="974" height="700" rx="18" fill="rgba(251,191,36,0.04)" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="8,4" filter="url(#shadow-sm)"/>
+  <rect x="25" y="25" width="974" height="700" rx="18" fill="url(#glow-cyan)" stroke="none"/>
   <text font-family="WenQuanYi Zen Hei, sans-serif" x="45" y="52" font-size="11" fill="#fbbf24" font-weight="600">Windows 11 宿主机（ASUS-CHENHUI）</text>
 
   <!-- Title -->
@@ -110,55 +110,66 @@
   <text font-family="WenQuanYi Zen Hei, sans-serif" x="840" y="365" font-size="8" fill="#22d3ee" text-anchor="middle">⇢ Camoufox 后全部正常访问</text>
 
   <!-- ============================================ -->
-  <!-- 5. Watchdog System -->
+  <!-- 5. Watchdog System (v2.2) -->
   <!-- ============================================ -->
-  <rect x="50" y="410" width="530" height="185" rx="12" fill="rgba(251,113,133,0.04)" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="75" y="435" font-size="10" fill="#fb7185" font-weight="600">三层保活系统（Watchdog）</text>
+  <rect x="50" y="410" width="530" height="220" rx="12" fill="rgba(251,113,133,0.04)" stroke="#fb7185" stroke-width="1" stroke-dasharray="4,4"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="75" y="435" font-size="10" fill="#fb7185" font-weight="600">三层保活系统 v2.2（Watchdog — 63项压力测试验证）</text>
 
-  <!-- Layer 3 -->
-  <rect x="80" y="455" width="150" height="60" rx="8" fill="#0f172a" filter="url(#shadow-sm)"/>
-  <rect x="80" y="455" width="150" height="60" rx="8" fill="rgba(251,113,133,0.08)" stroke="#fb7185" stroke-width="1.5"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="155" y="478" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 3 · Windows 计划任务</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="155" y="496" font-size="8" fill="#94a3b8" text-anchor="middle">每 5 分钟兜底检查</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="155" y="508" font-size="7" fill="#64748b" text-anchor="middle">HermesWatchdogCheck</text>
+  <!-- Layer 3: Scheduled Task -->
+  <rect x="80" y="455" width="150" height="75" rx="8" fill="#0f172a" filter="url(#shadow-sm)"/>
+  <rect x="80" y="455" width="150" height="75" rx="8" fill="rgba(251,113,133,0.08)" stroke="#fb7185" stroke-width="1.5"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="155" y="476" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 3 · 计划任务兜底</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="155" y="494" font-size="8" fill="#94a3b8" text-anchor="middle">check-watchdog.ps1</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="155" y="508" font-size="7" fill="#64748b" text-anchor="middle">先检测 Mutex → PS1活着就退出</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="155" y="522" font-size="7" fill="#64748b" text-anchor="middle">PS1死亡后接手检查（5min）</text>
 
   <!-- Arrow L3 → L2 -->
   <line x1="230" y1="485" x2="250" y2="485" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow-rose)"/>
 
-  <!-- Layer 2 -->
-  <rect x="260" y="455" width="150" height="60" rx="8" fill="#0f172a" filter="url(#shadow-sm)"/>
-  <rect x="260" y="455" width="150" height="60" rx="8" fill="rgba(251,113,133,0.08)" stroke="#fb7185" stroke-width="1.5"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="335" y="478" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 2 · VBS 启动器</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="335" y="496" font-size="8" fill="#94a3b8" text-anchor="middle">Windows Startup 触发</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="335" y="508" font-size="7" fill="#64748b" text-anchor="middle">静默启动无窗口</text>
+  <!-- Layer 2: PS1 Watchdog -->
+  <rect x="260" y="455" width="150" height="75" rx="8" fill="#0f172a" filter="url(#shadow-sm)"/>
+  <rect x="260" y="455" width="150" height="75" rx="8" fill="rgba(251,113,133,0.08)" stroke="#fb7185" stroke-width="1.5"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="335" y="476" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 2 · PS1 守护进程</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="335" y="494" font-size="8" fill="#94a3b8" text-anchor="middle">命名 Mutex 防多实例</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="335" y="508" font-size="7" fill="#64748b" text-anchor="middle">60s 分片心跳 · 300s 检查</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="335" y="522" font-size="7" fill="#64748b" text-anchor="middle">30s Job 超时保护</text>
 
   <!-- Arrow L2 → L1 -->
   <line x1="410" y1="485" x2="430" y2="485" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrow-rose)"/>
 
-  <!-- Layer 1 -->
-  <rect x="440" y="455" width="120" height="60" rx="8" fill="#0f172a" filter="url(#shadow-sm)"/>
-  <rect x="440" y="455" width="120" height="60" rx="8" fill="rgba(251,113,133,0.08)" stroke="#fb7185" stroke-width="1.5"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="500" y="478" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 1 · PS1 脚本</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="500" y="496" font-size="8" fill="#94a3b8" text-anchor="middle">自循环守护进程</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="500" y="508" font-size="7" fill="#64748b" text-anchor="middle">每 5 分钟检查</text>
+  <!-- Layer 1: Startup -->
+  <rect x="440" y="455" width="120" height="75" rx="8" fill="#0f172a" filter="url(#shadow-sm)"/>
+  <rect x="440" y="455" width="120" height="75" rx="8" fill="rgba(251,113,133,0.08)" stroke="#fb7185" stroke-width="1.5"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="500" y="476" font-size="10" fill="#fb7185" font-weight="600" text-anchor="middle">层 1 · Startup</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="500" y="494" font-size="8" fill="#94a3b8" text-anchor="middle">VBS 动态路径检测</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="500" y="508" font-size="7" fill="#64748b" text-anchor="middle">开机静默启动 PS1</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="500" y="522" font-size="7" fill="#64748b" text-anchor="middle">无需管理员权限</text>
+
+  <!-- WSL-side watchdog.sh detail box -->
+  <rect x="80" y="545" width="490" height="70" rx="8" fill="#0f172a" filter="url(#shadow-sm)"/>
+  <rect x="80" y="545" width="490" height="70" rx="8" fill="rgba(255,255,255,0.02)" stroke="#94a3b8" stroke-width="1"/>
+  <text font-family="JetBrains Mono, monospace" x="95" y="565" font-size="9" fill="#fb7185">/root/hermes-watchdog.sh</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="95" y="582" font-size="8" fill="#94a3b8">find_gateway_pid() → /proc/PID/exe  + 状态 Z/D 过滤 → 三级 fallback 启动</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="95" y="598" font-size="8" fill="#64748b">flock + PID 锁 · 30s 轮询 · venv/hermes → hermes → python3 -m hermes</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="95" y="610" font-size="7" fill="#475569">返回码: 0=已运行  1=重启成功  2=重启失败</text>
 
   <!-- Watchdog → Gateway arrow -->
-  <line x1="155" y1="518" x2="195" y2="215" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-rose)"/>
+  <line x1="155" y1="492" x2="195" y2="215" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-rose)"/>
   <text font-family="WenQuanYi Zen Hei, sans-serif" x="115" y="380" font-size="8" fill="#fb7185" transform="rotate(-78, 115, 380)">监控 WSL + Gateway 状态，异常自愈</text>
 
   <!-- ============================================ -->
   <!-- 6. User on Phone -->
   <!-- ============================================ -->
-  <rect x="610" y="440" width="360" height="130" rx="14" fill="#0f172a" filter="url(#shadow-lg)"/>
-  <rect x="610" y="440" width="360" height="130" rx="14" fill="rgba(148,163,184,0.06)" stroke="#64748b" stroke-width="1.5"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="470" font-size="14" fill="#f1f5f9" font-weight="700" text-anchor="middle">📱 用户（手机通过微信操控）</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="494" font-size="10" fill="#94a3b8" text-anchor="middle">发送指令 · 接收截图 · 语音播报结果</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="514" font-size="9" fill="#64748b" text-anchor="middle">无论身在何处，掏出手机就能操作电脑</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="540" font-size="9" fill="#22d3ee" text-anchor="middle">查天气 · 搜 Google · 管理代码 · 写博客</text>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="558" font-size="12" fill="#64748b" text-anchor="middle">躺沙发也能干活 ✨</text>
+  <rect x="610" y="480" width="360" height="130" rx="14" fill="#0f172a" filter="url(#shadow-lg)"/>
+  <rect x="610" y="480" width="360" height="130" rx="14" fill="rgba(148,163,184,0.06)" stroke="#64748b" stroke-width="1.5"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="510" font-size="14" fill="#f1f5f9" font-weight="700" text-anchor="middle">📱 用户（手机通过微信操控）</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="534" font-size="10" fill="#94a3b8" text-anchor="middle">发送指令 · 接收截图 · 语音播报结果</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="554" font-size="9" fill="#64748b" text-anchor="middle">无论身在何处，掏出手机就能操作电脑</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="580" font-size="9" fill="#22d3ee" text-anchor="middle">查天气 · 搜 Google · 管理代码 · 写博客</text>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="790" y="598" font-size="12" fill="#64748b" text-anchor="middle">躺沙发也能干活 ✨</text>
 
   <!-- Arrow Phone → Gateway -->
-  <path d="M 610 500 Q 500 500 310 220" fill="none" stroke="#22d3ee" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-cyan)" opacity="0.6"/>
+  <path d="M 610 540 Q 500 540 310 220" fill="none" stroke="#22d3ee" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-cyan)" opacity="0.6"/>
   <text font-family="WenQuanYi Zen Hei, sans-serif" x="440" y="370" font-size="8" fill="#22d3ee" transform="rotate(-45, 440, 370)">微信消息双向通信</text>
 
   <!-- ============================================ -->
@@ -180,19 +191,19 @@
   <!-- ============================================ -->
   <!-- Legend -->
   <!-- ============================================ -->
-  <rect x="610" y="585" width="370" height="60" rx="10" fill="#0f172a" filter="url(#shadow-sm)"/>
-  <rect x="610" y="585" width="370" height="60" rx="10" fill="rgba(30,41,59,0.4)" stroke="#334155" stroke-width="1"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="630" y="606" font-size="9" fill="#94a3b8" font-weight="500">图例</text>
-  <rect x="632" y="618" width="12" height="12" rx="3" fill="rgba(34,211,238,0.20)" stroke="#22d3ee" stroke-width="1"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="650" y="628" font-size="8" fill="#64748b">网关 / 通信</text>
-  <rect x="720" y="618" width="12" height="12" rx="3" fill="rgba(52,211,153,0.20)" stroke="#34d399" stroke-width="1"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="738" y="628" font-size="8" fill="#64748b">核心引擎</text>
-  <rect x="804" y="618" width="12" height="12" rx="3" fill="rgba(167,139,250,0.20)" stroke="#a78bfa" stroke-width="1"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="822" y="628" font-size="8" fill="#64748b">浏览器</text>
-  <rect x="882" y="618" width="12" height="12" rx="3" fill="rgba(251,113,133,0.20)" stroke="#fb7185" stroke-width="1"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="900" y="628" font-size="8" fill="#64748b">监控 / 保活</text>
-  <rect x="632" y="635" width="12" height="12" rx="3" fill="rgba(148,163,184,0.10)" stroke="#64748b" stroke-width="1"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="650" y="643" font-size="8" fill="#64748b">外部服务</text>
-  <rect x="720" y="635" width="12" height="12" rx="3" fill="rgba(251,191,36,0.10)" stroke="#fbbf24" stroke-width="1"/>
-  <text font-family="WenQuanYi Zen Hei, sans-serif" x="738" y="643" font-size="8" fill="#64748b">宿主机边界</text>
+  <rect x="610" y="625" width="370" height="60" rx="10" fill="#0f172a" filter="url(#shadow-sm)"/>
+  <rect x="610" y="625" width="370" height="60" rx="10" fill="rgba(30,41,59,0.4)" stroke="#334155" stroke-width="1"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="630" y="646" font-size="9" fill="#94a3b8" font-weight="500">图例</text>
+  <rect x="632" y="658" width="12" height="12" rx="3" fill="rgba(34,211,238,0.20)" stroke="#22d3ee" stroke-width="1"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="650" y="668" font-size="8" fill="#64748b">网关 / 通信</text>
+  <rect x="720" y="658" width="12" height="12" rx="3" fill="rgba(52,211,153,0.20)" stroke="#34d399" stroke-width="1"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="738" y="668" font-size="8" fill="#64748b">核心引擎</text>
+  <rect x="804" y="658" width="12" height="12" rx="3" fill="rgba(167,139,250,0.20)" stroke="#a78bfa" stroke-width="1"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="822" y="668" font-size="8" fill="#64748b">浏览器</text>
+  <rect x="882" y="658" width="12" height="12" rx="3" fill="rgba(251,113,133,0.20)" stroke="#fb7185" stroke-width="1"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="900" y="668" font-size="8" fill="#64748b">监控 / 保活</text>
+  <rect x="632" y="675" width="12" height="12" rx="3" fill="rgba(148,163,184,0.10)" stroke="#64748b" stroke-width="1"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="650" y="683" font-size="8" fill="#64748b">外部服务</text>
+  <rect x="720" y="675" width="12" height="12" rx="3" fill="rgba(251,191,36,0.10)" stroke="#fbbf24" stroke-width="1"/>
+  <text font-family="WenQuanYi Zen Hei, sans-serif" x="738" y="683" font-size="8" fill="#64748b">宿主机边界</text>
 </svg>

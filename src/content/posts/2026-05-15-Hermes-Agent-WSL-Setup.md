@@ -132,6 +132,10 @@ hermes gateway run
 
 为了解决这个问题, 我搞了一个**三层保活架构**:
 
+:::note
+以下各层的代码片段为**核心流程展示**, 实际脚本包含了更多的边界处理、错误恢复和安全保护（互斥锁降级、进程状态检测、多级 fallback 等）。
+:::
+
 ### 第一层: Windows Startup 启动
 
 在 Windows 的启动文件夹里放一个 VBS 脚本, 每次开机自动运行:
@@ -158,31 +162,46 @@ objShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File "
 
 ### 第二层: PowerShell 自循环守护脚本
 
-核心剧本是 `hermes-watchdog.ps1`, 它每隔 5 分钟调用 WSL 端的 `/root/hermes-watchdog.sh` 检查 Gateway 的状态. 以下是简化版逻辑（完整脚本含互斥锁、WSL 就绪轮询、日志轮转、状态跟踪等辅助功能）:
+核心剧本是 `hermes-watchdog.ps1`, 它每隔 5 分钟调用 WSL 端的 `/root/hermes-watchdog.sh` 检查 Gateway 的状态. v2.0 版本做了几个重要改进:
+
+- **分片睡眠 + 60s 心跳**: 每 5 分钟的主循环间隔被拆成 60 秒一片, 每片写一次 `heartbeat.txt`, 这样随时可以从 Windows 端确认看门狗是否还活着(即使主循环 sleep 期间)
+- **WSL 可达性预检**: 调用 WSL 前先检查 WSL 是否可达, 不可达时尝试唤起而非直接超时跳过
+- **兜底启动**: WSL 脚本返回 exit=2(重启失败)时, PS1 直接尝试 `hermes gateway run &` 兜底启动
+- **exit code 正确捕获**: 通过 Job 的 hashtable 返回值修复 Start-Job 中 `$LASTEXITCODE` 丢失问题
+
+以下是简化版逻辑（完整脚本含互斥锁、日志、兜底恢复等辅助功能）:
 
 ```powershell
-# 单例锁: 命名 Mutex 防止多实例
-$mutex = New-Object System.Threading.Mutex($false, "HermesWatchdogMutex_$env:USERNAME")
+# 全局命名 Mutex 防止多实例竞跑
+$mutex = New-Object System.Threading.Mutex($false, "Global\HermesGatewayWatchdog")
 if (-not $mutex.WaitOne(0)) { exit 0 }
 
+# 主循环: 分片睡眠 + 60s 心跳
 while ($true) {
-    # Step 1: WSL 是否运行？
-    $wslOk = Test-WslRunning
-    if (-not $wslOk) {
-        # 尝试启动 WSL, 轮询最多 30 秒等待就绪
-        wsl -d Ubuntu bash -c "echo ok" 2>$null
-        $wslReady = Wait-WslReady -TimeoutSeconds 30
+    # 分片 60s 睡眠, 每片写心跳文件
+    for ($i = 0; $i -lt 5; $i++) {
+        Start-Sleep -Seconds 60
+        Get-Date -Format "yyyy-MM-dd HH:mm:ss" |
+            Out-File $heartbeatFile -Encoding utf8 -Force
     }
 
-    # Step 2: 调用 WSL 侧的检测脚本 (PowerShell Job, 60s 超时)
-    $result = Invoke-WslCommand
-    $code = $result.Trim()
+    # Step 1: WSL 可达性预检
+    if (-not (Test-WslAlive)) {
+        # 尝试唤起 WSL, 失败则跳过本轮
+        wsl.exe -d Ubuntu -- echo "kick" 2>&1
+        continue
+    }
 
-    if ($code -eq "0") { Write-Log "Hermes Gateway 运行正常" }
-    if ($code -eq "1") { Write-Log "Hermes Gateway 已自动重启" }
-    if ($code -eq "2") { Write-Log "Hermes Gateway 重启失败" }
+    # Step 2: 调用 WSL 侧的检测脚本
+    $output, $exitCode, $timedOut = Invoke-WslScript
 
-    Start-Sleep -Seconds 300
+    if ($timedOut) { continue }           # WSL 超时
+    if ($exitCode -eq 0) { /* 正常 */ }   # 仅每5周期写一次日志
+    if ($exitCode -eq 1) { Write-Log "Gateway 已重启" }
+    if ($exitCode -eq 2) {
+        # 兜底: WSL 脚本失败, PS1 直接启动
+        Invoke-WslScript -Command "hermes gateway run &" -TimeoutSeconds 15
+    }
 }
 ```
 
@@ -226,24 +245,26 @@ echo "2" && exit 2  # 启动失败
 
 ### 第三层: Windows 计划任务(兜底)
 
-即使 PowerShell 脚本意外退出了, 还有两层计划任务兜底:
+即使 PowerShell 脚本意外退出了, 还有计划任务兜底. 兜底脚本 `check-watchdog.ps1` 做了双重确认: 先尝试获取互斥锁, 若能获取(说明 PS1 可能死了), 再检查 `heartbeat.txt` 是否新鲜——只有心跳也过期了才确认 PS1 死亡, 接手启动 Gateway.
 
 ```powershell
-# 任务1: 开机启动看门狗 (备用入口)
+# 任务: 开机启动看门狗 (启动目录备用入口)
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
     -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"C:\...\hermes-watchdog.ps1`""
 Register-ScheduledTask -TaskName "HermesWatchdog" -Action $action -Force
 
-# 任务2: 每5分钟兜底检查 (通过独立的 hermes-watchdog-healthcheck.ps1)
+# 兜底: 每5分钟检查 (通过独立的 check-watchdog.ps1)
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
-    -Argument "-File `"C:\...\hermes-watchdog-healthcheck.ps1`""
+    -Argument "-File `"C:\...\check-watchdog.ps1`""
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `
     -RepetitionInterval (New-TimeSpan -Minutes 5) `
     -RepetitionDuration ([TimeSpan]::FromDays(365))
 Register-ScheduledTask -TaskName "HermesWatchdogHealthCheck" -Action $action -Trigger $trigger -Force
 ```
 
-兜底脚本 `hermes-watchdog-healthcheck.ps1` 会先检测 PS1 看门狗的 Mutex 是否存活——如果 PS1 还活着就直接退出, 不浪费资源. 只有检测到 PS1 死亡后, 才会接手检查 Gateway.
+兜底脚本 `check-watchdog.ps1` 会先尝试获取互斥锁 `Global\HermesGatewayWatchdog`——如果能拿到(说明 PS1 可能死了), 再检查 `heartbeat.txt` 是否在 7 分钟内更新过. 只有 Mutex 释放 && 心跳过期 才确认 PS1 已死, 接手重启 Gateway.
+
+这解决了 TOCTOU 竞态问题: 兜底脚本在 **持有 Mutex 期间** 执行 WSL 检查, 防止并发冲突.
 
 ### 全链路故障恢复
 
