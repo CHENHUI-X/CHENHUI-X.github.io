@@ -566,9 +566,8 @@ print(apply_bpe("lowest", merges))
 
 词表大小和序列长度是 trade-off:
 
-$$
-\text{计算量} \propto \underbrace{L^2 d}_{\text{Self-Attention}} + \underbrace{V d}_{\text{Embedding}}
-$$
+计算量
+$$\propto \underbrace{L^2 d}_{\text{Self-Attention}} + \underbrace{V d}_{\text{Embedding}}$$
 
 其中 $L$ 是序列长度, $d$ 是隐藏层维度, $V$ 是词表大小. (为简洁, 忽略了 FFN 层的 $L d^2$ 项, 但 trade-off 的结论不变.)
 
