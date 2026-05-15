@@ -227,11 +227,11 @@ $action = New-ScheduledTaskAction -Execute "powershell.exe" `
     -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"C:\...\hermes-watchdog.ps1`""
 Register-ScheduledTask -TaskName "HermesWatchdog" -Action $action -Force
 
-# 任务2: 每30分钟兜底检查 (通过独立的 hermes-watchdog-healthcheck.ps1)
+# 任务2: 每5分钟兜底检查 (通过独立的 hermes-watchdog-healthcheck.ps1)
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
     -Argument "-File `"C:\...\hermes-watchdog-healthcheck.ps1`""
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `
-    -RepetitionInterval (New-TimeSpan -Minutes 30) `
+    -RepetitionInterval (New-TimeSpan -Minutes 5) `
     -RepetitionDuration ([TimeSpan]::FromDays(365))
 Register-ScheduledTask -TaskName "HermesWatchdogHealthCheck" -Action $action -Trigger $trigger -Force
 ```
