@@ -158,7 +158,7 @@ objShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File "
 
 ### 第二层: PowerShell 自循环守护脚本
 
-核心剧本是 `hermes-watchdog.ps1`, 它每隔 5 分钟调用 WSL 端的 `/root/hermes-watchdog.sh` 检查 Gateway 的状态. 以下是简化版逻辑:
+核心剧本是 `hermes-watchdog.ps1`, 它每隔 5 分钟调用 WSL 端的 `/root/hermes-watchdog.sh` 检查 Gateway 的状态. 以下是简化版逻辑（完整脚本含互斥锁、WSL 就绪轮询、日志轮转、状态跟踪等辅助功能）:
 
 ```powershell
 # 单例锁: 命名 Mutex 防止多实例
@@ -166,21 +166,27 @@ $mutex = New-Object System.Threading.Mutex($false, "HermesWatchdogMutex_$env:USE
 if (-not $mutex.WaitOne(0)) { exit 0 }
 
 while ($true) {
-    # 分片睡眠: 每 60s 写一次心跳, 防止长时间无响应
-    for ($slept = 0; $slept -lt 300; $slept += 60) {
-        Start-Sleep -Seconds 60
-        Get-Date | Out-File $heartbeatFile -Encoding utf8 -Force
+    # Step 1: WSL 是否运行？
+    $wslOk = Test-WslRunning
+    if (-not $wslOk) {
+        # 尝试启动 WSL, 轮询最多 30 秒等待就绪
+        wsl -d Ubuntu bash -c "echo ok" 2>$null
+        $wslReady = Wait-WslReady -TimeoutSeconds 30
     }
 
-    # 带超时的 WSL 调用 (PowerShell Job, 30s 超时)
-    $output, $exitCode = Invoke-WslScript "/root/hermes-watchdog.sh"
+    # Step 2: 调用 WSL 侧的检测脚本 (PowerShell Job, 60s 超时)
+    $result = Invoke-WslCommand
+    $code = $result.Trim()
 
-    if ($exitCode -eq 1) { Write-Log "Gateway 已重启成功" }
-    if ($exitCode -eq 2) { Write-Log "重启失败, 尝试兜底启动" }
+    if ($code -eq "0") { Write-Log "Hermes Gateway 运行正常" }
+    if ($code -eq "1") { Write-Log "Hermes Gateway 已自动重启" }
+    if ($code -eq "2") { Write-Log "Hermes Gateway 重启失败" }
+
+    Start-Sleep -Seconds 300
 }
 ```
 
-完整的 WSL 端检测脚本 `/root/hermes-watchdog.sh` 负责真正的进程检查与重启:
+完整的 WSL 端检测脚本 `/root/hermes-watchdog.sh` 负责真正的进程检查与重启（以下展示核心流程, 完整脚本含 PID 文件 inode 保护、多级别启动降级等额外加固）:
 
 ```bash
 #!/bin/bash
@@ -195,7 +201,8 @@ echo "$$" > "$LOCKFILE"
 find_gateway_pid() {
     for pid in $(pgrep -f "hermes gateway run"); do
         [ ! -d "/proc/$pid" ] && continue
-        state=$(grep -o '^State:\s*[A-Z]' /proc/$pid/status | grep -o '[A-Z]$')
+        [ "$pid" = "$$" ] && continue  # 跳过自身
+        state=$(grep -o '^State:\\s*[A-Z]' /proc/$pid/status | grep -o '[A-Z]$')
         case "$state" in Z|D) continue ;; esac
         exe=$(readlink /proc/$pid/exe)
         case "$exe" in */python|*/python3|*/python3.*) echo "$pid"; return 0 ;; esac
