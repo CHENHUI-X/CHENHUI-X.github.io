@@ -202,13 +202,15 @@ b=document.getElementById('mobile-toc-btn');
 o=document.getElementById('mobile-toc-overlay');
 
 function build(){
-  var all=document.querySelectorAll('h2:not(#mobile-toc-list h2),h3:not(#mobile-toc-list h3)');
+    var all=document.querySelectorAll('h2:not(#mobile-toc-list h2),h3:not(#mobile-toc-list h3)');
   var hs=[];
   all.forEach(function(h){
     if(h.closest('#navbar-wrapper')||h.closest('#toc-left-wrapper')||h.closest('#toc-wrapper')||h.closest('#mobile-toc-overlay'))return;
     hs.push(h);
   });
   if(hs.length<2){b.style.display='none';return;}
+  // PC端(>=1024px)不显示移动端TOC按钮，左侧已有侧栏目录
+  if(window.innerWidth>=1024){b.style.display='none';return;}
   b.style.display='flex';
   l.innerHTML='';
   hs.forEach(function(h){

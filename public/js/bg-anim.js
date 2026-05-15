@@ -191,7 +191,10 @@
       ['bg-float-circle', 'border-radius:50%'],           // 圆形
     ];
 
-    for (var i = 0; i < 20; i++) {
+    // 移动端/平板减少形状数，提升流畅度
+    var shapeCount = window.innerWidth < 1024 ? 8 : 20;
+
+    for (var i = 0; i < shapeCount; i++) {
       var el       = document.createElement('div');
       var size     = Math.round(30 + Math.random() * 200);
       var left     = Math.round(Math.random() * 100);

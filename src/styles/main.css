@@ -193,3 +193,11 @@
   background-size: 400% 400%;
   animation: bg-drift 20s ease infinite;
 }
+
+/* PC端隐藏移动端TOC按钮（左侧已有侧栏目录） */
+@media (min-width: 1024px) {
+  #mobile-toc-btn,
+  #mobile-toc-overlay {
+    display: none !important;
+  }
+}
