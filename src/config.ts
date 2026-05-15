@@ -8,8 +8,8 @@ import type {
 import { LinkPreset } from "./types/config";
 
 export const siteConfig: SiteConfig = {
-	title: "CHENHUI",
-	subtitle: "学无止境",
+	title: "CHENHUI · 格物",
+	subtitle: "",
 	lang: "zh_CN",
 	themeColor: {
 		hue: 345, // pink/cute
