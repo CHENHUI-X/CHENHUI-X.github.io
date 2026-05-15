@@ -201,3 +201,10 @@
     display: none !important;
   }
 }
+
+/* 移动端 Wallpaper 确保 cover 生效 */
+@media (max-width: 1023px) {
+  #bg-shapes > div {
+    background-size: cover !important;
+  }
+}

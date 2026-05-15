@@ -91,12 +91,24 @@
     var currentLayer = imgA;
     var nextLayer    = imgB;
 
+// 移动端 Wallpaper 防闪烁：图片加载后重置 background-size 确保 cover 生效
+function setBgImage(el, url) {
+  el.style.backgroundImage = 'url(' + url + ')';
+  if (window.innerWidth < 1024) {
+    void el.offsetWidth;
+    requestAnimationFrame(function () {
+      el.style.backgroundSize = 'cover';
+      void el.offsetWidth;
+    });
+  }
+}
+
     // ── 应用壁纸到目标图层（img 预加载完成后触发） ──────────
     function applyWallpaper(url, instant) {
       if (!url) return;
       var img = new Image();
       img.onload = function () {
-        nextLayer.style.backgroundImage = 'url(' + url + ')';
+        setBgImage(nextLayer, url);
         nextLayer.style.opacity = '0';
         void nextLayer.offsetWidth; // force reflow → 确保浏览器记录了 opacity:0
         if (instant) {
