@@ -14,11 +14,11 @@ draft: false
 
 ## 0. 前言
 
-上一篇文章我们推导了 [RoPE: 旋转位置编码](/posts/2026-05-16-llm-rope-rotary-position-embedding/): 用旋转矩阵给每个位置编码, 让 attention 的内积只依赖相对位置.
+上一篇文章我们推导了 [RoPE (Rotary Position Embedding): 旋转位置编码](/posts/2026-05-16-llm-rope-rotary-position-embedding/): 用旋转矩阵给每个位置编码, 让 attention 的内积只依赖相对位置.
 
 但 RoPE 有一个棘手的问题: 模型在训练时只见过 $[0, L_{\text{train}})$ 范围内的位置. 推理时突然要处理 $m \gg L_{\text{train}}$ 的位置——即使 RoPE 的公式在数学上可以计算任意 $m$, **模型"没见过"这么大位置上的频率组合**, 效果会断崖式下跌.
 
-这篇文章就从 RoPE 的频率公式出发, 一步步推导各个改进方案: 从最朴素的 **Position Interpolation**, 到 **NTK-aware scaling**, 再到集大成者的 **YaRN**.
+这篇文章就从 RoPE 的频率公式出发, 一步步推导各个改进方案: 从最朴素的 **Position Interpolation**, 到 **NTK (Neural Tangent Kernel)-aware scaling**, 再到集大成者的 **YaRN**.
 
 最终你会理解: 这些方法不是在"发明"新东西, 而是在回答一个问题——**当模型需要处理从未见过的长位置时, 怎么把已有的 RoPE 频率知识迁移过去?**
 
@@ -29,7 +29,7 @@ draft: false
 RoPE 中, 第 $i$ 个维度对的旋转频率是:
 
 $$
-\theta_i = 10000^{-2i/d}, \quad i = 0, 1, ..., d/2 - 1
+\theta_i = 10000^{-2i/d}, \quad i = 0, 1, \dots, d/2 - 1
 $$
 
 位置 $m$ 的旋转角度是 $m\theta_i$.
@@ -79,10 +79,10 @@ PI 后相邻位置差 ($s=8$): $\theta_0 / 8 = 0.125$ 弧度, 约 $7.2^\circ$
 
 原来位置 $m$ 和 $m+1$ 的向量方向相差 $57^\circ$, 很容易区分. PI 后只差 $7^\circ$, 几乎重叠——**高频分辨率严重下降**.
 
-对于低频维度 ($i=63$), $\theta_{63} = 10000^{-126/128} \approx 0.0001$:
+对于低频维度 ($i=63$), $\theta_{63} = 10000^{-126/128} \approx 0.00012$:
 
-原始相邻位置差: $\approx 0.0057^\circ$ — 本来相邻位置就很难区分
-PI 后: $\approx 0.0007^\circ$ — 更分不清了
+原始相邻位置差: $\approx 0.0066^\circ$ — 本来相邻位置就很难区分
+PI 后: $\approx 0.0008^\circ$ — 更分不清了
 
 但低频维度的作用本来就不是区分相邻位置, 而是感知**大范围距离**. 所以低频损失一些分辨率问题不大. 真正致命的是高频分辨率丢失——它破坏了模型对精细位置关系的建模能力.
 
@@ -110,9 +110,9 @@ $$
 
 如果我们把 base 从 10000 换成 $\text{base}' > \text{base}$, 会发生什么?
 
-对于高频 ($i$ 小): $\theta_i \approx \text{base}'^{-2i/d}$ — 大的 base 使得 $\theta_i$ 变小(因为指数是负的), 高频频率降低.
+对于高频 ($i$ 小): $\theta_i \approx \text{base}'^{-2i/d}$ — 由于指数接近 0, 高频频率几乎不变. 大的 base 主要降低低频 (增加低频波长).
 
-不对, 仔细算. $\theta_i = \text{base}^{-2i/d}$. 当 $i$ 很小时($2i/d \approx 0$), $\text{base}^{-2i/d} \approx 1$ 对 base 的变化不敏感. 当 $i$ 接近 $d/2$ 时 ($2i/d \approx 1$), $\theta_{d/2} = \text{base}^{-1}$, 增大 base 会显著降低低频频率.
+不对, 仔细算. $\theta_i = \text{base}^{-2i/d}$. 当 $i$ 很小时($2i/d \approx 0$), $\text{base}^{-2i/d} \approx 1$ 对 base 的变化不敏感. 当 $i$ 接近 $d/2$ 时 ($2i/d \approx 1$), $\theta_{d/2-1} \approx \text{base}^{-1}$, 增大 base 会显著降低低频频率.
 
 所以: **增大 base, 高频几乎不变, 低频被压低**. 这正是我们想要的!
 
@@ -133,7 +133,7 @@ $$
 最低频维度 ($i = d/2 - 1$) 的原始波长:
 
 $$
-\lambda_{\min} = \frac{2\pi}{\theta_{d/2-1}} = 2\pi \times \text{base}^{(d-2)/d}
+\lambda_{\min} = \frac{2\pi}{\theta_{d/2-1}} = 2\pi \cdot \text{base}^{(d-2)/d}
 $$
 
 我们希望 $\lambda_{\min}$ 拉伸到 $L_{\text{infer}}$ 量级, 所以选择 $\text{base}'$ 使新波长:
@@ -188,7 +188,7 @@ $$
 
 - $i=0$: $\lambda_0 \approx 2\pi \cdot 1 = 6.28$ — 每约 6 个 token 旋转一圈
 - $i=32$: $\lambda_{32} \approx 2\pi \cdot 10000^{64/128} = 2\pi \cdot 100 = 628$
-- $i=63$: $\lambda_{63} \approx 2\pi \cdot 10000^{126/128} \approx 2\pi \cdot 9341 \approx 58680$
+- $i=63$: $\lambda_{63} \approx 2\pi \cdot 10000^{126/128} \approx 2\pi \cdot 8660 \approx 54410$
 
 现在来看跟训练长度的关系. 假设 $L_{\text{train}} = 4096$:
 
@@ -239,7 +239,7 @@ $$
 YaRN 的解决方案: 在 attention softmax 中引入一个温度系数 $t$:
 
 $$
-\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d} \cdot t}\right)
+\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d} \cdot t}\right) V
 $$
 
 $t$ 的选择: YaRN 论文通过分析内积分布的方差变化, 给出 $t \approx \sqrt{1 + \frac{\ln s}{\ln (d/2)}}$ 的参考值. 在实践中, $t$ 通常在 $1.0$ 到 $2.0$ 之间, 需要根据具体模型和扩展比例来调.
@@ -293,7 +293,7 @@ YaRN 是综合效果最好的方案. 如今主流的大模型 (LLaMA-3.1 128K, M
 
 ---
 
-## 6. HuggingFace 使用示例
+## 6. Hugging Face 使用示例
 
 ```python
 from transformers import AutoModelForCausalLM, AutoConfig
@@ -322,7 +322,7 @@ outputs = model.generate(inputs, max_new_tokens=256)
 手动实现 (核心部分):
 
 ```python
-def yarn_frequencies(dim, seq_len, base=10000, scale=8.0, L_train=4096):
+def yarn_frequencies(dim, base=10000, scale=8.0, L_train=4096):
     """计算 YaRN 的 RoPE 频率"""
     inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
     
@@ -336,7 +336,7 @@ def yarn_frequencies(dim, seq_len, base=10000, scale=8.0, L_train=4096):
     )
     r = 1 - ramp * (1 - 1/scale)
     
-    return inv_freq / r  # 频率 = 1/scale → 缩放
+    return inv_freq * r  # 频率 = θ_i · r_i，低频时 r=1/s → θ_i' = θ_i / s
 ```
 
 ---
@@ -352,7 +352,7 @@ def yarn_frequencies(dim, seq_len, base=10000, scale=8.0, L_train=4096):
 | 3 | NTK-aware | 高频分辨率和低频范围不同 | PI 的高频分辨率损失 |
 | 4 | YaRN | 波长决定缩放策略 + 温度修正 | NTK 的粗粒度问题 + 分布偏移 |
 
-**核心思想**: 不要把 RoPE 的频率当成固定的, 而是根据目标任务(上下文长度)来调整. 调整的粒度越细(逐维度 vs 全局), 效果越好. 调整后别忘了修正 attention 的热度——因为频率变了, attention 的分布也会变.
+**核心思想**: 不要把 RoPE 的频率当成固定的, 而是根据目标任务(上下文长度)来调整. 调整的粒度越细(逐维度 vs 全局), 效果越好. 调整后别忘了修正 attention 的温度——因为频率变了, attention 的分布也会变.
 
 ---
 

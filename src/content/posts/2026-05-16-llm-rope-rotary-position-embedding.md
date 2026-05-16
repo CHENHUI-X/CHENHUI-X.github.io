@@ -51,9 +51,6 @@ $$
 
 这就是 RoPE 的推导起点. 接下来我们要做的事是: **什么样的 $f_q$, $f_k$ 才能满足这个条件?**
 
-![推导路线图](/images/llm-series/rope-derivation-flow.png)
-
-> 上图为 RoPE 的完整推导路线图. 从目标出发, 通过复数/三角函数, 最终推出旋转矩阵.
 
 ---
 
@@ -123,7 +120,11 @@ $$
 
 现在把复数形式翻译回实数向量和矩阵.
 
-利用欧拉公式 $e^{i m\\theta} = \\cos m\\theta + i \\sin m\\theta$, 展开复数乘法:
+利用欧拉公式展开复数乘法:
+
+$$
+e^{i m\theta} = \cos m\theta + i \sin m\theta
+$$
 
 $$
 \begin{aligned}
@@ -134,7 +135,7 @@ $$
 写成矩阵形式就是:
 
 $$
-\begin{pmatrix} q_1' \\ q_2' \end{pmatrix} = 
+\begin{pmatrix} q_1' \\ q_2' \end{pmatrix} =
 \begin{pmatrix} \cos m\theta & -\sin m\theta \\ \sin m\theta & \cos m\theta \end{pmatrix}
 \begin{pmatrix} q_1 \\ q_2 \end{pmatrix}
 $$
@@ -206,8 +207,8 @@ $$
 \langle f_q(\mathbf{q}, m), f_k(\mathbf{k}, n) \rangle
 &= (R(m\theta)\mathbf{q})^{\mathsf{T}} (R(n\theta)\mathbf{k}) \\
 &= \mathbf{q}^{\mathsf{T}} R(m\theta)^{\mathsf{T}} R(n\theta) \mathbf{k} \\
-&= \mathbf{q}^{\mathsf{T}} R(-m\theta) R(n\theta) \mathbf{k} \quad (\text{旋转矩阵正交: } R^{\mathsf{T}} = R^{-1} = R(-\theta)) \\
-&= \mathbf{q}^{\mathsf{T}} R((n-m)\theta) \mathbf{k} \quad (\text{旋转矩阵可加: } R(\alpha)R(\beta) = R(\alpha+\beta)) \\
+&= \mathbf{q}^{\mathsf{T}} R(-m\theta) R(n\theta) \mathbf{k} \quad (\text{orthogonal: } R^{\mathsf{T}} = R^{-1} = R(-\theta)) \\
+&= \mathbf{q}^{\mathsf{T}} R((n-m)\theta) \mathbf{k} \quad (\text{additive: } R(\alpha)R(\beta) = R(\alpha+\beta)) \\
 &= \mathbf{q}^{\mathsf{T}} R(-(m-n)\theta) \mathbf{k}
 \end{aligned}
 $$
@@ -215,7 +216,7 @@ $$
 展开 $R(-(m-n)\theta)$:
 
 $$
-R(-(m-n)\theta) = 
+R(-(m-n)\theta) =
 \begin{pmatrix}
 \cos(m-n)\theta & \sin(m-n)\theta \\
 -\sin(m-n)\theta & \cos(m-n)\theta
@@ -241,7 +242,7 @@ $$
 - 位置 $31$: 旋转 $177.6^\circ$
 - 位置 $63$: 旋转 $361.0^\circ$ — 转了一整圈多!
 
-$R(63 \times 0.1) = R(6.3) \approx R(6.3-2\pi) = R(0.02)$, 所以 $m=63$ 和 $m=0$ 几乎有**相同的旋转矩阵**. 位置 $63$ 和位置 $0$ 在 attention 计算中无法区分!
+$R(63 \times 0.1) = R(6.3) \approx R(6.3-2\pi) = R(0.02)$, 所以 $m=63$ 和 $m=0$ 的旋转矩阵几乎相同. 位置 $63$ 和位置 $0$ 在 attention 计算中**几乎无法区分**!
 
 也就是说, 由于 $\sin$ 和 $\cos$ 是周期函数, **旋转超过一周后, 位置信息就混叠了**. 如果词序列很长, 后面的位置会周期性地\"穿越\"回前面.
 
@@ -250,7 +251,7 @@ $R(63 \times 0.1) = R(6.3) \approx R(6.3-2\pi) = R(0.02)$, 所以 $m=63$ 和 $m=
 - 低维度: 旋转速度快 ($\theta_i$ 大), 能区分**精细位置**
 - 高维度: 旋转速度慢 ($\theta_i$ 小), 能感知**大范围距离**
 
-频率设置和 Sinusoidal PE 一样:
+频率设置和 Sinusoidal Positional Encoding (PE) 一样:
 
 $$
 \theta_i = 10000^{-2i/d}, \quad i = 0, 1, ..., d/2 - 1
@@ -273,7 +274,7 @@ $$
 对于 8 维向量, 它的旋转矩阵是一个**分块对角矩阵**:
 
 $$
-R_m = 
+R_m =
 \begin{pmatrix}
 R(m\theta_0) & 0 & 0 & 0 \\
 0 & R(m\theta_1) & 0 & 0 \\
@@ -289,7 +290,7 @@ $$
 写成公式就是:
 
 $$
-f_q(\mathbf{q}, m)_{(2i, 2i+1)} = 
+(f_q(\mathbf{q}, m))_{(2i, 2i+1)} =
 \begin{pmatrix}
 q_{2i} \cos m\theta_i - q_{2i+1} \sin m\theta_i \\
 q_{2i} \sin m\theta_i + q_{2i+1} \cos m\theta_i
@@ -303,7 +304,7 @@ $$
 $$
 \begin{aligned}
 \langle \mathbf{q}, \mathbf{k} \rangle
-&= \sum_{j=1}^{d} q_j k_j \\
+&= \sum_{j=0}^{d-1} q_j k_j \\
 &= \sum_{i=0}^{d/2-1} (q_{2i} k_{2i} + q_{2i+1} k_{2i+1}) \\
 &= \sum_{i=0}^{d/2-1} \langle \mathbf{q}^{(i)}, \mathbf{k}^{(i)} \rangle
 \end{aligned}
@@ -339,7 +340,9 @@ $$
 
 上面的推导已经证明: 高维内积可以分解为：
 
-$$ \langle f_q(\mathbf{q}, m), f_k(\mathbf{k}, n) \rangle = \sum_{i=0}^{d/2-1} \langle \mathbf{q}^{(i)}, R((n-m)\theta_i) \mathbf{k}^{(i)} \rangle $$
+$$
+\langle f_q(\mathbf{q}, m), f_k(\mathbf{k}, n) \rangle = \sum_{i=0}^{d/2-1} \langle \mathbf{q}^{(i)}, R((n-m)\theta_i) \mathbf{k}^{(i)} \rangle
+$$
 
 其中 $\mathbf{q}^{(i)} = (q_{2i}, q_{2i+1})$ 是第 $i$ 个子空间的 2 维向量. 每个子空间的结果都只依赖于 $m-n$, 所以总和也只依赖 $m-n$.
 
@@ -351,7 +354,7 @@ $$ \langle f_q(\mathbf{q}, m), f_k(\mathbf{k}, n) \rangle = \sum_{i=0}^{d/2-1} \
 
 前面我们从目标出发推导了 RoPE 的形式. 现在来看 RoPE 自带的一个优雅性质: **长距离衰减**.
 
-假设 $\mathbf{q}$ 和 $\mathbf{k}$ 是来自同一分布的随机向量, 各分量均值为 0, 方差为 1, 且不同分量之间相互独立. 这意味着我们希望**相关系数**: 当 $j = l$ 时 $\mathbb{E}[q_j k_l] = 1$, 当 $j \neq l$ 时 $\mathbb{E}[q_j k_l] = 0$.  用 Kronecker delta 符号 $\delta_{jl}$ 统一表示就是 $\mathbb{E}[q_j k_l] = \delta_{jl}$ (即 $j=l$ 时为 1, 否则为 0).
+假设 $\mathbf{q} = \mathbf{k} = \mathbf{x}$（即同一向量在不同位置的自注意力）, $\mathbf{x}$ 的各分量均值为 0, 方差为 1, 且不同分量之间相互独立. 这意味着 $\mathbb{E}[x_j^2] = 1$, 且当 $j \neq l$ 时 $\mathbb{E}[x_j x_l] = 0$. 等价地, $\mathbb{E}[q_j k_l] = \delta_{jl}$, 其中 $\delta_{jl}$ 是 Kronecker delta (即 $j=l$ 时为 1, 否则为 0).
 
 > $\delta_{jl}$ 是 Kronecker delta: $\delta_{jl}=1$ 当 $j=l$, 否则 $\delta_{jl}=0$.
 
@@ -413,7 +416,7 @@ def precompute_rope_frequencies(dim: int, max_len: int, base: int = 10000):
     inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
     positions = torch.arange(max_len).float()
     angles = positions[:, None] * inv_freq[None, :]         # (max_len, dim/2)
-    angles = torch.cat([angles, angles], dim=-1)            # (max_len, dim)
+    angles = torch.repeat_interleave(angles, 2, dim=-1)     # (max_len, dim)
     return angles.cos(), angles.sin()
 
 def apply_rope(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor):
@@ -433,7 +436,9 @@ def apply_rope(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor):
 cos, sin = precompute_rope_frequencies(dim=128, max_len=4096)
 q_rotated = apply_rope(q, cos, sin)
 k_rotated = apply_rope(k, cos, sin)
-attn = torch.matmul(q_rotated, k_rotated.transpose(-2, -1))
+q_rotated = q_rotated.transpose(1, 2)  # (batch, head, seq_len, dim)
+k_rotated = k_rotated.transpose(1, 2)
+attn = torch.matmul(q_rotated, k_rotated.transpose(-2, -1))  # (batch, head, seq_len, seq_len)
 ```
 
 ---
@@ -447,12 +452,12 @@ attn = torch.matmul(q_rotated, k_rotated.transpose(-2, -1))
 | ① 设定目标 | 内积只依赖相对位置 | $\langle f_q(m), f_k(n) \rangle = g(m-n)$ |
 | ② 尝试复数 | 2D 向量用复数表示 | $\tilde{q} = q_1 + i q_2$ |
 | ③ 假设旋转 | 乘以单位复数编码位置 | $\tilde{q}_m = \tilde{q} \cdot e^{im\theta}$ |
-| ④ 验证目标 | 内积只含相对项 | $\text{Re}[\tilde{q}\bar{\tilde{k}} e^{i(m-n)\theta}]$ |
-| ⑤ 回到实数 | 发现旋转矩阵 | $R(m\theta) = \begin{pmatrix} \cos & -\sin \\ \sin & \cos \end{pmatrix}$ |
+| ④ 验证目标 | 内积只含相对项 | $\text{Re}[\tilde{q}\overline{\tilde{k}} e^{i(m-n)\theta}]$ |
+| ⑤ 回到实数 | 发现旋转矩阵 | $R(m\theta) = \begin{pmatrix} \cos m\theta & -\sin m\theta \\ \sin m\theta & \cos m\theta \end{pmatrix}$ |
 | ⑥ 多频率 | 不同维度不同速度 | $\theta_i = 10000^{-2i/d}$ |
 | ⑦ 高维扩展 | 块对角旋转矩阵 | 每对独立旋转 |
 
-RoPE 现在已经是 LLaMA、Mistral、Gemma 等主流大模型的标配位置编码. 理解它的推导过程, 对理解后面长上下文扩展(PI、NTK、YaRN)也大有帮助.
+RoPE 现在已经是 LLaMA、Mistral、Gemma 等主流大模型的标配位置编码. 理解它的推导过程, 对理解后面长上下文扩展(Positional Interpolation (PI)、NTK (Neural Tangent Kernel)-aware scaling、YaRN (Yet another RoPE extensioN method))也大有帮助.
 
 ---
 
