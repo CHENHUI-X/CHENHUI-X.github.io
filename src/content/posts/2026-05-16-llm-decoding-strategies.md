@@ -1,5 +1,5 @@
 ---
-title: LLM Decoding: From Probability Distributions to a Complete Strategy
+title: "LLM Decoding: From Probability Distributions to a Complete Strategy"
 published: 2026-05-16
 description: 从 greedy 到 beam search，一文讲清 LLM decoding 策略的原理与选择。
 category: Deep Learning
