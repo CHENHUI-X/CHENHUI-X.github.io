@@ -36,5 +36,5 @@ yarn.lock
 .claude/
 
 # dev utility scripts
-find_adjacent.py
+temp/
 .hermes/
