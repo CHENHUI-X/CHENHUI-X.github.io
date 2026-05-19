@@ -37,4 +37,5 @@ yarn.lock
 
 # dev utility scripts
 temp/
+watchdog-stress-test*
 .hermes/
