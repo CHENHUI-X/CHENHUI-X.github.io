@@ -74,12 +74,12 @@ $$
 \begin{align*}
 P(' a\ red\ fox\ . ') &=  P(' a ') \times P(' red ' | ' a ') \times P(' fox ' | ' a\ red ') \times P(' . '|' a\ red\ fox ')  \\
 &= 0.4 * 0.27 * 0.55 * 0.79 \\
-&= 0.0469
+&= 0.046926
 \end{align*}
 $$
 
 
-0.0469则表示当前这个模型对于预测 "a red fox." 的信心如何, 不过有一个问题 : 因为这个信心是概率的连乘, 于是导致理论上, 句子越长, 信心越小. 因此需要进行一个 "Normalize"的操作 . 我们可以使用 [几何平均数](https://en.wikipedia.org/wiki/Geometric_mean) 来实现上述功能,  从而得到一个新的量化标准:
+0.046926 是模型赋予整句话的概率。由于它是条件概率的连乘，直接比较不同长度句子的联合概率不合适。可以取每个 token 条件概率的[几何平均数](https://en.wikipedia.org/wiki/Geometric_mean)：
 
 
 $$
@@ -94,8 +94,8 @@ $$
 $$
 \begin{align*}
 P_{norm}('a\ red\ fox\ .') &= P('a\ red\ fox\ .')^{1/n} \\
-&= 0.0469 ^ {1/4} \\
-&= 0.465
+&= 0.046926 ^ {1/4} \\
+&\approx 0.4654
 \end{align*}
 $$
 
@@ -117,7 +117,7 @@ PP(W) &= \frac {1} {P_{norm}(W)} \\
 $$
 
 
-对于之前的这个模型,  其 $PP(W) = (1/0.0469)^{1/n} ≈  2.15 $
+对于之前的这个模型,  其 $PP(W) = (1/0.046926)^{1/4} \approx 2.15$。
 
 而假设有另外一个模型, 给定任意条件下, 对下一个单词的预测概率均相等为 1/6 . 那么这个模型的的困惑度为:
 
@@ -127,14 +127,14 @@ PP(W) = (\frac {1} {(1/6)^4}) ^{1/4} = 6
 $$
 
 
-> 明显比之前的模型困惑度更高,  表明这个模型 更差 ,  因为这个模型就是随机输出.
+在这一个样本、同一种 token 划分下，均匀预测模型的困惑度更高。单个样本的结果不能直接证明一个模型整体更差，应在相同测试集上比较平均负对数似然。
 
 ## 3. 和交叉熵的关系
 我们知道,  [香农熵](https://zh.wikipedia.org/zh-hans/%E7%86%B5_(%E4%BF%A1%E6%81%AF%E8%AE%BA))  计算方式为 :
 
 
 $$
-H(p) = -\sum_{i=1}^{n} p \log_{2} p
+H(p) = -\sum_{i=1}^{V} p_i \log_{2} p_i
 $$
 
 
@@ -142,7 +142,7 @@ $$
 
 
 $$
-H(p, q) = -\sum_{i=1}^{n} p \log_{2} q
+H(p, q) = -\sum_{i=1}^{V} p_i \log_{2} q_i
 $$
 
 
@@ -154,24 +154,23 @@ $$
 
 
 对$PP(W)$进行拆解, 得以下式子:
-> (1) 注意之前是 `n` , 强调一个句子. 这里是 `N` ,  强调模型对整个vocabulary的输出分布
->
-> (2) 最后的 q分布 就是下一个单词的分布, 是一个 One-hot 向量
+这里令 $n$ 为测试序列的 token 数量，$q_t$ 为模型在第 $t$ 个位置给出的词表概率分布，$y_t$ 为真实 token 的 one-hot 分布。词表大小 $V$ 是每个位置分类问题的维度，不是困惑度公式中取平均时的分母。
 
 
 $$
-\begin{align*}
-P(W) ^{-1/ N} &=  \prod_{i=1}^{N}   P(w)^{-  1/N} \\
-&=   P(w_1)^{-  1/N}  *  P(w_2)^{-  1/N}  * ... *  P(w_N)^{-  1/N}  \\
-&=   2 ^ { - \frac 1 N\ \sum_{i=1}^{N} \ log_2\ p } (忽略常数 2^{-1/N}) \\
-&= 2 ^ {\ H(P , \   q)}
-\end{align*}
+\begin{aligned}
+P(W) &= \prod_{t=1}^{n} q_t(w_t), \\
+H(y_t,q_t) &= -\sum_{i=1}^{V}y_{t,i}\log_2 q_{t,i}
+             =-\log_2 q_t(w_t), \\
+PP(W) &= 2^{-\frac{1}{n}\sum_{t=1}^{n}\log_2 q_t(w_t)}
+       =2^{\frac{1}{n}\sum_{t=1}^{n}H(y_t,q_t)}.
+\end{aligned}
 $$
 
 
 从这个角度来看,  困惑度越小,  交叉熵越小,  预测越准确.
 
-最后,  实际计算过程中,  可能使用以e为底的对数,  也有计算其log后作为困惑度,  此外还有一些其他计算方式,  但是本质类似, 就是想表达 "预测输出的概率越大, 困惑度就越小"
+若交叉熵使用自然对数，则 $PP(W)=\exp(\mathrm{NLL}_{\mathrm{avg}})$，其中 $\mathrm{NLL}_{\mathrm{avg}}$ 是平均负对数似然；它本身是 log perplexity，不能直接称为困惑度。比较模型时还需使用相同的测试数据、tokenizer 和计数口径。
 
 ## Reference
 [1] [Two minutes NLP — Perplexity explained with simple probabilities](https://medium.com/nlplanet/two-minutes-nlp-perplexity-explained-with-simple-probabilities-6cdc46884584)
@@ -179,5 +178,3 @@ $$
 [2] [Wiki-Perplexity](https://en.wikipedia.org/wiki/Perplexity)
 
 [3] [Perplexity Intuition (and its derivation)](https://webcache.googleusercontent.com/search?q=cache:https://towardsdatascience.com/perplexity-intuition-and-derivation-105dd481c8f3&strip=0&vwsrc=1&referer=medium-parser)
-
-

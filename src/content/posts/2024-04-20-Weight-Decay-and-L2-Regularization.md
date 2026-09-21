@@ -1,5 +1,5 @@
 ---
-title: AdmaW(part I) Weight Decay == L2 Regularization?
+title: AdamW (part I) — Weight Decay == L2 Regularization?
 published: 2024-04-20
 description: 探讨 SGD 与 Adam 优化器下 Weight Decay 和 L2 正则化的等价性差异，引入 AdamW 优化器的设计动机与原理。
 category: Deep Learning
@@ -12,10 +12,10 @@ draft: false
 ---
 ## 0. 前言
 
-在 [上一篇 Blog](https://chenhui-x.github.io/posts/L1-and-L2-Regularization/#%E8%AE%A9%E6%9D%83%E9%87%8D-w-%E8%A1%B0%E5%87%8F) 中探讨了 L1 Regularization 和 L2 Regularization. 我们说到: 对损失函数添加 L2 Regularization , 最后对 w 使用梯度下降的时候, 实际是对 w 做了权重衰减.
+在 [上一篇 Blog](/posts/2024-04-20-l1-and-l2-regularization/#32-让权重-www-衰减) 中探讨了 L1 Regularization 和 L2 Regularization. 我们说到: 对损失函数添加 L2 Regularization , 最后对 w 使用普通梯度下降的时候, 实际是对 w 做了权重衰减.
 
 
-然而, 上述等价性只在优化器为随机梯度下降（SGD）时成立(下边我们会证明). 在其他情况下, 特别是在训练深度学习模型时, 经常使用[Adam](https://arxiv.org/abs/1412.6980)优化器 , 上述结论不成立.
+上述等价性对不带 momentum 的普通 SGD 成立（需要换算系数）。加入 momentum 或使用 [Adam](https://arxiv.org/abs/1412.6980) 时，如果 weight decay 指的是与梯度更新解耦的参数衰减，通常不再等价于把 L2 项加入损失函数。
 
 本篇 Blog 主要探讨在使用 Adam 的时候 Weight Decay 和 L2 Regularization 的关系, 以及当更新参数引入 momentum之后他们之间的关系 , 最后介绍 AdamW 优化器. 文中符号都尽量与 [AdamW paper](https://arxiv.org/abs/1711.05101) 中的一致.
 
@@ -65,36 +65,42 @@ $\lambda'$
 
 ### 1.2 添加 momentum
 
-如果在 L2 Regularization 的基础上添加 momentum 项
+加入 momentum 后，若把 L2 项加进梯度，更新为：
 
 
 $$
-g_t = \nabla f_{t-1}(\theta_{t-1}) + \lambda ' \theta_{t-1}
+g_t = \nabla f_t(\theta_t) + \lambda' \theta_t
 $$
 
 
 $$
-m_t = \beta_{1}m_{t-1} + g_t
+m_t = \beta_1m_{t-1} + g_t,\qquad
+\theta_{t+1}=\theta_t-\alpha m_t
 $$
 
 
-SGD with momentum and weight decay (L2 Regularization) 式子将会变为:
+代入后可见，正则化项不仅影响当前参数，还会累积进动量缓存：
 
 
 $$
 \begin{align*}
-\theta_{t} &=   \theta_{t-1}  - \alpha  m_t \\
-&=   \theta_{t-1}  -  \alpha (\beta_{1}m_{t-1} -  \nabla f_{t-1}(\theta_{t-1}) - \lambda ' \theta_{t-1}) \\
-&= \underbrace{(1 - \alpha \lambda ' )  \theta_{t-1}}_{weight \ decay}  - \underbrace{\alpha \nabla f_{t-1}(\theta_{t-1})}_{gradient \ descent} -  \underbrace{\alpha \beta_{1}m_{t-1}}_{momentum}
+\theta_{t+1}
+&=(1-\alpha\lambda')\theta_t
+-\alpha\nabla f_t(\theta_t)-\alpha\beta_1m_{t-1}.
 \end{align*}
 $$
 
 
-这里, 学习率 $\alpha$ 和 L2 Regularization 的系数还是耦合, 并且还和 momentum 的系数也耦合上了.
+而解耦的 weight decay 只衰减参数，不把 $\lambda\theta_t$ 放进动量缓存：
 
-:::warning
-耦合归耦合, 但是该说不说, 在SGD场景下, Weight Decay == L2 Regularization 是可以成立的. 无论加不加 momentum
-:::
+$$
+\begin{aligned}
+\tilde m_t&=\beta_1\tilde m_{t-1}+\nabla f_t(\theta_t),\\
+\theta_{t+1}&=(1-\alpha\lambda)\theta_t-\alpha\tilde m_t.
+\end{aligned}
+$$
+
+因此，普通 SGD 在采用上式的衰减定义时，取 $\lambda=\lambda'$ 即可等价；本文首节将衰减因子写为 $1-\lambda$，对应的换算是 $\lambda=\alpha\lambda'$。但在上述 momentum 定义下，两个动量缓存的历史不同，一般不能只靠重设一个固定系数使整条更新轨迹相同。
 
 
 ## 2. Adam场景下
@@ -127,5 +133,3 @@ $$
 
 
 ## Reference
-
-

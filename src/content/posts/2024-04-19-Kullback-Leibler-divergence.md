@@ -55,14 +55,16 @@ $$
 
 
 $$
-\begin{align*}
-D_{KL}(P \ ||\  Q)  &= - \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{Q(x)} {P(x)}) \\
-&>= - \ \sum_{x \in \mathcal {X}} log(P(x) \  * \ \frac{Q(x)} {P(x)})  \  (凸函数:E(f(x)) >= f(E(x)))\\
-&= - \ \sum_{x \in \mathcal {X}} log(Q(x)) \\
-&>= - \ log (\sum_{x \in \mathcal {X}}  Q(x) ) \  (凸函数:Jensen不等式)\\
-&= 0
-\end{align*}
+\begin{aligned}
+D_{\mathrm{KL}}(P\|Q)
+&=-\sum_{x\in\mathcal X}P(x)\log\frac{Q(x)}{P(x)}\\
+&\ge-\log\left(\sum_{x:P(x)>0}P(x)\frac{Q(x)}{P(x)}\right)
+\quad\text{(Jensen's inequality)}\\
+&=-\log\left(\sum_{x:P(x)>0}Q(x)\right)\ge-\log 1=0.
+\end{aligned}
 $$
+
+若某处 $P(x)>0$ 但 $Q(x)=0$，则按定义散度为 $+\infty$，非负性仍成立。原式不能去掉期望权重后直接对各项求和。
 
 
 - 同一性 : 满足
@@ -121,7 +123,7 @@ D_{KL}(Q \ ||\  R)
 $$
 
 
-之间的大小关系, 但是很遗憾, 二者大小无法判定. 因此有可能出现以下情况, 所以三角不等式不满足.
+之间的大小关系无法从定义直接判定。一个具体反例是 $P=(0.1,0.9)$、$Q=(0.2,0.8)$、$R=(0.3,0.7)$：用自然对数计算，$D_{KL}(P\|R)\approx0.11632$，而 $D_{KL}(P\|Q)+D_{KL}(Q\|R)\approx0.06242$。因此三角不等式不成立：
 
 
 $$
@@ -331,5 +333,3 @@ $$
 [4] [https://mr-easy.github.io/2020-04-16-kl-divergence-between-2-gaussian-distributions/](https://mr-easy.github.io/2020-04-16-kl-divergence-between-2-gaussian-distributions/)
 
 [5] [https://kexue.fm/archives/8512](https://kexue.fm/archives/8512)
-
-

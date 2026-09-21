@@ -1,5 +1,5 @@
 ---
-title: Gama&Beta&Dirichlet
+title: Gamma、Beta 与 Dirichlet 分布
 published: 2024-04-10
 description: 总结 Gamma 分布、Beta 分布和 Dirichlet 分布的定义、性质及其之间的内在联系，帮助梳理概率分布之间的脉络关系。
 category: Mathematics
@@ -117,7 +117,7 @@ $Beta$ 分布 与 之前的 `Bernoulli` 分布 (0 -1 分布) , `Binomial` 分布
 - [1] `Binomial` 分布(二项分布 ) 理解为给定成功概率参数 $p$ 和实验次数 $n$ 的情况下,  成功 $k$ 次的概率分布.
 
 
-- [2] Beta分布是在给定成功次数 $\alpha$ 和失败次数 $\beta$ (通常来自实验观察,  $p$ 未知) 后 ,  探究成功概率参数 $p$ 的分布 (即上述公式中的 x 的分布) . 看起来像是一种对偶的关系,  不过更多人叫他是共轭关系
+- [2] Beta 分布描述未知成功概率 $p$ 的不确定性。$\alpha,\beta$ 是分布的形状参数，**不直接等于**观察到的成功和失败次数。如果先验为 $\mathrm{Beta}(\alpha_0,\beta_0)$，观察到 $k$ 次成功、$n-k$ 次失败后，后验为 $\mathrm{Beta}(\alpha_0+k,\beta_0+n-k)$；这就是 Beta 先验与二项分布似然的共轭关系。
 
 ## 7. Multinomial Distribution
 - 定义
@@ -170,19 +170,18 @@ $$
 <img src="https://s2.loli.net/2024/04/10/1mqPgNeivSyKR8r.png" alt="image.png" width="400" height="300" />
 
 :::note
- 可以看到 `Multinomial Distribution` 和 `Dirichlet Distribution` 的关系 类似 `Binomial Distribution` 和 `Beta Distribution` 的关系 . 这里 `Multinomial Distribution` 是给定各个\|箱子\|板子\|老虎机\|成功概率 $p$ , 然后去求解不同成功次数对
-应的概率.而 `Dirichlet Distribution` 要做的是,  根据成功次数(或者已知成功次数) $\alpha$ 去探讨每个\|箱子\|板子\|老虎机\|成功概率,  或者可以说 把 `Beta Distribution` 和 `Dirichlet Distribution` 作为了成功概率的先验分布 .
+多项分布给定 $K$ 个互斥类别的概率向量 $p$，描述各类别计数的分布；Dirichlet 分布描述未知概率向量 $p$ 的不确定性。若先验为 $\mathrm{Dirichlet}(\alpha_1,\ldots,\alpha_K)$，观测到各类别计数 $m_1,\ldots,m_K$ 后，后验为 $\mathrm{Dirichlet}(\alpha_1+m_1,\ldots,\alpha_K+m_K)$。形状参数 $\alpha_i$ 不直接等于观测计数。这与 Beta–二项分布的共轭关系类似。
 :::
 
 
 
 - 性质
 
-在老虎机场景下. 假设离散随机变量 $X$ (可以理解为每个Bandit成功的次数)
+以一次试验只产生一个类别（例如掷骰子）的场景为例，令 $X$ 为各类别的出现次数。独立老虎机各自的成功率不要求总和为 1，不能直接当作同一个多项分布的类别概率。
 
 <img src="https://s2.loli.net/2024/04/11/DUZz4WqcwAkCMIg.png" alt="image.png" width="100" height="130" />
 
-令各Bandit的成功概率为
+令各互斥类别的概率为
 
 <img src="https://s2.loli.net/2024/04/11/d8biLJZpeyh6N9r.png" alt="image.png" width="100" height="130" />
 
@@ -190,7 +189,7 @@ $$
 
 <img src="https://s2.loli.net/2024/04/11/aiI1wQcuFTCPGDZ.png" alt="image.png" width="400" height="300" />
 
-那参数 $p$ 的先验分布就是 Dirichlet Distribution
+可以为概率向量 $p$ 选择 Dirichlet 先验。
 
 - 应用
 
@@ -238,7 +237,7 @@ $$
 然后再根据当前的概率分布进行下一步采样(就是基于当前概率分布,  选择认为赢得概率更高的Bandit,  然后看结果,  循环更新分布).
 
 :::note
-当然这里就会涉及到采样,  即怎么快速高效的根据已有的分布采样? 这是另外的问题了.... 可以移步至[Sampling-Method](/posts/Sampling-Method/)
+当然这里就会涉及到采样，即怎么根据已有分布采样？可以移步至 [Sampling Method](/posts/2024-04-11-sampling-method/)。
 :::
 
 
@@ -250,8 +249,6 @@ $$
 [2] [https://zhuanlan.zhihu.com/p/69606875](https://zhuanlan.zhihu.com/p/69606875)
 
 [3] [https://readmedium.com/en/https:/towardsdatascience.com/dirichlet-distribution-the-underlying-intuition-and-python-implementation-59af3c5d3ca2](https://readmedium.com/en/https:/towardsdatascience.com/dirichlet-distribution-the-underlying-intuition-and-python-implementation-59af3c5d3ca2)
-
-
 
 
 

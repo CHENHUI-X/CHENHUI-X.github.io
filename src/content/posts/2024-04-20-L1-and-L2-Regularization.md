@@ -32,7 +32,7 @@ $$
 
 
 $$
-R(w) = \lambda {\|w\|_1}^2
+R(w) = \lambda \|w\|_1
 $$
 
 
@@ -71,9 +71,9 @@ f(w,x) = f(w,a) + f'(w,a)(x - a) + \frac{f''(w,a)}{2!}(x - a)^2 + \cdots
 $$
 
 
-可以看到, 一个函数的复杂度(就是"弯弯绕绕"), 其实来自于它的高阶项 $ f^n(w,a)(x - a)^n$ . 比如 二次函数就1个弯, 三次函数就2个弯了, 同理次幂越高,"弯弯绕绕"越多. 因此想把高阶项拿掉, 其实可以让其系数 : $f^n(w,a) -> 0$ , 而系数正好就是 $w$ 的函数.
+高阶导数可以描述局部曲率，但它们与参数范数之间**没有普遍的一一对应关系**。只有在特定模型和参数化方式下，限制参数大小才可能限制函数变化幅度；不能仅由泰勒展开就推出“权重越小，函数一定越平滑”。
 
-> 我们有理由相信,如果 $w$ 不是很大的情况下, $f(w)^n$ 应该不会大到哪里去.于是就把 $w$ 的范数加到loss中, 去让 $w$ 小一点.
+> 正则化是对参数大小施加偏好，以降低模型对训练数据噪声的敏感性；它是否改善泛化需要结合模型、数据和正则化强度验证。
 
 ## 3. 等价形式
 
@@ -128,8 +128,8 @@ $$
 
 $$
 \begin{align*}
-w &= w - \eta ( \frac{\partial L}{\partial w} - 2 * \lambda w) \\
-&= (1 - 2 * \lambda *  \eta ) w - \frac{\partial L}{\partial w} \\
+w_{t+1} &= w_t-\eta\left(\nabla L(w_t)+2\lambda w_t\right) \\
+&=(1-2\lambda\eta)w_t-\eta\nabla L(w_t) \\
 \end{align*}
 $$
 
@@ -143,29 +143,29 @@ $$
 
 
 $$
-p(w|x,y) = \frac{p(w) * p(x,y|w)}{p(x,y)}
+p(w\mid \mathcal D)=\frac{p(\mathcal D\mid w)p(w)}{p(\mathcal D)}
 $$
 
 
-$p(x,y)$ 是死的，$maximize \ p(w|x,y)$ 就是 $maximize$ 分子
+其中 $\mathcal D$ 是观测数据；对固定数据优化 $w$ 时，证据 $p(\mathcal D)$ 与 $w$ 无关。
 
 
 极大似然估计核心公式为:
 
 $$
-\mathop{arg \ max}\limits_{w}\ p(w|x,y) = \mathop{arg \ max}\limits_{w} \ p(x,y|w)
+\hat w_{\mathrm{MLE}}=\operatorname*{argmax}_w p(\mathcal D\mid w)
 $$
 
-> 极大似然估计不关心 w 的原始分布. 它的核心思想是，假设数据是由参数 w 生成的，那么反过来，能让根据这些数据计算出的 w 的条件分布, 最大的那个 w 就是我们要找的 w.
+> 极大似然估计只最大化数据的似然 $p(\mathcal D\mid w)$，不引入参数先验。它与最大化后验概率不是同一个问题。
 
 
 最大后验估计核心公式为:
 
 $$
-\mathop{arg \ max}\limits_{w} \ p(w|x,y) = \mathop{arg \ max}\limits_{w} \ p(x,y|w) * p(w)
+\hat w_{\mathrm{MAP}}=\operatorname*{argmax}_w p(\mathcal D\mid w)p(w)
 $$
 
-> 最大后验估计对极大似然估计说: 老弟你这不对, 分子最大化的时候 , 你得考虑 p(w) .
+> 最大后验估计在似然之外，还纳入参数的先验分布 $p(w)$。
 
 OK , 基于最大后验估计, 取 log 得到:
 
@@ -178,7 +178,8 @@ OK , 基于最大后验估计, 取 log 得到:
 
 $$
 \begin{align*}
-\mathop{arg \ max}\limits_{w} \ p(x,y|w) * p(w) &=  log \ p(x,y|w) +  log \ p(w)
+\hat w_{\mathrm{MAP}}
+&=\operatorname*{argmax}_w\left[\log p(\mathcal D\mid w)+\log p(w)\right]
 \end{align*}
 $$
 
@@ -189,7 +190,8 @@ $$
 
 
 $$
-f(w) = \frac {1} {\sqrt {2 \pi \sigma}} exp(- \frac{w^2}{2 \sigma ^2})
+p(w_j) = \frac{1}{\sqrt{2\pi\sigma^2}}
+\exp\left(-\frac{w_j^2}{2\sigma^2}\right)
 $$
 
 
@@ -197,17 +199,12 @@ $$
 
 
 $$
-\begin{align*}
-maximize \   log \ p(w) &= \\
-&=  maximize - \frac {1} {2 \sigma ^2}  {\|w\|_2}^2 + C \\
-&= minimize  \ \frac {1} {2 \sigma ^2}  {\|w\|_2}^2 + C \\
-&\equiv minimize \  {\|w\|_2}^2 \ (\sigma = 1)
-\end{align*}
+-\log p(w)=\frac{\|w\|_2^2}{2\sigma^2}+C
 $$
 
 
 :::note
-从这个角度可以看到, 如果加 L2 Regularization , 其实就是对 model 的权重参数 $w$ 假定了先验分布为**标准正态分布**.
+若各参数 $w_j$ 独立服从零均值、方差 $\sigma^2$ 的高斯先验，MAP 的负对数目标会增加 $\|w\|_2^2/(2\sigma^2)$。因此 L2 惩罚对应高斯先验；其方差由正则化系数及似然目标的缩放共同决定，不必是标准正态分布。
 :::
 
 
@@ -223,17 +220,12 @@ $$
 
 
 $$
-\begin{align*}
-maximize \   log \ p(w) &= \\
-&=  maximize - \frac {1} {2 b}  {\|w\|_1}^2 + C \\
-&= minimize  \frac {1} {2 b}  {\|w\|_1}^2 + C \\
-&<=> minimize  \   {\|w\|_1}^2   \ (b = 1)
-\end{align*}
+-\log p(w)=\frac{\|w\|_1}{b}+C
 $$
 
 
 :::note
-从这个角度可以看到, 如果加 L1 Regularization, 其实就是对 model的权重参数 $w$ 假定了先验分布为**拉普拉斯分布**.
+若各参数 $w_j$ 独立服从零均值、尺度为 $b$ 的拉普拉斯先验，MAP 的负对数目标会增加 $\|w\|_1/b$。注意这里是 L1 范数，**没有平方**。
 :::
 
 
@@ -268,5 +260,3 @@ $$
 [1] [Why L1 norm creates Sparsity compared with L2 norm](https://satishkumarmoparthi.medium.com/why-l1-norm-creates-sparsity-compared-with-l2-norm-3c6fa9c607f4)
 
 [2] [Regularization Wiki](https://en.wikipedia.org/wiki/Regularization_(mathematics))
-
-

@@ -80,90 +80,27 @@ $$
 
 - 准备工作
     1. 已知 概率密度函数$f(y)$,  我们需要依据这个分布进行抽样
-    2. 找一个**任意能够直接进行采样的分布$g(y)$ (比如均匀分布)**
+    2. 找一个能够直接采样、且在 $f(y)>0$ 的地方也满足 $g(y)>0$ 的提议分布 $g(y)$（如在有界支撑上选合适的均匀分布）
     3. 找一个常数 $c$,  满足对 $\forall y$ ,  均有 $c \times g(y) >= f(y)$,  即 $c$ 是函数 $\frac {f(y)} {g(y)}$ 的上界 或者 $c \times g(y)$ 能够覆盖 $f(y)$
 
 - 抽样流程
     1. 从 $g(y)$ 中中随机采样一个样本 $y_i$
     2. 从均匀分布 $U(0, 1)$ 中采样一个随机数 $u_i$
-    3. 如果 $u_i <= \frac {f(y_i)} {c * g(y_i)}$  成立,  则保留该样本 $y_i$,  否则返回 step1重复. 可以证明,  这样从 $g(y)$ 抽出的样本 $y_i$ 是满足概率密度函数 $f(y)$ 及其对应的CDF函数
+    3. 如果 $u_i \le \frac{f(y_i)}{c g(y_i)}$，则保留样本，否则返回第 1 步。被保留样本的密度为 $f$，接受率为 $1/c$（假设 $f,g$ 均已归一化）
 
 - 证明
 
-
-> **证明上述采样方法生成的样本服从 $f(y)$ ,  等价于证明以下内容**
->
-> ![image.png](https://s2.loli.net/2024/04/11/zBmECrMeK82fnAI.png)
->
-> 其中 ,  U 为 $[0 , 1]$ 的随机数,  $y$ 是从 $g(y)$ 采样得到的 ,  $F$ 和 $G$ 分别是 $f$ 和 $g$ 对应的累积分布函数.
->
-> 根据贝叶斯公式
->
-> 
-$$
-P(A|B) = \frac {P(B|A)P(A)} {P(B)}
-$$
-
->
-> 将 $P(Y<=y \mid U <= \frac {f(Y)} {c * g(Y)})$ 用贝叶斯公式转化为:
->
-> ![image.png](https://s2.loli.net/2024/04/11/e6lD9zZm7pocfIu.png)
->
-> 现在分别来看 右边的 3个式子
->
-> (1) 分母
->
-> 
-$$
-P(U <= \frac {f(Y)} {c*g(Y)}) =  \int P(U <= \frac {f(Y)} {c*g(Y)}| Y = y)p( Y = y)
-$$
-
->
->
-> 由于 y 是从 g 中抽样得到的 ,  那么 $p( Y = y) = g(y)$ ,  不妨假设此时 y 的抽样结果 : $Y = y$ ,  又因为 U 是均匀的 0 ,  1 分布 , 按定义 我们有
->
-> 
-$$
-P(U <= \frac {f(Y)} {c*g(Y)}| Y = y) = \frac {f(y)} {c*g(y)}
-$$
-
->
-> 此外,  由于$\int f(y)=1$ ,  我们有
->
-> ![image.png](https://s2.loli.net/2024/04/11/mdCt9oxAZKaMNsW.png)
->
-> (2) 分子 $p( Y <= y)$
->
-> 按照定义
->
-> 
-$$
-p( Y <= y) = G(y)
-$$
-
->
-> (3) 分子 $P(U <= \frac {f(Y)} {c*g(Y)} \ Y <= y)$
->
+令 $Y\sim g$、$U\sim U(0,1)$ 且二者独立，接受事件为 $A=\{U\le f(Y)/(c g(Y))\}$。对连续变量，$g(y)$ 是**密度**，不是点事件 $P(Y=y)$ 的概率。由全概率公式：
 
 $$
-\begin{align*}
-P(U <= \frac {f(Y)} {c*g(Y)} \mid Y <= y) &=
-\frac {P(U <= \frac {f(Y)} {c*g(Y)},  Y <= y)} {P(Y <= y)} \\&=
-\frac { \int_{-\infty}^{y} P(U <= \frac {f(w)} {c*g(w)}  ,  Y = w <= y)\ dw}{G(y)} \\ &=
-\frac { \int_{-\infty}^{y} \frac {f(w)} {c*g(w)} *g(w) \ dw}{G(y)} \\ &=
-\frac { \frac {F(y)} {c*G(y)} * G(y) }{G(y)} \\ &=
-\frac {F(y)} {c*G(y)}
-\end{align*}
+\begin{aligned}
+P(A)&=\int g(t)\frac{f(t)}{c g(t)}\,dt=\frac1c,\\
+P(Y\le y,A)&=\int_{-\infty}^{y}g(t)\frac{f(t)}{c g(t)}\,dt
+=\frac{F(y)}c.
+\end{aligned}
 $$
 
->
->
-> 于是,  原始公式可进行转化,  从而证明完毕:
->
-> 
-$$
-P\big(Y<=y | U <= \frac {f(Y)} {c*g(Y)}\big) = \frac { \frac {F(y)} {c*G(y)} * G(y) } {\frac {1} { c }} \\ = F(y)
-$$
+因此 $P(Y\le y\mid A)=P(Y\le y,A)/P(A)=F(y)$，即接受后的样本服从目标分布。这个证明同时说明：必须有 $c g(y)\ge f(y)$，否则所谓的接受概率可能超过 1。
 
 
 - 直觉理解
@@ -213,4 +150,3 @@ $$
 
 
 ##  Reference
-
