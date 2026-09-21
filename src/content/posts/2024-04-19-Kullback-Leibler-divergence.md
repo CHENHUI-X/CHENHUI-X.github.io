@@ -154,7 +154,7 @@ $$
 
 $$
 \begin{align*}
-I(X,Y) &= D_{KL}(p(x,y) \ ||\  p(x)\ \times \ p(y))  (定义)\\
+I(X,Y) &= D_{KL}(p(x,y)\,\|\,p(x)p(y)) \quad \text{（定义）}\\
 &=  \ \sum_{x , y} p_{xy} \ log(\frac{p_{xy}} {p_x \times p_y})  \\
 & = \ \sum_{x , y} p_{xy} \ log(\frac{p_{xy}} {p_x}) - \ \sum_{x , y} p_{xy} \ log \ p_{y} \\
 & = \ \sum_{x , y} p_{xy} \ log \ p(y|x) - \ \sum_{y}  \ (\sum_{x} p_{xy}) \ log \ p_{y} \\

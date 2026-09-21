@@ -136,7 +136,7 @@ $$
 
 :::
 
-当假设满足 Ignorability 的时候, 能够做到以下式子成立. 这里 Ignorability 指的是, 可以忽视缺失的数据.
+这里的 Ignorability（可忽略性）不是说“可以忽视缺失的数据”，而是说处理分配 $T$ 与两种潜在结果独立。再结合一致性（实际接受 $T=t$ 时，观测结果 $Y=Y(t)$）和两组都有样本的条件，才能把潜在结果的均值换成观测组的均值：
 
 
 $$
@@ -145,12 +145,12 @@ $$
 \newline
 &=\mathbb{E}[Y(1) \mid T = 1 ] - \mathbb{E}[Y(0) \mid T = 0] \ (Ignorability)
 \newline
-&=\mathbb{E}[Y \mid T = 1 ] - \mathbb{E}[Y \mid T = 0] \ (之后讨论)
+&=\mathbb{E}[Y \mid T = 1 ] - \mathbb{E}[Y \mid T = 0] \quad \text{（一致性）}
 \end{aligned}
 $$
 
 
-上式表明 `Y(1)` 就只基于 `T = 1` , 不受其他影响 , 即没有 confounder 的影响了. 如图:
+这并不是说 $Y(1)$“只基于 $T=1$”；$Y(1)$ 对每个人都有定义，包括实际未接受处理的人。独立性假设让接受处理组能够代表总体中 $Y(1)$ 的分布。
 
 <img src="https://s2.loli.net/2024/04/27/crp69WgbIqMOvX5.png" alt="image.png" width="400" height="300" />
 
@@ -231,9 +231,7 @@ $$
 
 :::
 
-不过上述的式子还是有缺陷, 我们只是理想的假设 fixed confounder 是全部的, 但很多 confounder 都是潜在未知的, 我们实际不能保证 fix 住的 confounder 就是全部的, 这就会导致还是会有从 treatment -> confounder -> outcome 这条链路的影响存在.
+这个识别公式依赖于已控制足够的**处理前**混杂变量，还要求各类 $X$ 中接受或不接受处理的概率都大于 0。若遗漏了同时影响处理选择和结果的变量，仍会存在“混杂变量 $\rightarrow$ 处理”和“混杂变量 $\rightarrow$ 结果”两条路径，观察组均值之差就不能直接解释为因果效应。
 
 
 ## Reference
-
-

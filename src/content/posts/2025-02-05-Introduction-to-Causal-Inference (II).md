@@ -140,7 +140,7 @@ $$
 _Stable Unit Treatment Value Assumption (SUTVA)._ The potential outcomes for any unit
 do not vary with the treatment assigned to other units, and, for each unit, there are no different forms or versions of each treatment level, which lead to different potential outcomes.
 
-> 1. unit之间是独立的. 2. 一个treatment只有一种表达形式, 可以理解为一一对应的.
+> 1. 一个个体的潜在结果不受其他个体接受何种处理的影响（无干扰）；这**不等于**要求不同个体的观测数据在统计上独立。2. 同一处理水平没有会改变结果的隐藏版本。
 
 
 **Assumption 2.**
@@ -148,9 +148,9 @@ _Ignorability._ Ttreatment assignment $W$ is independent of the potential outcom
 
 > 如果满足 Ignorability, 那么会有 2 个 结果成立 :
 >
-> 1. $Y(W = 1)$ 和 $Y(W = 0)$ 的结果与具体施加的treatment 独立无关, 因此我们可以随机的对 groups 施加 treatment;
+> 1. 潜在结果与实际接受的处理在总体中独立。随机分配是一种可能使这个假设成立的设计方法，但不能从观察到“可忽略性”反推出研究本来就是随机分配的；
 >
-> 2. 表明 group 之间是可以交换的, 即 _exchangeability_, group 交换其 treatment, $Y(W = 1)$ 和 $Y(W = 0)$ 的结果不变, 意味着此时 group 之间是可比的, 换句话说, 除了 treatment 不同, 其他条件都会相同.
+> 2. 这种独立性称为可交换性：两组的潜在结果分布可比较，并不要求每个人的其他条件完全相同。
 
 > 实际中, 受到背景变量 $X$ 干扰, 导致 $W$ 和 $Y$ 之间有联系. 举个例子,假设 $W$ 表示 "藏私房钱是否被老婆发现",  $Y(W = 1)$ 表示 "被老婆揍一拳之后的疼痛值"; $W = 0$ 表示没有被揍, $W = 1$ 表示被揍.
 > 此时 $W = 1$ 与 $Y(W = 1)$ 是有联系的, 起码我们知道这样的关系存在: 当 $X = 1$, 即藏私房钱被发现时, $W = 1$ 的取值概率会升高, 同时 $Y(W = 1)$ 会变大.
