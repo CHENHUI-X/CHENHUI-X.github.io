@@ -319,7 +319,7 @@ $$
 \operatorname*{argmax}_{t_1, \ldots, t_k \in V} \sum_{i=1}^{k} \log P(t_i)
 $$
 
-即: 穷举所有可能的分词方式, 选出使概率和最大的那一种. Viterbi 用动态规划做这个, 实际实现中用 trie 树限制候选数, 复杂度约 $O(L \cdot M)$, 其中 $M$ 是最大 token 长度 (通常 ≤ 50).
+即：在所有合法分词路径中，选出 token 概率**乘积**最大（等价于对数概率之和最大）的路径；不需要真的穷举所有路径。Viterbi 用动态规划计算最优路径，若每个位置至多检查长度为 $M$ 的候选 token，时间复杂度为 $O(LM)$，其中 $L$ 是输入长度。
 
 训练过程的核心是 **EM 算法** (标准做法是 soft EM, 即用 forward-backward 算法计算每个 token 在各分词路径上的期望出现次数; 以下描述 hard EM 变体):
 
@@ -346,7 +346,7 @@ $$
 
 ## 5. SentencePiece — 把一切统一起来
 
-前面讲的 BPE、WordPiece、Unigram, 都有一个共同的前提: **输入文本需要先按空格分成"词"** (pre-tokenization). 这对英语没问题, 但对中文、日文等没有空格的文字来说就尴尬了——"我喜欢你" 应该被切分成什么?
+前面的示例为了便于演示，先按空格切词；但这不是 BPE、WordPiece 或 Unigram 算法本身的共同前提。具体实现可以采用不同的预分词规则，也可以直接处理原始文本。SentencePiece 的特点是把规范化、空格处理和子词学习整合起来，能够直接从原始句子训练 BPE 或 Unigram 模型，因此不依赖英文式的空格切词。
 
 SentencePiece 解决了这个问题: **它把原始文本直接当作 Unicode 字符序列处理, 不需要 pre-tokenization**.
 
