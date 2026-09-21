@@ -13,7 +13,7 @@ draft: false
 在分类的时候, 我们不仅希望预测类别, 还希望输出概率, 但是有些模型是不能直接输出概率的, 或者输出的概率只是一个相对的, 这时就需要校准
 
 
-一个良好的、校准过的分类器, 输出的 prob=0.8,  就是可以理解为当前样本有80%的概率是正样本
+良好校准指的是：在预测概率接近 0.8 的大量样本中，正例比例也接近 0.8。这是群体频率性质，不能对单个样本验证“有 80% 概率为正例”。
 
 ## 1. 校准曲线
 
@@ -23,7 +23,7 @@ draft: false
 
 对于条形图的解释
 
-- 逻辑回归的结果很不错, 几乎是可以开箱即用, 是因为本身其loss就是交叉熵, 使用的概率.或者从另一个角度就是最大似然估计.
+- 逻辑回归使用对数损失，在模型假设较合适时往往具有较好的校准表现；但交叉熵训练本身不保证在任意数据分布上都校准，仍应通过留出数据上的校准曲线检查。
 
 - 贝叶斯看起来更加倾向于将输出close to 0 or 1,  主要可能是因为（**存疑**）其假设特征是独立的.
 
@@ -45,23 +45,22 @@ draft: false
         > 6. **数据表示的选择**：决策树对数据的表示非常敏感.如果数据的特征没有经过适当的预处理和特征工程, 可能会导致树对数据的某些特定表示过度拟合, 从而增加方差.
         >
         > 当这些高方差的树被集成在一起时，由于它们的随机性质，它们彼此之间存在差异。这种差异导致它们在某些数据点上出现错误，但在其他数据点上正确，因此这些错误会相互抵消。通过集成多个具有高方差的模型，随机森林能够平均化这些错误，从而降低整体的方差。
-- SVM则是属于那种“差不多就行”、“能分类正确即可”, 因此模型输出大多数在0.5 左右
+- SVM 的原始输出通常是决策分数，不是概率；不能直接说它的输出大多在 0.5 左右。若需要概率，应使用单独的概率估计或校准方法。
 
 
 ## 2. Calibrating a classifier
 
 ### 2.1 函数介绍
 
-使用 [CalibratedClassifierCV](https://scikit-learn.org/stable/modules/generated/sklearn.calibration.CalibratedClassifierCV.html#sklearn.calibration.CalibratedClassifierCV) 来实现校准 , 这个类使用交叉验证来校准模型.首先要注意的是, 校准模型时使用的训练集, 不能和 用来训练未校准模型的训练集一样.同时也是为了样本分布平衡, 需要让校准模型的过程在不同训练子集上重复.其核心思想为：
+可以使用 [CalibratedClassifierCV](https://scikit-learn.org/stable/modules/generated/sklearn.calibration.CalibratedClassifierCV.html) 校准分类器。校准器必须使用基模型训练时未见过的预测结果；交叉验证可生成这样的折外预测。对于已训练模型，需使用独立的校准集。以下按当前文档中的参数名 `estimator` 说明：
 
-- When `ensemble=True` (default)
+- 当 `ensemble=True`：
     - data is split into k `(train_set, test_set)`
-    - 然后  CCV类中的`base_estimator`（比如决策树）,  首先独立的复制k份, 分别在相应的 `train_set` 上进行训练, 然后在相应的`test_set` 的预测结果, 会进一步被用来 fit a calibrator (either a sigmoid or isotonic regressor).  each calibrator maps the output of its corresponding classifier into [0, 1].
+    - 每折复制一份 `estimator`，在训练折拟合基模型，再用验证折的预测拟合校准器。校准方法可选 sigmoid、isotonic 等，具体以安装版本为准。
     - fit 好后的 calibrator 存在`calibrated_classifiers_` attribute, where each entry is a calibrated classifier with a [predict_proba](https://scikit-learn.org/stable/glossary.html#term-predict_proba) method that outputs calibrated probabilities.
     - 然后 CCV 这个类本身有一个函数：[predict_proba](https://scikit-learn.org/stable/glossary.html#term-predict_proba) ,  调用时结果为：average of the predicted probabilities of the `k` estimators in the `calibrated_classifiers_` list.
     - The output of [predict](https://scikit-learn.org/stable/glossary.html#term-predict) is the class that has the highest probability.
-- when  `ensemble=False`
-    - 一眼丁真, 鉴定为最好别用
+- 当 `ensemble=False`：对未训练的普通基模型，用折外预测拟合一个校准器，推理时配合在全部训练数据上重新拟合的基模型；这也是合理选择。对于 `FrozenEstimator` 包装的已训练模型，则只用独立校准集拟合校准器，不重新训练基模型。当前版本 `ensemble` 默认是 `"auto"`，前者通常走 `True` 分支，后者走 `False` 分支。
 
 ### 2.2 校准方法
 #### 2.2.1 sigmoid 方法
@@ -84,7 +83,7 @@ A and B are real numbers to be determined when fitting the regressor via maximum
 #### 2.2.2 isotonic 方法
 
 fits a non-parametric isotonic regressor, which outputs a step-wise non-decreasing function, see [sklearn.isotonic](https://scikit-learn.org/stable/modules/classes.html#module-sklearn.isotonic). It minimizes:
-> 该方法输出map function 是 严格单调递增的 : **即未校准的模型 认为 p(A) < p(B) , 那么经过校准后的的 p(A) 应该还是小于 p(B)**
+> 该方法拟合的是**非递减**函数，而非严格递增函数：若原分数 $f_A<f_B$，校准后只保证 $\hat f_A\le\hat f_B$，两者可能映射到同一个概率。
 
 
 $$
