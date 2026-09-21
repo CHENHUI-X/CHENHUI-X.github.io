@@ -60,7 +60,7 @@ pin: true
 | ------------------------------------- | ------------- | -------------------------------------------------- |
 | 缩放点积 Attention                    | 📝 待补充     | Q/K/V 公式，为什么除 √d                            |
 | Multi-Head Attention                  | 📝 待补充     | 多头的意义，head_dim 的选择                        |
-| **MLA (Multi-head Latent Attention)** | 📝 **待补充** | DeepSeek-V2/V3 核心创新，低秩压缩 KV Cache 至 1/16 |
+| **MLA (Multi-head Latent Attention)** | 📝 **待补充** | 通过低秩表示减少 KV 缓存；具体比例依模型结构而定 |
 | **Sliding Window Attention**          | 📝 待补充     | Mistral 使用，固定窗口大小                         |
 | **Cross-Attention**                   | 📝 待补充     | Encoder-Decoder 和多模态模型的基础                 |
 | Causal Mask / Padding Mask            | 📝 待补充     | 两种 mask 的区别                                   |
@@ -104,7 +104,7 @@ pin: true
 | Autoregressive Decoding                                            | 📝 待补充                                                      | 逐 token 生成的基本流程                  |
 | Decoding 策略 (Greedy / Beam Search / Top-K / Top-P / Temperature) | ✅ [Decoding 策略](/posts/2026-05-16-llm-decoding-strategies/) |                                          |
 | Repetition Penalty                                                 | 📝 待补充                                                      |                                          |
-| KV Cache 原理                                                      | ✅ [LLM 推理加速](/posts/2025-02-06-llm-inference/)            | 旧版，计划重写                           |
+| KV Cache 原理                                                      | ✅ [推理显存拆解](/posts/2026-06-13-llm-mem-opt-2-inference/) | 解释缓存内容与显存计算                   |
 | KV Cache 显存计算                                                  | ✅ [推理显存拆解](/posts/2026-06-13-llm-mem-opt-2-inference/)     | 前置：KV Cache、GQA                     |
 | GQA / MQA / MHA                                                    | 📝 待补充                                                      | Grouped Query Attention 的原理和显存收益 |
 
@@ -112,7 +112,7 @@ pin: true
 
 | 知识点                       | 状态                                                     | 说明                                    |
 | ---------------------------- | -------------------------------------------------------- | --------------------------------------- |
-| Flash Attention 原理         | ✅ [LLM 推理加速](/posts/2025-02-06-llm-inference/)      | 旧版，计划重写                          |
+| Flash Attention 原理         | 📝 待补充                                               | [推理显存拆解](/posts/2026-06-13-llm-mem-opt-2-inference/)仅介绍显存收益，尚无完整算法推导 |
 | Flash Attention 公式推导     | 📝 待补充                                                | tiling / online softmax / recomputation |
 | **PagedAttention / vLLM**    | 📝 **待补充**                                            | 通过虚拟内存管理 KV Cache               |
 | Speculative Decoding         | 📝 待补充                                                | Draft model + Verify                    |
@@ -200,8 +200,8 @@ DataLoader → Forward → Loss → Backward → AllReduce → Optimizer
 | --------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------- |
 | Cross-Entropy Loss (SFT)    | ✅ [SFT 训练实战](/posts/2026-06-16-llm-mem-opt-5-sft/) | 含 Label Shift 和 Loss Mask                     |
 | Chunked Cross-Entropy (NLL) | ✅ 同上                                                                          | 大词表场景的显存优化                            |
-| KL Divergence (RLHF)        | ✅ [KL 散度](/posts/2024-04-19-kullback-leibler-divergence/)                     | 防止 Reward Hacking                             |
-| Pairwise Ranking Loss (DPO) | ✅ [LLM 对齐训练](/posts/2025-12-05-llm-alignment/)                              | 旧版                                            |
+| KL Divergence (RLHF)        | ✅ [KL 散度](/posts/2024-04-19-kullback-leibler-divergence/)                     | 可约束策略偏离参考模型；不能保证杜绝奖励投机   |
+| Pairwise Ranking Loss (DPO) | 📝 待补充                                                                        | 对齐文章尚未纳入站点                            |
 | Loss Mask 策略              | 📝 待补充                                                                        | 只算 assistant / 只算最后一轮 / 只算 completion |
 
 ### 4.7 显存管理
@@ -274,10 +274,10 @@ DataLoader → Forward → Loss → Backward → AllReduce → Optimizer
 
 | 知识点                                          | 状态                                                | 说明                            |
 | ----------------------------------------------- | --------------------------------------------------- | ------------------------------- |
-| RLHF 全流程                                     | ✅ [LLM 对齐训练](/posts/2025-12-05-llm-alignment/) | 旧版，计划重写                  |
-| Reward Model 训练                               | ✅ 同上                                             |                                 |
-| **PPO 在 LLM 中的应用**                         | ✅ 同上                                             |                                 |
-| DPO (Direct Preference Optimization)            | ✅ 同上                                             |                                 |
+| RLHF 全流程                                     | 📝 待补充                                           | 对齐文章尚未纳入站点            |
+| Reward Model 训练                               | 📝 待补充                                           |                                 |
+| **PPO 在 LLM 中的应用**                         | 📝 待补充                                           |                                 |
+| DPO (Direct Preference Optimization)            | 📝 待补充                                           |                                 |
 | GRPO (Group Relative Policy Optimization)       | 📝 待补充                                           | DeepSeek 用的方案               |
 | **DAPO (Dynamic Sampling Policy Optimization)** | 📝 **待补充**                                       | 字节/清华提出，GRPO 同族        |
 | **RLOO (REINFORCE Leave-One-Out)**              | 📝 **待补充**                                       | 不需要 critic model             |
@@ -400,25 +400,14 @@ Step 生命周期（先看这张总图）
 
 ## 按状态筛选
 
-```
-▸ 已写（可直接阅读）：
-  [Tokenization](/posts/2026-05-16-llm-tokenization-guide/) | [RoPE](/posts/2026-05-16-llm-rope-rotary-position-embedding/) | [RoPE 扩展(YaRN)](/posts/2026-05-16-llm-long-context-yarn/) | [Decoding](/posts/2026-05-16-llm-decoding-strategies/) | [推理显存拆解](/posts/2026-06-13-llm-mem-opt-2-inference/)
-  [量化(GPTQ/AWQ)](/posts/2026-06-14-llm-mem-opt-3-quantization/) | [TRL SFT 训练](/posts/2026-06-16-llm-mem-opt-5-sft/) | [KL 散度](/posts/2024-04-19-kullback-leibler-divergence/) | [Perplexity](/posts/2024-04-10-perplexity/)
-  [L1/L2 正则](/posts/2024-04-20-l1-and-l2-regularization/) | [Weight Decay](/posts/2024-04-20-weight-decay-and-l2-regularization/) | [AUC/GAUC](/posts/2024-04-12-auc-gauc/)
-  [概率分布(Gamma/Beta)](/posts/2024-04-10-gama-beta-dirichlet/) | [概率校准](/posts/2024-04-10-probability-calibration/) | [采样方法](/posts/2024-04-11-sampling-method/)
-  [LLM 推理加速(KV Cache/FlashAttn)](/posts/2025-02-06-llm-inference/) | [LLM 对齐训练(RLHF/PPO/DPO)](/posts/2025-12-05-llm-alignment/)
+已写、可直接阅读：
 
-▸ 高优先待补充（优先补齐实战问题）：
-  单机并行选型策略 | 训练配置逐行注释
-  训练 Step 生命周期 | 三层防御策略
-  Loss Spike 排查 | OOM 排查手册
-  多轮 Function Calling 数据构造
+- 基础：[分词](/posts/2026-05-16-llm-tokenization-guide/)、[RoPE 位置编码](/posts/2026-05-16-llm-rope-rotary-position-embedding/)、[长上下文扩展](/posts/2026-05-16-llm-long-context-yarn/)、[生成时如何选词](/posts/2026-05-16-llm-decoding-strategies/)
+- 显存与训练：[推理显存](/posts/2026-06-13-llm-mem-opt-2-inference/)、[量化](/posts/2026-06-14-llm-mem-opt-3-quantization/)、[SFT 训练](/posts/2026-06-16-llm-mem-opt-5-sft/)
+- 数学基础：[KL 散度](/posts/2024-04-19-kullback-leibler-divergence/)、[困惑度](/posts/2024-04-10-perplexity/)、[L1/L2 正则化](/posts/2024-04-20-l1-and-l2-regularization/)、[权重衰减](/posts/2024-04-20-weight-decay-and-l2-regularization/)、[AUC/GAUC](/posts/2024-04-12-auc-gauc/)、[概率分布](/posts/2024-04-10-gama-beta-dirichlet/)、[概率校准](/posts/2024-04-10-probability-calibration/)、[采样方法](/posts/2024-04-11-sampling-method/)
 
-▸ 待重写：
-  LLM 对齐训练（加入 GRPO/DAPO/KTO 等）
-  LLM 推理加速（统一风格）
-```
+待补充：FlashAttention 的完整推导、对齐训练、单机并行选型、OOM 排查和多轮工具调用数据构造。相关草稿尚未纳入站点，完成核对后再开放入口。
 
 ---
 
-_这份导航是活的。每补完一篇新的知识点，就把状态从 📝 改成 ✅。_
+_这份导航会随文章更新。只有内容已核对且页面已纳入站点，才将状态改为“已写”。_

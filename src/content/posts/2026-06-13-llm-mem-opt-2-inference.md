@@ -112,7 +112,7 @@ $$
 
 $Q_t$ 只是当前 token 的 query；$K_{\le t}$、$V_{\le t}$ 是 **所有历史 token** 的 K、V。
 
-如果每生成一个 token 都重算所有历史 K、V，第 $t$ 步要 $O(t)$，整个序列 $O(T^2)$，长序列下完全不可接受。所以工业界都用 **KV Cache**：把历史的 $K_i$、$V_i$ 存起来，每步只算当前 token 的 $K_t$、$V_t$ 然后 append。
+不缓存时，每生成一个 token 都要重新计算历史 token 的 K、V；到第 $t$ 步，这部分重复投影随历史长度 $t$ 增长。**KV Cache** 把已算过的 K、V 存起来，下一步只计算新 token 的 K、V。但当前 token 仍要与历史 token 做精确注意力：这一步仍随 $t$ 增长。因此 KV Cache 省掉的是重复计算历史 K、V，**不是**把完整生成过程的注意力计算从二次复杂度降为线性复杂度。
 
 代价就是把它们常驻显存。
 
@@ -121,10 +121,10 @@ $Q_t$ 只是当前 token 的 query；$K_{\le t}$、$V_{\le t}$ 是 **所有历�
 每层需要缓存 K 和 V 各一份。每个 token 每层每个 KV 头需要 $d_{\text{head}}$ 个浮点数。所以总大小：
 
 $$
-\boxed{M_{\text{kv}} = 2 \times L \times n_{kv} \times d_{\text{head}} \times b_{\text{param}} \times T \times B}
+\boxed{M_{\text{kv}} = 2 \times L \times n_{kv} \times d_{\text{head}} \times b_{\text{kv}} \times T \times B}
 $$
 
-其中 2 来自 K 和 V 各一份，$T$ 是序列长度，$B$ 是 batch size。
+其中 2 来自 K 和 V 各一份，$b_{\text{kv}}$ 是每个缓存元素的字节数，$T$ 是序列长度，$B$ 是 batch size。缓存精度可以与模型权重精度不同。
 
 ### 2.3 关键：为什么是 $n_{kv}$ 而不是 $n_h$？
 
@@ -138,7 +138,7 @@ Llama-3-8B 用 GQA，$n_{kv} = 8$。如果它是 MHA（$n_{kv} = 32$），KV Cac
 
 ### 2.4 Llama-3-8B 的具体数字
 
-代入 $L=32$, $n_{kv}=8$, $d_{\text{head}}=128$, BF16（$b_{\text{param}}=2$），单 batch：
+代入 $L=32$, $n_{kv}=8$, $d_{\text{head}}=128$, BF16 KV Cache（$b_{\text{kv}}=2$），单 batch：
 
 $$
 M_{\text{kv}} = 2 \times 32 \times 8 \times 128 \times 2 \times T = 131072 \times T \text{ bytes} = 128\, T \text{ KiB}
@@ -279,7 +279,7 @@ model = AutoModelForCausalLM.from_pretrained(
 | 项目 | 公式 | 关键参数 |
 |------|------|---------|
 | 模型权重 | $N_{\text{params}} \times b_{\text{param}}$ | 参数量、精度 |
-| KV Cache | $2 L\, n_{kv} d_{\text{head}}\, b_{\text{param}}\, T B$ | 层数、KV 头数、序列长度、batch |
+| KV Cache | $2 L\, n_{kv} d_{\text{head}}\, b_{\text{kv}}\, T B$ | 层数、KV 头数、缓存精度、序列长度、batch |
 | 运行时工作区 | 由目标引擎测量 | prefill/decode、并发、kernel、chunk、dtype |
 
 下次有人问「这个 8B 模型在 4090 上能跑多长上下文？」，先按 KV 公式给出当前 token 数与并发下的**已知下界**，再在目标引擎测量 prefill/decode 峰值。显存数学用于缩小搜索范围；真实引擎压测才给出部署结论。

@@ -13,7 +13,7 @@ tags:
 draft: false
 ---
 
-> 这是「LLM 训练与推理优化系列」第 5 篇（终篇）。前面 [第 4 篇 — 训练显存与 ZeRO](/posts/2026-06-15-llm-mem-opt-4-zero/) 讲了如何用多卡分担模型状态；本篇讲 **每张卡** 上还能榨多少。两者正交，组合使用威力最大。
+> 这是「LLM 训练与推理优化系列」第 5 篇（终篇）。前面 [第 4 篇 — 训练显存与 ZeRO](/posts/2026-06-15-llm-mem-opt-4-zero/) 讲了如何用多卡分担模型状态；本篇讨论如何进一步降低每张卡的显存占用。两类方法可以组合，但实际收益取决于训练配置。
 
 ## 0. 消费级单卡 SFT 7B 的工程难题
 
@@ -21,13 +21,13 @@ draft: false
 
 如果光开 ZeRO 是不够的——单卡场景没有"其他卡"可以分摊。这时需要工程层面的招式：
 
-- **PEFT (LoRA)** 砍掉 99% 的可训练参数 → 砍掉 99% 的优化器状态
-- **Packing** 干掉 padding 浪费
-- **Chunked NLL** 干掉 logits 显存炸弹
-- **Gradient Checkpointing** 干掉激活值
-- **Activation Offloading** 把激活转移到 CPU
+- **LoRA** 只训练一小部分新增参数，减少梯度和优化器状态占用
+- **Packing** 把短样本拼在一起，减少补齐长度的浪费
+- **Chunked NLL** 分块计算输出词表的损失，降低峰值显存
+- **Gradient Checkpointing** 在反向传播时重算部分中间结果，减少需要保存的激活值
+- **Activation Offloading** 把部分激活值暂存到 CPU 内存
 
-HuggingFace **TRL** 的 `SFTTrainer` 把这些招式都做成了开关。本篇逐个拆开讲原理 + 代码。
+Hugging Face **TRL** 的 `SFTTrainer` 提供了相应的配置入口。本篇逐个解释作用、限制和用法。
 
 ## 1. SFT Trainer 快速入门
 
@@ -72,10 +72,10 @@ $$
 \mathcal{L}_{\text{SFT}}(\theta) = -\sum_{t=1}^{T} \log p_\theta(y_t \mid y_{<t})
 $$
 
-输入序列右移一位即为 labels。Padding 位置的 label 设为 `-100`，在交叉熵中被忽略。这就保证只对有效 token 计算损失。
+因果语言模型用当前位置之前的 token 预测下一个 token；训练实现通常在计算损失时对预测值和标签做错位对齐。Padding 位置的标签设为 `-100`，在交叉熵中被忽略；对话数据还可以进一步只计算助手回复部分的损失。
 
 ![SFT Figure](https://huggingface.co/datasets/trl-lib/documentation-images/resolve/main/sft_figure.png)
-*图：SFT 训练中，输入序列右移一位形成 labels，仅对非 padding token 计算交叉熵。*
+*图：SFT 训练中，预测值与下一 token 的标签对齐；padding 位置不参与损失计算。*
 
 ## 2. Truncation：最朴素的省显存
 
@@ -128,11 +128,11 @@ training_args = SFTConfig(
 
 | 策略 | 行为 |
 |------|------|
-| `bfd`（默认） | Best-Fit Decreasing 装箱算法，超长序列被丢弃 |
+| `bfd`（默认） | Best-Fit Decreasing 装箱算法，超出 `max_length` 的部分被截断 |
 | `bfd_split` | 同上但超长序列被切分保留所有 token（来自 [Fewer Truncations Improve LM](https://huggingface.co/papers/2404.10830)） |
 | `wrapped` | 所有 token 拼成连续流再按 `max_length` 切块。padding 最少，但会打断序列连续性 |
 
-> Packing 目前仅支持 SFT，且需要 **FlashAttention**（或其变体），否则块对角掩码无法高效实现。
+> 这里使用的 TRL 默认 `bfd` 策略会自动开启 `padding_free`，因此需要兼容的 FlashAttention 2/3。不能据此推断所有 Packing 实现都必须使用 FlashAttention。
 
 > 所有序列都短于 `max_length` 时，`bfd` 和 `bfd_split` 行为完全一致。
 
@@ -148,7 +148,7 @@ $$
 
 显存收益是连锁的：
 
-- 优化器状态、梯度只对 $A, B$ 维护 → 直接降到 $\frac{12 \times 2dr}{16 \times d^2}$ 倍
+- 优化器状态和梯度只需为可训练的 $A,B$ 保存。对单个 $d\times d$ 权重矩阵，LoRA 新增的可训练参数是 $2dr$，而不是 $d^2$；全模型能省多少，还取决于挂载的层、优化器、精度和未冻结的其他参数，不能把这个单层比例直接当作整模型显存比例
 - 配合 **QLoRA**（4-bit 量化基模型 + LoRA）可显著降低基模型权重与可训练状态的显存；QLoRA 论文报告的是在**单张 48 GB GPU**上微调 65B 模型，不应改写成 24 GB 的通用结论
 
 ```python
@@ -226,7 +226,7 @@ LM head 输出的 logits 形状是 `[batch, seq_len, vocab]`。Qwen3 的 vocab �
 - batch=4, seq=2048, vocab=152K, BF16
 - logits 张量 = $4 \times 2048 \times 152000 \times 2 \approx 2.5\,\text{GB}$
 
-仅这一个张量。反向传播为了求交叉熵的梯度还要再活一份——**5 GB 单纯花在 logits 上**。
+这只是 logits 自身的理论大小。反向传播还可能需要保存或生成与 logits 同量级的张量，但具体峰值取决于交叉熵实现、精度、张量是否复用及计算是否融合，不能固定写成“必占 5 GB”。
 
 ### 6.2 思路
 
@@ -255,13 +255,13 @@ TRL 官方 benchmark（Qwen3-1.7B，词表约 152K）报告：
 
 > 当前 TRL 中，`chunked_nll` 是 `SFTTrainer` 的默认 loss；`use_liger_kernel=True` 时会自动改用 `nll`，两者不兼容。`chunked_nll` 也不兼容 PEFT 和 VLM。
 >
-> **如何取舍**：大词表 + 非 PEFT 场景下，如果显存瓶颈明确在 logits 张量上，可以用 Chunked NLL；否则优先开 Liger Kernel（收益面更广——加速 + 省显存，覆盖多个算子）。
+> **如何取舍**：在非 PEFT 场景下，如果大词表产生的 logits 张量是显存瓶颈，可以使用 Chunked NLL。Liger Kernel 优化的是一组算子，是否更合适，要看模型支持情况和实际测试结果。
 >
 > 30%/50% 是上述官方 benchmark 的结果，不是普遍收益；FSDP 选项、模型结构和词表大小都会改变结果。
 
 ## 7. Padding-Free：把 batch 展平为单条序列
 
-和 Packing 不同：Packing 是装箱拼接，`bfd` 对超过 `max_length` 的部分会截断；Padding-Free 是 **把 batch 展平成一条**，以消除 padding，同时保持输入样本完整。
+和 Packing 不同：Packing 决定如何组织样本，`bfd` 对超过 `max_length` 的部分会截断；Padding-Free 则在计算时**把 batch 展平**，以减少 padding。它不会恢复已被截断的内容。
 
 ![Padding-Free](https://huggingface.co/datasets/trl-lib/documentation-images/resolve/main/padding-free.png)
 *图：Padding-Free 把 batch 展平为单条序列，完全消除 padding。*
@@ -289,7 +289,7 @@ training_args = SFTConfig(activation_offloading=True)
 
 ## 9. Gradient Checkpointing：用计算换显存
 
-最经典的招式。前向时不保存中间激活，反向时重算。激活显存从 $O(L)$ 降到 $O(\sqrt{L})$（$L$ 为层数），代价是 forward 多算一次（约 +33% 计算开销）。
+这个方法用计算时间换显存：前向时只保留选定的检查点，反向传播需要用到中间结果时再算一遍。保留哪些层、每段有多长由实现决定，因此**不能说打开开关后显存一定从 $O(L)$ 降到 $O(\sqrt L)$，或计算开销固定增加 33%**。经典论文给出了特定分段策略下 $O(\sqrt L)$ 的结果；实际训练应以目标配置的显存峰值和吞吐实测为准。
 
 ```python
 training_args = SFTConfig(gradient_checkpointing=True)
