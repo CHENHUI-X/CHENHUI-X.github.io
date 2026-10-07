@@ -29,6 +29,11 @@ export default defineConfig({
 	site: "https://xuchenhui.cc/",
 	base: "/",
 	trailingSlash: "always",
+	redirects: {
+		"/posts/2026-06-14-llm-mem-opt-3-quantization/": "/posts/2026-05-16-llm-quantization-guide/#advanced-quantization",
+		"/posts/2025-02-06-a-series-on-llm-inference-ii/": "/posts/2026-06-13-llm-mem-opt-2-inference/#cache-computation",
+		"/posts/2026-05-16-llm-memory-breakdown/": "/posts/2026-06-13-llm-mem-opt-2-inference/#oom-checklist",
+	},
 	integrations: [
 		tailwind({
 			nesting: true,
@@ -100,7 +105,7 @@ export default defineConfig({
 			}
 		}),
         svelte(),
-		sitemap(),
+		sitemap({ filter: (page) => !["/posts/2026-05-16-llm-memory-breakdown/", "/posts/2025-02-06-a-series-on-llm-inference-ii/", "/posts/2026-06-14-llm-mem-opt-3-quantization/"].some((route) => new URL(page).pathname === route) }),
 	],
 	markdown: {
 		remarkPlugins: [

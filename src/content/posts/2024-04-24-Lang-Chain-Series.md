@@ -1,7 +1,7 @@
 ---
-title: Lang Chain Series
+title: LangChain 应用开发：Prompt、检索、工具与 Agent
 published: 2024-04-24
-description: 对 LangChain 框架的核心组件（Prompts、Models、Indexes 等）进行学习记录与解读，加入个人理解与代码注释，方便快速上手。
+description: 用一个文档问答应用串起提示模板、示例选择、RAG、工具调用和 Agent，区分应用层与模型层，并整理旧版 LangChain 示例的迁移边界。
 category: Deep Learning
 tags:
 - deep learning
@@ -10,1784 +10,358 @@ tags:
 - nlp
 draft: false
 ---
+
 ## 0. 前言
 
-本篇 Blog 不是教程, 官方教程[1](https://python.langchain.com/docs/modules/)、[2](https://python.langchain.com/docs/get_started/introduction) 有时候比较抽象, 这里只是在学习 LangChain 过程中做个记录, 并加入自己的理解和注释. 当然这里也不进行过多的介绍, 直接进入对组件的学习.
+假设要做一个助手，回答「这个项目怎么部署」，必要时读取文档、检查服务状态。模型能写出一段回答，只是其中一环。应用还要决定：给模型看什么资料、怎样保留出处、哪些工具可以调用、失败后怎么办。
+
+本文围绕这些**应用层问题**，按 Prompts、Retrieval、Tools、Agent 四部分展开，重点是理清数据流，以及回答出错时该检查哪一层。
+
+:::note
+本文最初发表于 2024 年，2026-10-07 按官方资料重新整理。LangChain v1 已调整包结构，一些旧 chains、retrievers 和缓存组件移入 `langchain-classic`。本文保留可迁移的思路，短代码用于解释接口，不是锁定依赖、完成部署的整套工程；使用前应核对自己的版本与[官方迁移指南](https://docs.langchain.com/oss/python/migrate/langchain-v1)。
+:::
+
+先分清四件事：
+
+| 做法 | 改变了什么 | 适合解决什么问题 |
+| --- | --- | --- |
+| Prompt / few-shot | 本次输入中的规则和例子 | 任务说明、回答格式、示范做法 |
+| RAG | 回答时提供的外部证据 | 文档更新、来源可追溯、私有知识问答 |
+| 工具调用 / Agent | 应用可以执行的步骤及其选择方式 | 查实时数据、调用服务、完成多步任务 |
+| 微调 | 模型参数 | 从训练样本学习任务或行为模式 |
+
+这些方法可以组合。检索不自动等于 Agent，提示模板也不会更新权重。模型如何生成 token，见[解码策略](/posts/2026-05-16-llm-decoding-strategies/)；训练如何改变参数，见[大模型训练篇](/posts/2025-12-05-a-series-on-llm-training-i/)。本篇不重复模型内部原理。
 
 ## 1. Prompts
 
-Prompts 通常用来"调教"LLM, 比如用来指定 LLM 的输出格式, 也可以用来给 LMM 一些例子让他参考等等.LangChain 目前提供了 4 种 Prompts template , 方便用户构造 Prompt.
+Prompt 可以理解为交给模型的「任务材料包」。其中既有应用规定的任务，也有用户问题、示例、检索材料和对话历史。模板的价值在于把这些部分组织清楚，避免到处拼字符串；它本身不保证模型遵守要求。
 
 ### 1.1 PromptTemplate
 
-PromptTemplate 是最简单, 最基本的一种 Template. API Reference:[PromptTemplate](https://api.python.langchain.com/en/latest/prompts/langchain_core.prompts.prompt.PromptTemplate.html)
-
-官方给了 2 种方法来用 PromptTemplate.
-
-- 方法一(推荐)
+`PromptTemplate` 适合生成一段文本。固定内容留在模板里，变化的内容通过变量传入。下面是一种构造方法：
 
 ```python
 from langchain_core.prompts import PromptTemplate
 
-# Instantiation using from_template (recommended)
-prompt = PromptTemplate.from_template("Say {foo}")
-prompt.format(foo="bar")
+prompt = PromptTemplate.from_template(
+    "请用{language}解释以下术语，并给一个例子：{term}"
+)
+text = prompt.format(language="中文", term="检索增强生成")
 ```
 
-结果 : `Say bar`
-
-- 方法二
-
-```python
-from langchain_core.prompts import PromptTemplate
-
-# Instantiation using initializer
-prompt = PromptTemplate(input_variables=["foo"],  template="Say {foo}")
-prompt.format(foo="bar")
-
-```
-
-结果 : `Say bar`
+这一步只生成字符串，没有调用模型。把输入写入模板也不意味着它变成可信指令；尤其不要接受外部用户上传的任意可执行模板。具体模板能力应以对应版本的实现为准。
 
 ### 1.2 ChatPromptTemplate
 
-ChatPromptTemplate 通常有 3 种规则: "system", "ai" and "human". API Reference:[ChatPromptTemplate](https://api.python.langchain.com/en/latest/prompts/langchain_core.prompts.chat.ChatPromptTemplate.html)
+聊天模型的输入通常是**消息列表**，每条消息有角色和内容。可以把系统规则、用户问题、历史回答分开，而不是把角色名写进一大段普通文本。消息还可以包含工具结果，不能把所有输入都归结为最初示例中的三个角色。
+
+下面只检查消息如何组装，不发起远程请求：
 
 ```python
-
 from langchain_core.prompts import ChatPromptTemplate
 
-chat_template = ChatPromptTemplate.from_messages(
-    [
-        ("system",  "You are a helpful AI bot. Your name is {name}."),
-        ("human",  "Hello,  how are you doing?"),
-        ("ai",  "I'm doing well,  thanks!"),
-        ("human",  "{user_input}"),
-    ]
-)
-
-messages = chat_template.format_messages(name="Bob",  user_input="What is your name?")
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "你是项目文档助手。证据不足时说明缺少什么，不编造出处。"),
+    ("human", "问题：{question}\n\n供参考的资料：\n{context}"),
+])
+messages = prompt.invoke({
+    "question": "这个服务的配置文件在哪里？",
+    "context": "[部署手册 §2] 配置文件位于 ~/.example/config.yaml。",
+}).to_messages()
 ```
 
-输出:
-
-```python
-
-[SystemMessage(content='You are a helpful AI bot. Your name is Bob.'),
- HumanMessage(content='Hello,  how are you doing?'),
- AIMessage(content="I'm doing well,  thanks!"),
- HumanMessage(content='What is your name?')]
-```
-
-可以看到, 实际是产生了 `SystemMessage`, `HumanMessage` and `AIMessage` 共 3 种 Message. 与之对应的, 在构造这些 Message 时, 可以使用相应的 Template : `AIMessagePromptTemplate`, `SystemMessagePromptTemplate` and `HumanMessagePromptTemplate`
-
-例子:
-
-```python
-from langchain_core.prompts import HumanMessagePromptTemplate, SystemMessagePromptTemplate, AIMessagePromptTemplate
-
-chat_template = ChatPromptTemplate.from_messages(
-    [
-        SystemMessagePromptTemplate.from_template("你是一个{llm_type}"),  # 使用 template构造 系统的 message
-        ('ai', "很高兴帮助您."),  # 直接使用 role 构造 AI的 message
-        HumanMessagePromptTemplate.from_template("{text}"),
-    ]
-)
-messages = chat_template.format_messages(llm_type="AI助手", text = "1 + 1 = ?")
-print(messages)
-
-```
-
-输出:
-
-```python
-[SystemMessage(content='你是一个AI助手'),
-AIMessage(content='很高兴帮助您.'),
- HumanMessage(content='1 + 1 = ?')]
-```
+`from_messages`、变量替换和消息转换可对照[官方 ChatPromptTemplate 源码与示例](https://github.com/langchain-ai/langchain/blob/master/libs/core/langchain_core/prompts/chat.py)。检索到的文档只是资料，即使其中写着「忽略上面的规则」，也不应获得修改应用权限的能力。真正的权限检查必须落在工具执行层。
 
 ### 1.3 Example selectors
 
-假设有一些例子, 我们希望 LLM 能够根据输入挑一些合适的例子出来, 方便我们后续的操作, 比如将他们放到一个 prompt 中. [API Reference](https://python.langchain.com/docs/modules/model_io/prompts/example_selectors/)
+Few-shot 的意思是：在当前输入里放几个「输入 → 理想输出」示例，让模型参考。例子多了以后，问题不只是选最相似的，还包括长度预算和重复度。
 
 #### Select by length
 
-简单来说, 这个 selector 是根据用户输入的语句长短选择合适的 example, 你输入的越短,他给的例子越多, 你输出的越长,他给的例子越少.
-
-例子:
-
-```python
-from langchain_core.example_selectors import LengthBasedExampleSelector
-from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
-
-# Examples of a pretend task of creating antonyms.
-examples = [
-    {"input": "happy", "output": "sad"},
-    {"input": "tall", "output": "short"},
-    {"input": "energetic", "output": "lethargic"},
-    {"input": "sunny", "output": "gloomy"},
-    {"input": "windy", "output": "calm"},
-]
-
-example_prompt = PromptTemplate(
-    input_variables=["input", "output"],
-    template="Input: {input}\nOutput: {output}",
-)
-example_selector = LengthBasedExampleSelector(
-    # The examples it has available to choose from.
-    examples=examples,
-
-    # The PromptTemplate being used to format the examples.
-    # 这个参数有些 selector 不需要, 有些是必须的, 请参考函数具体API
-    example_prompt=example_prompt,
-
-    # The maximum length that the formatted examples should be.
-    # Length is measured by the get_text_length function below.
-    max_length=25,
-    # The function used to get the length of a string, which is used
-    # to determine which examples to include. It is commented out because
-    # it is provided as a default value if none is specified.
-    # get_text_length: Callable[[str], int] = lambda x: len(re.split("\n| ", x))
-)
-dynamic_prompt = FewShotPromptTemplate(
-    # We provide an ExampleSelector instead of examples.
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    prefix="Give the antonym of every input",
-    suffix="Input: {adjective}\nOutput:",
-    input_variables=["adjective"],
-)
-
-```
-
-输入:
-
-```python
-# An example with small input, so it selects all examples.
-print(dynamic_prompt.format(adjective="big"))
-```
-
-输出:
-
-```plaintext
-Give the antonym of every input
-
-Input: happy
-Output: sad
-
-Input: tall
-Output: short
-
-Input: energetic
-Output: lethargic
-
-Input: sunny
-Output: gloomy
-
-Input: windy
-Output: calm
-
-Input: big
-Output:
-```
-
-输入:
-
-```python
-# An example with long input, so it selects only one example.
-long_string = "big and huge and massive and large and gigantic and tall and much much much much much bigger than everything else"
-print(dynamic_prompt.format(adjective=long_string))
-```
-
-输出:
-
-```plaintext
-# 可以看到只给了一个example
-Give the antonym of every input
-
-Input: happy
-Output: sad
-
-Input: big and huge and massive and large and gigantic and tall and much much much much much bigger than everything else
-Output:
-```
-
-#### Select by maximal marginal relevance (MMR)
-
-这个 selector 的思想是, 选择与当前输入 p 相似的(cosine similarity) example $q_j$ , 但是这个 $q_j$ 还要尽量与 example pool 中 $q_i$ 不要太相似, 这是为了多样性. [原始 paper](https://arxiv.org/pdf/2211.13892.pdf) 中的 next example 选择公式为:
-
-![image.png](https://s2.loli.net/2024/04/25/2bHXmLKFRyAkxl5.png)
-
-可以看到, 如果下一个 $q_j$ 和 当前的 $p$ 很相似, 但是和其他的 $q_i$ 也非常相似, 那么这个分数也不会太高.
-
-例子
-
-```python
-from langchain_community.vectorstores import FAISS
-from langchain_core.example_selectors import (
-    MaxMarginalRelevanceExampleSelector,
-    SemanticSimilarityExampleSelector,
-)
-from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
-from langchain_openai import OpenAIEmbeddings
-
-example_prompt = PromptTemplate(
-    input_variables=["input", "output"],
-    template="Input: {input}\nOutput: {output}",
-)
-
-# Examples of a pretend task of creating antonyms.
-examples = [
-    {"input": "happy", "output": "sad"},
-    {"input": "tall", "output": "short"},
-    {"input": "energetic", "output": "lethargic"},
-    {"input": "sunny", "output": "gloomy"},
-    {"input": "windy", "output": "calm"},
-]
-example_selector = MaxMarginalRelevanceExampleSelector.from_examples(
-    # The list of examples available to select from.
-    examples,
-    # The embedding class used to produce embeddings which are used to measure semantic similarity.
-    OpenAIEmbeddings(),
-    # The VectorStore class that is used to store the embeddings and do a similarity search over.
-    FAISS,
-    # The number of examples to produce.
-    k=2,
-)
-mmr_prompt = FewShotPromptTemplate(
-    # We provide an ExampleSelector instead of examples.
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    prefix="Give the antonym of every input",
-    suffix="Input: {adjective}\nOutput:",
-    input_variables=["adjective"],
-)
-```
-输入:
-```python
-# Input is a feeling, so should select the happy/sad example as the first one
-print(mmr_prompt.format(adjective="worried"))
-```
-
-输出:
-
-```plaintext
-Give the antonym of every input
-
-Input: happy
-Output: sad
-
-Input: windy
-Output: calm
-
-Input: worried
-Output:
-```
+先扣掉任务说明、当前问题、历史消息和预留输出占用的预算，再决定能放几个示例。某些长度选择器使用字数或简单计数函数；它们不等于目标模型的真实 token 计数。输入更长时通常要减少示例，但不能仅凭字符数断定请求不会超限。可对照[长度选择器实现](https://github.com/langchain-ai/langchain/blob/master/libs/core/langchain_core/example_selectors/length_based.py)。
 
 #### Select by similarity
 
-这个就很单纯了, 直接使用 cos similarity 来选择最佳的 example, 典型 selector 是 SemanticSimilarityExampleSelector.
+把输入和示例表示成向量，再找较相近的例子。例如待分类文本是产品退款问题，就优先选择退款类示例。相似度只是选择信号，不代表例子的标签正确，也不意味着所有向量数据库都使用同一种距离。
 
-例子
+#### Select by maximal marginal relevance (MMR)
 
-```python
-from langchain_chroma import Chroma
-from langchain_core.example_selectors import SemanticSimilarityExampleSelector
-from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
-from langchain_openai import OpenAIEmbeddings
+只选最相似的例子，可能得到五个几乎相同的退款案例。MMR（最大边际相关性）同时考虑**相关性与多样性**。设问题为 $q$，已选集合为 $S$，待选例子为 $d$，一种常见评分写法是：
 
-example_prompt = PromptTemplate(
-    input_variables=["input", "output"],
-    template="Input: {input}\nOutput: {output}",
-)
+$$
+\operatorname{score}(d)=\lambda\,\operatorname{sim}(q,d)
+-(1-\lambda)\max_{s\in S}\operatorname{sim}(d,s).
+$$
 
-# Examples of a pretend task of creating antonyms.
-examples = [
-    {"input": "happy", "output": "sad"},
-    {"input": "tall", "output": "short"},
-    {"input": "energetic", "output": "lethargic"},
-    {"input": "sunny", "output": "gloomy"},
-    {"input": "windy", "output": "calm"},
-]
-example_selector = SemanticSimilarityExampleSelector.from_examples(
-    # The list of examples available to select from.
-    examples,
-    # The embedding class used to produce embeddings which are used to measure semantic similarity.
-    OpenAIEmbeddings(),
-    # The VectorStore class that is used to store the embeddings and do a similarity search over.
-    Chroma,
-    # The number of examples to produce.
-    k=1,
-)
-similar_prompt = FewShotPromptTemplate(
-    # We provide an ExampleSelector instead of examples.
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    prefix="Give the antonym of every input",
-    suffix="Input: {adjective}\nOutput:",
-    input_variables=["adjective"],
-)
-```
-输入:
-```python
-# Input is a feeling, so should select the happy/sad example
-print(similar_prompt.format(adjective="worried"))
-```
-输出
+其中 $0\leq\lambda\leq1$。第一项奖励「像当前问题」，第二项惩罚「和已选例子太重复」。$\lambda$ 越大，越看重相关性。首个例子可先按相关性选择；之后逐个更新 $S$。这比「跟整个示例池都尽量不相似」准确，因为要去重的是已经选入上下文的内容。[LangChain 的 MMR 实现](https://github.com/langchain-ai/langchain/blob/master/libs/core/langchain_core/vectorstores/utils.py)使用了这种逐步选择方式。
 
-```plaintext
-Give the antonym of every input
-
-Input: happy
-Output: sad
-
-Input: worried
-Output:
-```
+LangChain 的语义相似度与 MMR 选择器会调用底层 vector store 的搜索接口；具体参数和距离约定见[官方实现](https://github.com/langchain-ai/langchain/blob/master/libs/core/langchain_core/example_selectors/semantic_similarity.py)。同样的 MMR 思路也能用于检索结果去重。
 
 #### Select by n-gram overlap
 
-这个是计算输入的 query 和 example 的 similarity(0-1 之间), 然后根据给定的阈值, 给出满足条件的 example.
+另一条路线是比较短词串的重合程度。它容易解释，适合表述接近的例子；同义改写可能得分低，字面很像但意思相反的文本也可能得分高。旧示例中的阈值约定属于具体实现，不能当成所有相似度筛选器通用的规则。
 
-阈值为 0.0 表示只排除不相关的 example. 阈值为 -1.0, 表示所有的 example 都会返回. 大于 1.0 表示不返回 example, 默认为 -1.0
+<a id="13-few-shot-prompt-templates"></a>
 
-例子
+### 1.4 Few-shot prompt templates
 
-```python
-from langchain_community.example_selector.ngram_overlap import (
-    NGramOverlapExampleSelector,
-)
-from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
+把上述选择器接到 few-shot 模板里，流程就是：准备示例池 → 根据当前问题选例子 → 与任务说明、问题一起组装输入。用框架无关的伪代码，可以看清各步职责：
 
-example_prompt = PromptTemplate(
-    input_variables=["input", "output"],
-    template="Input: {input}\nOutput: {output}",
-)
-
-# Examples of a fictional translation task.
-examples = [
-    {"input": "See Spot run.", "output": "Ver correr a Spot."},
-    {"input": "My dog barks.", "output": "Mi perro ladra."},
-    {"input": "Spot can run.", "output": "Spot puede correr."},
-]
-example_selector = NGramOverlapExampleSelector(
-    # The examples it has available to choose from.
-    examples=examples,
-    # The PromptTemplate being used to format the examples.
-    example_prompt=example_prompt,
-    # The threshold, at which selector stops.
-    # It is set to -1.0 by default.
-    threshold=-1.0,
-    # For negative threshold:
-    # Selector sorts examples by ngram overlap score, and excludes none.
-    # For threshold greater than 1.0:
-    # Selector excludes all examples, and returns an empty list.
-    # For threshold equal to 0.0:
-    # Selector sorts examples by ngram overlap score,
-    # and excludes those with no ngram overlap with input.
-)
-dynamic_prompt = FewShotPromptTemplate(
-    # We provide an ExampleSelector instead of examples.
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    prefix="Give the Spanish translation of every input",
-    suffix="Input: {sentence}\nOutput:",
-    input_variables=["sentence"],
-)
-
-```
-输入:
-```python
-# An example input with large ngram overlap with "Spot can run."
-# and no overlap with "My dog barks."
-print(dynamic_prompt.format(sentence="Spot can run fast."))
-```
-输出:
-
-```plaintext
-# 可以看到, 即使 "My dog barks." 与输入不相关, 但还是输出了
-Give the Spanish translation of every input
-
-Input: Spot can run.
-Output: Spot puede correr.
-
-Input: See Spot run.
-Output: Ver correr a Spot.
-
-Input: My dog barks.
-Output: Mi perro ladra.
-
-Input: Spot can run fast.
-Output:
+```text
+候选 = 从示例池检索与当前输入相关的例子
+已选 = 在剩余 token 预算内选择候选，并减少重复
+消息 = 系统规则 + 已选输入输出对 + 当前问题
+回答 = 调用模型(消息)
 ```
 
-输入:
-
-```python
-# 不输出 不相关的
-example_selector.threshold = 0.0
-print(dynamic_prompt.format(sentence="Spot can run fast."))
-
-```
-
-输出:
-
-```plaintext
-Give the Spanish translation of every input
-
-Input: Spot can run.
-Output: Spot puede correr.
-
-Input: See Spot run.
-Output: Ver correr a Spot.
-
-Input: Spot plays fetch.
-Output: Spot juega a buscar.
-
-Input: Spot can run fast.
-Output:
-```
-
-### 1.3 Few-shot prompt templates
-
-上边介绍了一些 example selector , 现在介绍
-FewShotPromptTemplate + example selector .
-二者实现的功能就是, 首先我们有一堆 example (通常是成对儿的输入和输出) , 然后可以自适应的, 根据不同的输入, 能够自动的 select 合适的 example 与 输入合并, 一同变为 LLM 的 prompt.
-
-也就是说, 不同的输入, 会产生不同的 prompt , 我理解是和 Retrieval-augmented generation (RAG) 类似的效果.
-
-define example:
-
-```python
-from langchain_core.prompts.few_shot import FewShotPromptTemplate
-from langchain_core.prompts.prompt import PromptTemplate
-
-examples = [
-    {
-        "question": "Who lived longer, Muhammad Ali or Alan Turing?",
-        "answer": """
-Are follow up questions needed here: Yes.
-Follow up: How old was Muhammad Ali when he died?
-Intermediate answer: Muhammad Ali was 74 years old when he died.
-Follow up: How old was Alan Turing when he died?
-Intermediate answer: Alan Turing was 41 years old when he died.
-So the final answer is: Muhammad Ali
-""",
-    },
-    {
-        "question": "When was the founder of craigslist born?",
-        "answer": """
-Are follow up questions needed here: Yes.
-Follow up: Who was the founder of craigslist?
-Intermediate answer: Craigslist was founded by Craig Newmark.
-Follow up: When was Craig Newmark born?
-Intermediate answer: Craig Newmark was born on December 6, 1952.
-So the final answer is: December 6, 1952
-""",
-    },
-    {
-        "question": "Who was the maternal grandfather of George Washington?",
-        "answer": """
-Are follow up questions needed here: Yes.
-Follow up: Who was the mother of George Washington?
-Intermediate answer: The mother of George Washington was Mary Ball Washington.
-Follow up: Who was the father of Mary Ball Washington?
-Intermediate answer: The father of Mary Ball Washington was Joseph Ball.
-So the final answer is: Joseph Ball
-""",
-    },
-    {
-        "question": "Are both the directors of Jaws and Casino Royale from the same country?",
-        "answer": """
-Are follow up questions needed here: Yes.
-Follow up: Who is the director of Jaws?
-Intermediate Answer: The director of Jaws is Steven Spielberg.
-Follow up: Where is Steven Spielberg from?
-Intermediate Answer: The United States.
-Follow up: Who is the director of Casino Royale?
-Intermediate Answer: The director of Casino Royale is Martin Campbell.
-Follow up: Where is Martin Campbell from?
-Intermediate Answer: New Zealand.
-So the final answer is: No
-""",
-    },
-]
-
-# format example pool
-example_prompt = PromptTemplate(
-    input_variables=["question", "answer"], template="Question: {question}\n{answer}"
-)
-
-```
-
-define selector:
-
-```python
-from langchain_chroma import Chroma
-from langchain_core.example_selectors import SemanticSimilarityExampleSelector
-from langchain_openai import OpenAIEmbeddings
-
-example_selector = SemanticSimilarityExampleSelector.from_examples(
-    # This is the list of examples available to select from.
-    examples,
-    # This is the embedding class used to produce embeddings which are used to measure semantic similarity.
-    OpenAIEmbeddings(),
-    # This is the VectorStore class that is used to store the embeddings and do a similarity search over.
-    Chroma,
-    # This is the number of examples to produce.
-    k=1,
-)
-
-```
-
-FewShotPromptTemplate + example + selector :
-
-```python
-prompt = FewShotPromptTemplate(
-    example_selector=example_selector,
-    example_prompt=example_prompt,
-    suffix="Question: {input}",
-    input_variables=["input"],
-)
-
-print(prompt.format(input="Who was the father of Mary Ball Washington?"))
-```
-
-输出:
-
-```plaintext
-# 可以看到 prompt 最后只引入了一个 example
-
-Question: Who was the maternal grandfather of George Washington?
-
-Are follow up questions needed here: Yes.
-Follow up: Who was the mother of George Washington?
-Intermediate answer: The mother of George Washington was Mary Ball Washington.
-Follow up: Who was the father of Mary Ball Washington?
-Intermediate answer: The father of Mary Ball Washington was Joseph Ball.
-So the final answer is: Joseph Ball
-
-
-Question: Who was the father of Mary Ball Washington?
-```
+**检索示例与检索知识不是同一个目的。** 前者通常示范「怎么回答」，后者提供「根据什么回答」。两者都可以用向量搜索，但用于问答的事实证据仍应保留来源和版本，不能因为示例看起来相似就把它当成当前事实。
 
 ### 1.5 Partial prompt templates
 
-这个功能就是类似函数的参数具有默认值.
-
-例子:
+Partial 的作用是提前填好一部分变量。例如每个请求都用中文，可以先绑定语言，再只传问题。它适合减少重复参数；若绑定的是取时间的函数，还要确认该函数何时求值，以及是否需要为一次请求固定相同时间。具体行为见[模板基类实现](https://github.com/langchain-ai/langchain/blob/master/libs/core/langchain_core/prompts/base.py)。
 
 ```python
 from langchain_core.prompts import PromptTemplate
 
-prompt = PromptTemplate.from_template("{foo} {bar}")
-partial_prompt = prompt.partial(foo="666")
-print(partial_prompt.format(bar="baz")) # 输出 666 baz
-```
-
-这个也可以使用函数:
-
-```python
-from datetime import datetime
-
-def _get_datetime():
-    now = datetime.now()
-    return now.strftime("%m/%d/%Y, %H:%M:%S")
-
-prompt = PromptTemplate(
-    template="Tell me a {adjective} joke about the day {date}",
-    input_variables=["adjective", "date"],
-)
-# date 默认 调用当前时间
-partial_prompt = prompt.partial(date=_get_datetime)
-# 输出 : Tell me a funny joke about the day 04/25/2024, 23:22:18
-print(partial_prompt.format(adjective="funny"))
-
+base = PromptTemplate.from_template("用{language}解释：{topic}")
+chinese = base.partial(language="中文")
+text = chinese.format(topic="向量检索")
 ```
 
 ### 1.6 PipelinePrompt
 
-PipelinePrompt 能够把多个 prompt 整到一起.
+旧文用 `PipelinePrompt` 把介绍、示例、用户问题三段模板连接起来。这里的核心是「分块组装输入」，不必依赖某个旧类名。用明确的中间变量、消息列表或当前版本支持的组合接口，也能完成同样的工作。
 
-```python
-from langchain_core.prompts.pipeline import PipelinePromptTemplate
-from langchain_core.prompts.prompt import PromptTemplate
-
-# 最终的 prompt
-full_template = """{introduction}
-
-{example}
-
-{start}"""
-full_prompt = PromptTemplate.from_template(full_template)
-
-# 用于 Introduction
-introduction_template = """You are impersonating {person}."""
-introduction_prompt = PromptTemplate.from_template(introduction_template)
-
-# example
-example_template = """Here's an example of an interaction:
-
-Q: {example_q}
-A: {example_a}"""
-example_prompt = PromptTemplate.from_template(example_template)
-
-# 用户的输入
-start_template = """Now, do this for real!
-
-Q: {input}
-A:"""
-start_prompt = PromptTemplate.from_template(start_template)
-
-# 将上边的 prompt 合并到一起
-input_prompts = [
-    ("introduction", introduction_prompt),
-    ("example", example_prompt),
-    ("start", start_prompt),
-]
-# 指定谁是谁
-pipeline_prompt = PipelinePromptTemplate(
-    final_prompt=full_prompt, pipeline_prompts=input_prompts
-)
-print(
-    pipeline_prompt.format(
-        person="Elon Musk",
-        example_q="What's your favorite car?",
-        example_a="Tesla",
-        input="What's your favorite social media site?",
-    )
-)
-```
-
-输出 :
-
-```plaintext
-
-You are impersonating Elon Musk.
-
-Here's an example of an interaction:
-
-Q: What's your favorite car?
-A: Tesla
-
-Now, do this for real!
-
-Q: What's your favorite social media site?
-A:
-
-```
+组装后至少检查三件事：变量是否遗漏、资料是否被截断、是否给输出留了足够空间。如果要求 JSON，除了提示词，还应使用支持的结构化输出能力并校验字段；合法 JSON 也不代表事实正确。可对照[LangChain 结构化输出文档](https://docs.langchain.com/oss/python/langchain/structured-output)。
 
 ## 2. Retrieval
 
-Retrieval Augmented Generation (RAG) 可能是目前 LLM 发挥比较大作用的一个应用. 其核心思想是利用外挂的知识库赋予在不同的垂直领域应用能力.
+RAG（Retrieval-Augmented Generation，检索增强生成）是在回答时先取得相关资料，再让模型结合资料生成答案。它不要求把知识「写进模型参数」，也不要求检索过程本身必须由 LLM 执行。
 
-其核心流程如下:
+以项目文档助手为例，把流程分成两条会更清楚：
 
-[1] 首先我们要有相应的资源库, source
+- **建库阶段**：读取文档 → 保留来源与权限 → 切块 → 计算表示 → 建索引
+- **问答阶段**：接收问题 → 检索允许访问的片段 → 筛选并组装上下文 → 生成回答与出处
 
-[2] 然后针对不同的资源, 我们使用相应的 dataloader 将资源数据读取
-
-[3] 由于资源文档比较长, 通常我们要进行分块, 称为 chunk
-
-[4] 将文档 chunk 后, 会对每个 chunk 进行 embedding
-
-[5] embedding 之后, 要进行 store, 这个组件一般称为 vector store
-
-[6] 当我们给定输入的时候, LLM 能够根据语义从 store 中抽取有用的资源,这个过程就是 retrieve
-
-![image.png](https://s2.loli.net/2024/04/26/IiHL1MVWNc8QJtG.png)
+这是常见的向量检索路线。已有 SQL、全文搜索或业务 API 时，可以直接利用它们，不必为了叫 RAG 而重新建一套向量库。固定的「先检索、再回答」与由 Agent 动态决定何时检索，是不同的控制方式。[官方检索说明](https://docs.langchain.com/oss/python/deepagents/retrieval)给出了这些区分。
 
 ### 2.1 Dataloader
 
-[官方文档](https://python.langchain.com/docs/integrations/document_loaders/)集成了很多第三方 dataloader,
-甚至可以直接从 arxiv、GitHub 等直接获取数据. 但是常用的可能就是针对 文本 和 csv 的, 而且使用方法类似, 所以这里只学习 文本类型 的.
-
 #### Document Loader
 
-LangChain 给的例子是继承 BaseLoader, 然后将读到的文本初始化为 Document 对象.
-内部有 4 个基本方法: 直接读取所有, 异步读取所有, lazy 读取, 异步 lazy 读取.
+Loader 负责把文件、网页等来源转成应用能处理的文档对象，而不是判断文档中的指令该不该执行。`Document` 的正文用于检索，metadata 则适合保存 URL、文件名、章节、更新时间和业务权限标识。
 
-<img src="https://s2.loli.net/2024/04/26/PC8fvdnsaHA9KB6.png" alt="image.png" width="400" height="300" />
+至少保留能回答两个问题的信息：「这段话来自哪里」「这个用户能否看到它」。如果只保存纯文本，即使回答碰巧正确，也很难给出可核对的出处。
 
-例子:
+原文的自定义 `BaseLoader` 示例同时展示同步、异步和 lazy 读取。它们各有用途：一次读取全部适合小数据；惰性迭代便于逐批处理大数据；异步用于协调 I/O 等待。它们都不自动保证低内存，后续若立刻收集为大列表，仍会把数据全部装入内存。各 loader 的能力应按[对应集成文档](https://docs.langchain.com/oss/python/integrations/document_loaders)检查。
 
-<details markdown="1">
-<summary> 详细代码 </summary>
-
-```python
-from typing import AsyncIterator, Iterator
-from langchain_core.document_loaders import BaseLoader
-from langchain_core.documents import Document
-
-class CustomDocumentLoader(BaseLoader):
-    """An example document loader that reads a file line by line."""
-
-    def __init__(self, file_path: str) -> None:
-        """Initialize the loader with a file path.
-
-        Args:
-            file_path: The path to the file to load.
-        """
-        self.file_path = file_path
-
-    def lazy_load(self) -> Iterator[Document]:  # <-- Does not take any arguments
-        """A lazy loader that reads a file line by line.
-
-        When you're implementing lazy load methods, you should use a generator
-        to yield documents one by one.
-        """
-        with open(self.file_path, encoding="utf-8") as f:
-            line_number = 0
-            for line in f:
-                yield Document(
-                    page_content=line,
-                    metadata={"line_number": line_number, "source": self.file_path},
-                )
-                line_number += 1
-
-    # alazy_load is OPTIONAL.
-    # If you leave out the implementation, a default implementation which delegates to lazy_load will be used!
-    async def alazy_load(
-        self,
-    ) -> AsyncIterator[Document]:  # <-- Does not take any arguments
-        """An async lazy loader that reads a file line by line."""
-        # Requires aiofiles
-        # Install with `pip install aiofiles`
-        # https://github.com/Tinche/aiofiles
-        import aiofiles
-
-        async with aiofiles.open(self.file_path, encoding="utf-8") as f:
-            line_number = 0
-            async for line in f:
-                yield Document(
-                    page_content=line,
-                    metadata={"line_number": line_number, "source": self.file_path},
-                )
-                line_number += 1
-
-with open("./meow.txt", "w", encoding="utf-8") as f:
-    quality_content = "meow meow🐱 \n meow meow🐱 \n meow😻😻"
-    f.write(quality_content)
-
-loader = CustomDocumentLoader("./meow.txt")
-
-## Test out the lazy load interface
-for doc in loader.lazy_load():
-    print()
-    print(type(doc))
-    print(doc)
-
-## Test out the async implementation
-async for doc in loader.alazy_load():
-    print()
-    print(type(doc))
-    print(doc)
-
-"""
-输出结果一样:
-
-<class 'langchain_core.documents.base.Document'>
-page_content='meow meow🐱 \n' metadata={'line_number': 0, 'source': './meow.txt'}
-
-<class 'langchain_core.documents.base.Document'>
-page_content=' meow meow🐱 \n' metadata={'line_number': 1, 'source': './meow.txt'}
-
-<class 'langchain_core.documents.base.Document'>
-page_content=' meow😻😻' metadata={'line_number': 2, 'source': './meow.txt'}
-"""
-```
-
-</details>
-
-> load() can be helpful in an interactive environment such as a jupyter notebook.
-> Avoid using it for production code since eager loading assumes that all the content can fit into memory, which is not always the case, especially for enterprise data.
-:::note
-:::
 ### 2.2 Text Splitters
 
-Once you've loaded documents, you'll often want to transform them to better suit your application. The simplest example is you may want to split a long document into smaller chunks that can fit into your model's context window.
-
-[官方文档](https://python.langchain.com/docs/modules/data_connection/document_transformers/)给了多种 Splitter, 最常用的为以下 3 种.
+分块有两个目标：让片段容易被检索命中，以及让最终上下文放得下。块太大，相关的一句话可能埋在无关内容里；块太小，定义、条件和结论又可能分家。不存在对所有文档都最优的固定大小。
 
 #### Split by character
 
-这个是最简单的 Splitter, 单纯就是使用指定的 character 去切分 text .
+`CharacterTextSplitter` 先按指定分隔符切开，再按长度与 overlap 规则合并。**`chunk_size` 不是完全无效**；问题是，如果一个原始片段本身超过上限，这种 splitter 不一定继续拆开它，因此不能把该值当成严格的最终长度保证。可对照[字符分割文档](https://docs.langchain.com/oss/python/integrations/splitters/character_text_splitter)及[实现中的合并流程](https://github.com/langchain-ai/langchain/blob/master/libs/text-splitters/langchain_text_splitters/character.py)。
 
-例子:
-
-```python
-from langchain_text_splitters import CharacterTextSplitter
-
-text_splitter = CharacterTextSplitter(
-    separator=" ", # 指定 separator
-    chunk_size=5,
-    chunk_overlap=2,
-    length_function=len,
-    is_separator_regex=False,
-)
-
-text_splitter.split_text("我是练习时长 达两年半的坤坤")
-
-```
-
-上述代码中, chunk_size 本意是指进行 split 之后, 后续进行 store 的时候, 最大以多大的 size 作为一个整体进行存储. 但是可以看到这个参数对于 CharacterTextSplitter 不生效, 实际上[源码](https://api.python.langchain.com/en/latest/_modules/langchain_text_splitters/character.html#CharacterTextSplitter)中, 就是简单的用 re.split() 对文档按照 separator 进行切割, 不管子句有多长, 直接返回.
-
-输出:
-
-```plaintext
-['我是练习时长', '达两年半的坤坤']
-```
-
-> 因为 LLM 通常对输入有长度限制, 因此 CharacterTextSplitter 不太适合, 可能会超出输入尺寸范围, 而下边的 RecursiveCharacterTextSplitter 可以递归切割子句, 直到每个子句都小于 chunk size.
-:::note
-:::
 #### Recursive Splitter By Character
 
-这个看了[源码](https://api.python.langchain.com/en/latest/_modules/langchain_text_splitters/character.html#RecursiveCharacterTextSplitter),它默认的 `separator = ["\n\n", "\n", " ", ""]`, 我的理解是说, 首先会根据`\n\n`进行切割. 一般来说, 2 个换行分割开的通常是 2 篇文章. 所以会先按照这个尺度进行切割. 如果切割之后, 某篇文章还是太长(大于 chunk size), 那么会继续使用 `\n` 进行划分切割, 同理直到其长度小于 chunk size.
-
-例子:
+递归分割器尝试逐级使用更细的分隔符，例如段落、换行、空格、字符。对于中文，应考虑句号、逗号等边界，不能只依赖英文空格。下面是一个起点，不是通用最优配置：
 
 ```python
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-text_splitter = RecursiveCharacterTextSplitter(
-    # Set a really small chunk size, just to show.
-    chunk_size=5,
-    chunk_overlap=0,
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,
+    chunk_overlap=80,
     length_function=len,
-    is_separator_regex=False,
-    keep_separator = False
+    separators=["\n\n", "\n", "。", "；", "，", " ", ""],
 )
-text_splitter.split_text(
-    "我是\n\n练习时长达两年\n半的坤坤"
-    )
+chunks = splitter.split_text("这里替换为需要检索的项目文档。")
 ```
 
-输出:
-
-```plaintext
-['我是', '练习时长达', '两年', '半的坤坤']
-# 可以看到, 首先用`\n\n`进行分割, 因为"我是"的长度小于5, 所以直接存起来,
-# 但是后边部分太长, 又基于`\n`进行切割, "半的坤坤"是满足要求的,所以一起存了起来.
-# 但是"练习时长达两年"的长度还是大于5, 于是进行了继续的切割. 变为"练习时长达" 和 "两年"
-```
+此处 `len` 计的是 Python 字符数，**不是 token 数**。Overlap 用于尽量保留边界附近上下文，也会带来重复存储和重复检索；不应指望每块都有刚好相同的重叠长度。[递归分割文档](https://docs.langchain.com/oss/python/integrations/splitters/recursive_text_splitter)说明了长度函数、分隔符与 overlap 的关系。
 
 #### Split by tokens
 
-这个就是使用 NLP 中 token 进行切割, 不同的 tokenizer 有不同的切割方式. 举个例子, 如果一个单词算一个 token, 那就按单词切割.
-为什么需要这个呢, 就是有些 LLM 的输入具有 token 数目的限制, 因此最好分割存储的 tokenizer 和 LLM 使用一样的.
+模型按 token 限制输入时，应使用匹配的 tokenizer 检查。分块满足 embedding 模型上限还不够：问题、提示词、多个片段、消息格式以及预留回答，加起来也要满足生成模型的预算。两种模型的 tokenizer 不一定相同。
 
-这里使用 OpenAI BPE tokenizer : tiktoken, 是[BPE 算法](https://huggingface.co/learn/nlp-course/chapter6/5)的一个实现.
-
-Split by tokens 的使用方法基于上边 2 种 Splitter, 只是切割时调用方法不同:
-
-```python
-# pip install tiktoken
-text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
-    encoding="cl100k_base", chunk_size=100, chunk_overlap=0
-) # CharacterTextSplitter 实际不受 chunk_size 的约束
-texts = text_splitter.split_text("text")
-
-text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    model_name="gpt-4",
-    chunk_size=100,
-    chunk_overlap=0,
-) # 能够保证子句全部小于chunk_size
-texts = text_splitter.split_text("text")
-# 此外 encoding参数 和 model_name参数 效果类似, 具体请参考api
-```
+分词本身的算法和计数差异，统一见[Tokenization](/posts/2026-05-16-llm-tokenization-guide/)。这里关心的是如何用计数结果约束应用输入，不再重复 BPE 的推导。
 
 #### Semantic Chunking
 
-这个就是字面意思, 基于 text 之间的语义进行切割, 使得语义相近的尽量在一个 chunk, 但是这个目前(2024 年 4 月 27 日)是个实验性功能. 参考[官方文档](https://python.langchain.com/docs/modules/data_connection/document_transformers/semantic-chunker/)
+旧文还尝试了语义分块：比较相邻句组的表示，在语义变化较大处切开。它可能改善语义完整性，也会增加 embedding 成本；仍需处理过长片段，不能取代长度校验。
 
-由于这个需要计算语义相似度, 所以需要进行 embedding.
-
-例子:
-
-```python
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain_openai.embeddings import OpenAIEmbeddings
-text_splitter = SemanticChunker(OpenAIEmbeddings())
-texts = text_splitter.split_text("text")
-```
-
-这个里边提供了一个 Breakpoints, 用于评估什么时候该切割, 语义相近多少才算相近?
-
-- Percentile
-
-Percentile(百分位数) 是默认的评估标准, 他是计算所有两两句子之间的 difference, 如果大于阈值就给他切开.
-
-例子:
-
-```python
-text_splitter = SemanticChunker(
-    OpenAIEmbeddings(), breakpoint_threshold_type="percentile"
-    # breakpoint_threshold_amount : 默认值
-)
-```
-
-阅读[源码](https://api.python.langchain.com/en/latest/_modules/langchain_experimental/text_splitter.html#SemanticChunker)可以看到,当`threshold_type = "percentile"` 时, 默认使用 95% 分位数. `breakpoint_threshold_amount` 参数控制分位数具体大小.
-
-- Standard Deviation
-
-用法类似, 不再赘述. 源码中当`threshold_type = "standard_deviation"` 时, 默认使用 `mean + 3 * std` 作为阈值. `breakpoint_threshold_amount` 参数控制标准差的倍数.
-
-- Interquartile
-
-使用的箱线图方法, 默认使用 `mean + 1.5 * iqr`, 其中 `iqr = q3 - q1`, q3 为 75% 分位数, q1 为 25% 分位数. `breakpoint_threshold_amount` 参数控制`q3 - q1`的倍数.
+原实验组件里的百分位数、标准差、四分位距等方法，是决定「变化多大才切开」的不同阈值策略。不要把某个旧版本的默认分位数当成文本规律。实际比较时固定文档和测试问题，观察正确片段是否更容易命中，而不只是看分出来的块是否漂亮。
 
 ### 2.3 Embedding
 
+检索 embedding 把一段文本变成向量，用于比较或搜索。它通常包含对整段输入的编码处理，**不能简单理解成一次 token embedding 矩阵查表**。同维度的向量也不自动可比，查询和文档表示应使用兼容的模型与约定。
 
-[官方文档](https://python.langchain.com/docs/integrations/text_embedding/)给了很多第三方 embedding  方法. 其实就是训练好的一个 Matrix. 这里使用 openAI 提供的 embedding.
-
-例子:
-
-```python
-from langchain_openai import OpenAIEmbeddings
-embeddings_model = OpenAIEmbeddings(api_key="...")
-embeddings = embeddings_model.embed_documents(
-    [
-        "Hi there!",
-        "Oh, hello!",
-        "What's your name?",
-        "My friends call me World",
-        "Hello World!"
-    ]
-)
-len(embeddings), len(embeddings[0])
-embedded_query = embeddings_model.embed_query("What was the name mentioned in the conversation?")
-embedded_query[:5]
-```
-输出:
-```plaintext
-[0.0053587136790156364,
- -0.0004999046213924885,
- 0.038883671164512634,
- -0.003001077566295862,
- -0.00900818221271038]
-```
+LangChain 区分文档批量编码与查询编码，例如 `embed_documents` 和 `embed_query`；某些模型对两类输入的处理不同。换模型或表示方式后，需要重新检查索引兼容性与检索效果。[官方 embedding 集成说明](https://docs.langchain.com/oss/python/integrations/embeddings/)提供了接口边界。
 
 #### Caching
 
+`CacheBackedEmbeddings` 缓存的是**文本到向量的结果**，不是 Transformer 每一层的 KV Cache，也不是逐 token 查表结果。相同文本再次编码时可以复用已存向量；缓存 namespace 应能区分模型及会改变结果的配置。
 
-在得到 embedding 之后, 我们可以已经 embedding 过的 token 给他缓存, 如果后续又来了同一个 token, 我们可以直接从 cache 调用, 而不去需要从 embedding matrix 获取.
-
-核心组件为 CacheBackedEmbeddings, 使用例子如下:
-
-
-```python
-from langchain.embeddings import CacheBackedEmbeddings
-from langchain.storage import LocalFileStore
-from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import CharacterTextSplitter
-
-underlying_embeddings = OpenAIEmbeddings()
-
-store = LocalFileStore("./cache/") # 表示缓存到本地
-
-cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    underlying_embeddings, store, namespace=underlying_embeddings.model
-)
-"""
-underlying_embedder: The embedder to use for embedding.
-document_embedding_cache: Any ByteStore for caching document embeddings.
-batch_size: (optional, defaults to None) The number of documents to embed between store updates.
-namespace: (optional, defaults to "") The namespace to use for document cache. This namespace is used to avoid collisions with other caches. For example, you can set it to the name of the embedding model used.
-"""
-raw_documents = TextLoader("../../state_of_the_union.txt").load()
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-documents = text_splitter.split_documents(raw_documents)
-%%time
-db = FAISS.from_documents(documents, cached_embedder)
-# 输出 CPU times: user 218 ms, sys: 29.7 ms, total: 248 ms
-# Wall time: 1.02 s
-
-%%time
-db2 = FAISS.from_documents(documents, cached_embedder)
-# 输出 CPU times: user 15.7 ms, sys: 2.22 ms, total: 18 ms
-# Wall time: 17.2 ms
-
-```
-
-最后, store 可以换, 比如使用 memory store:
-
-```python
-from langchain.embeddings import CacheBackedEmbeddings
-from langchain.storage import InMemoryByteStore
-store = InMemoryByteStore()
-cached_embedder = CacheBackedEmbeddings.from_bytes_store(
-    underlying_embeddings, store, namespace=underlying_embeddings.model
-)
-```
+文档 embedding 缓存和查询 embedding 缓存还需要分别考虑。查询是否缓存取决于配置，不能因为包装了一层缓存就假定所有请求都会命中。[官方缓存实现](https://github.com/langchain-ai/langchain/blob/master/libs/langchain/langchain_classic/embeddings/cache.py)展示了这一区别。模型推理时的 KV Cache 则见[推理中的缓存与执行](/posts/2026-06-13-llm-mem-opt-2-inference/#cache-computation)。
 
 ### 2.4 Vector stores
 
-[官方文档](https://python.langchain.com/docs/integrations/vectorstores/)提供了许多第三方的 Vector stores.
+Vector store 把向量与原始内容、metadata 关联起来，并提供搜索等操作。选择它时，不只看「能存多少向量」，还要看过滤、更新删除、索引持久化和故障恢复是否满足应用要求。
 
-![image.png](https://s2.loli.net/2024/04/27/gBZulMS2hGEKJTi.png)
+几个容易遗漏的细节：
 
-Facebook AI Similarity Search (FAISS) library, 例子:
+1. 距离分数可能是越大越近，也可能越小越近；跨库阈值不能直接搬用
+2. 文档更新后要同步索引，否则回答会继续引用旧内容
+3. 在多用户应用中，必须在资料进入模型上下文前完成访问控制
+4. 删除原文件不一定自动删除索引、缓存和日志中的副本
 
-```python
-from langchain_community.document_loaders import TextLoader
-from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import CharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-
-# Load the document, split it into chunks, embed each chunk and load it into the vector store.
-raw_documents = TextLoader('../../../state_of_the_union.txt').load()
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-documents = text_splitter.split_documents(raw_documents)
-db = FAISS.from_documents(documents, OpenAIEmbeddings())
-query = "What did the president say about Ketanji Brown Jackson"
-docs = db.similarity_search(query)
-print(docs[0].page_content)
-"""
-也可以直接使用 vector 进行 search
-embedding_vector = OpenAIEmbeddings().embed_query(query)
-docs = db.similarity_search_by_vector(embedding_vector)
-print(docs[0].page_content) # 输出结果是一样的
-"""
-```
-输出:
-
-```plaintext
-    Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Act. And while you’re at it, pass the Disclose Act so Americans can know who is funding our elections.
-
-    Tonight, I’d like to honor someone who has dedicated his life to serve this country: Justice Stephen Breyer—an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. Justice Breyer, thank you for your service.
-
-    One of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court.
-
-    And I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.
-```
+原文的 FAISS 与 Qdrant 示例都遵循「加载 → 切块 → embedding → 搜索」流程。理解其中一种实现后，再按需求查具体集成即可。
 
 #### Asynchronous operations
 
-Vector Store 也支持 异步操作, `Qdrant` is a vector store, which supports all the async operations, thus it will be used in this walkthrough.
-
-例子:
-
-```python
-# pip install qdrant-client
-from langchain_community.vectorstores import Qdrant
-db = await Qdrant.afrom_documents(documents, embeddings, "http://localhost:6333")
-query = "What did the president say about Ketanji Brown Jackson"
-docs = await db.asimilarity_search(query)
-print(docs[0].page_content)
-"""
-# 同理支持 vector 查询
-embedding_vector = embeddings.embed_query(query)
-docs = await db.asimilarity_search_by_vector(embedding_vector)
-"""
-
-"""
-# 此外计算 similarity  的时候, 支持 Maximum marginal relevance search (MMR)方法:
-query = "What did the president say about Ketanji Brown Jackson"
-found_docs = await qdrant.amax_marginal_relevance_search(query, k=2, fetch_k=10)
-for i, doc in enumerate(found_docs):
-    print(f"{i + 1}.", doc.page_content, "\n")
-"""
-```
-输出:
-
-```plaintext
-    Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Act. And while you’re at it, pass the Disclose Act so Americans can know who is funding our elections.
-
-    Tonight, I’d like to honor someone who has dedicated his life to serve this country: Justice Stephen Breyer—an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. Justice Breyer, thank you for your service.
-
-    One of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court.
-
-    And I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.
-```
-
+异步接口有助于处理多个等待网络或磁盘的操作，但不意味着无限并发。设置批量大小、超时、并发上限，并处理供应商限流；不要把一次本机测速写成所有 embedding 请求都能达到的加速倍数。
 
 ### 2.5 Retrievers
 
-Retrievers 接受用户的 query, 然后从 vector store 中根据规则(不同种类相似度)去搜索得到合适的上下文, 用于后续回答输出.
-
-同样的, [官方文档](https://python.langchain.com/docs/modules/data_connection/retrievers/)有多种类型的 Retrievers, 下面简要学习.
+Retriever 的职责可以概括为「接收查询，返回相关文档」。Vector store 可以包装成 retriever，但 retriever 也可以用全文搜索、数据库或其他来源；高级 retriever 不一定全部建立在同一个 vector-store wrapper 上。[官方 retriever 列表](https://docs.langchain.com/oss/python/integrations/retrievers)能看到这种多样性。
 
 #### Vector store-backed retriever
 
-这个 retriever 是最简单的, 他使用的 search 方法有 similarity search and MMR.
-
-:::note
-后续其他的高级 retriever 都是基于这个 retriever进行的包装. 都有一个参数 : base_retriever = retriever
-:::
-
-例子:
-
-```python
-from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import CharacterTextSplitter
-loader = TextLoader("../../state_of_the_union.txt")
-documents = loader.load()
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-texts = text_splitter.split_documents(documents)
-embeddings = OpenAIEmbeddings()
-db = FAISS.from_documents(texts, embeddings)
-retriever = db.as_retriever()
-# retriever = db.as_retriever(search_type="mmr")
-# retriever = db.as_retriever(
-#     search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.5}
-# )
-# retriever = db.as_retriever(search_kwargs={"k": 1})
-
-docs = retriever.invoke("what did he say about ketanji brown jackson")
-```
+从最简单的 top-k 开始：先看召回结果，再调整 k、metadata 过滤或分数阈值。k 大了可能找到更多证据，也可能挤掉真正重要的片段。结果重复时可尝试 MMR，其相关性与多样性的取舍见前文。
 
 #### MultiQueryRetriever
 
-前边提到的最简单的 retriever, 将用户输入的 query 对于 sotre 中的文本进行相似度计算, 但是有时候输入的 query 可能并不太明确, 导致搜索到的文本不够清晰. 这时可以使用 MultiQueryRetriever, 这个 retriever 内部使用一个 LLM 基于用户输入的 query 进行分析, 输出逻辑性的过渡问题, 这样每个问题都会分别去与 sotre 中的资源计算 similarity. 通过对同一问题生成多个视角，MultiQueryRetriever 或许能够克服基于距离的检索的一些限制，并获得更丰富的结果集。
+当用户表述与文档差距大时，可以生成多个查询视角，分别搜索再去重合并。例如「重启后怎么没反应」可以补充「服务启动」「网关日志」等查询。但改写可能偏离原问题，也会增加调用次数；保留原问题并检查新查询是否引入了用户没有提供的条件。
 
-例子:
-
-```python
-# Build a sample vectorDB
-from langchain_chroma import Chroma
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.retrievers.multi_query import MultiQueryRetriever
-from langchain_openai import ChatOpenAI
-
-# Load blog post
-loader = WebBaseLoader("https://lilianweng.github.io/posts/2023-06-23-agent/")
-data = loader.load()
-# Split
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
-splits = text_splitter.split_documents(data)
-# VectorDB
-embedding = OpenAIEmbeddings()
-vectordb = Chroma.from_documents(documents=splits, embedding=embedding)
-
-question = "What are the approaches to Task Decomposition?"
-llm = ChatOpenAI(temperature=0) # 指定一个 LLM 基于 query 生成多角度的 query
-retriever_from_llm = MultiQueryRetriever.from_llm(
-    retriever=vectordb.as_retriever(), llm=llm
-)
-unique_docs = retriever_from_llm.invoke(question)
-len(unique_docs)
-```
-输出
-
-```plaintext
-# 可以看到日志默认生成了3个问题(注意这不是最终输出哈~)
-['1. How can Task Decomposition be approached?',
- '2. What are the different methods for Task Decomposition?',
- '3. What are the various approaches to decomposing tasks?']
-```
-
+它适合解决「问法不同导致漏检」，不能替代权限过滤，更不能保证生成的每个查询都正确。旧 `MultiQueryRetriever` 类属于版本敏感实现，迁移时注意 `langchain-classic` 的包边界。
 
 #### Contextual Compression Retriever
 
-这个实际上算是一个 wrapper, 本意是用来解决:因为我们不知道用户到低想搜索什么, 所以以会直接放大量的文档给 store 中, 但是这就会导致一个问题, 当我们输入 query 的时候, 有用的信息可能会被淹没在大量的文档中, 这就需要我们对文档信息进行压缩, 把没用的信息过滤掉.
+检索后还可以压缩上下文。要区分两种操作：
 
-例子:
+- **过滤、去重、重排**：保留或调整原文片段，不一定改写其文字
+- **抽取、摘要**：产生更短的文本，可能遗漏限制条件，需要继续关联原始出处
 
-```python
-from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import CharacterTextSplitter
-def pretty_print_docs(docs):
-    print(
-        f"\n{'-' * 100}\n".join(
-            [f"Document {i+1}:\n\n" + d.page_content for i, d in enumerate(docs)]
-        )
-    )
-documents = TextLoader("../../state_of_the_union.txt").load()
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-texts = text_splitter.split_documents(documents)
-retriever = FAISS.from_documents(texts, OpenAIEmbeddings()).as_retriever()
+旧文把两者都装进 compression pipeline，容易误以为「压缩」就是一种固定算法。更清楚的顺序是：先召回 → 检查权限 → 去重与筛选 → 必要时抽取 → 组装上下文。比如检索到整章部署手册，问题只问配置位置，优先保留对应段落及章节标识，而不是把整章丢给生成模型。
 
-docs = retriever.invoke("What did the president say about Ketanji Brown Jackson")
-pretty_print_docs(docs)
+### 2.6 怎样知道是检索错了，还是回答错了
 
-```
-输出:
-```plaintext
-Document 1:
+用一小组能人工核对的问题检查中间结果。每题记录应该引用的文档、实际召回片段、最终使用的上下文和答案：
 
-Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Act. And while you’re at it, pass the Disclose Act so Americans can know who is funding our elections.
+| 观察到的问题 | 优先检查 |
+| --- | --- |
+| 正确文档根本没进库 | loader、更新流程、访问权限 |
+| 文档在库里，但正确片段没召回 | 分块、查询表达、检索方法与 k |
+| 召回正确，组装后却消失 | 去重、压缩、排序与 token 预算 |
+| 证据已经给到，回答仍编造 | 指令、模型行为、证据引用与输出校验 |
 
-Tonight, I’d like to honor someone who has dedicated his life to serve this country: Justice Stephen Breyer—an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. Justice Breyer, thank you for your service.
-
-One of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court.
-
-And I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.
-----------------------------------------------------------------------------------------------------
-Document 2:
-
-A former top litigator in private practice. A former federal public defender. And from a family of public school educators and police officers. A consensus builder. Since she’s been nominated, she’s received a broad range of support—from the Fraternal Order of Police to former judges appointed by Democrats and Republicans.
-
-And if we are to advance liberty and justice, we need to secure the Border and fix the immigration system.
-
-We can do both. At our border, we’ve installed new technology like cutting-edge scanners to better detect drug smuggling.
-
-We’ve set up joint patrols with Mexico and Guatemala to catch more human traffickers.
-
-We’re putting in place dedicated immigration judges so families fleeing persecution and violence can have their cases heard faster.
-
-We’re securing commitments and supporting partners in South and Central America to host more refugees and secure their own borders.
-----------------------------------------------------------------------------------------------------
-Document 3:
-
-And for our LGBTQ+ Americans, let’s finally get the bipartisan Equality Act to my desk. The onslaught of state laws targeting transgender Americans and their families is wrong.
-
-As I said last year, especially to our younger transgender Americans, I will always have your back as your President, so you can be yourself and reach your God-given potential.
-
-While it often appears that we never agree, that isn’t true. I signed 80 bipartisan bills into law last year. From preventing government shutdowns to protecting Asian-Americans from still-too-common hate crimes to reforming military justice.
-
-And soon, we’ll strengthen the Violence Against Women Act that I first wrote three decades ago. It is important for us to show the nation that we can come together and do big things.
-
-So tonight I’m offering a Unity Agenda for the Nation. Four big things we can do together.
-
-First, beat the opioid epidemic.
-----------------------------------------------------------------------------------------------------
-Document 4:
-
-Tonight, I’m announcing a crackdown on these companies overcharging American businesses and consumers.
-
-And as Wall Street firms take over more nursing homes, quality in those homes has gone down and costs have gone up.
-
-That ends on my watch.
-
-Medicare is going to set higher standards for nursing homes and make sure your loved ones get the care they deserve and expect.
-
-We’ll also cut costs and keep the economy going strong by giving workers a fair shot, provide more training and apprenticeships, hire them based on their skills not degrees.
-
-Let’s pass the Paycheck Fairness Act and paid leave.
-
-Raise the minimum wage to $15 an hour and extend the Child Tax Credit, so no one has to raise a family in poverty.
-
-Let’s increase Pell Grants and increase our historic support of HBCUs, and invest in what Jill—our First Lady who teaches full-time—calls America’s best-kept secret: community colleges.
-```
-可以看到由于存储的时候, chunk size 比较大, 并且我们要找的信息就仅仅为一句话(淹没在文档中), 所以简单的使用 retriever 会直接将相关的文档全部返回了. 在上边的基础上, 我们对基础的 retriever 进行 warpper :
-
-```python
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import LLMChainExtractor
-from langchain_openai import OpenAI
-
-llm = OpenAI(temperature=0)
-compressor = LLMChainExtractor.from_llm(llm)
-# 用于将抽到的 doc 进行 compression, 并从每个文档中仅提取与查询相关的内容。
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=compressor, base_retriever=retriever
-)
-
-compressed_docs = compression_retriever.invoke(
-    "What did the president say about Ketanji Jackson Brown"
-)
-pretty_print_docs(compressed_docs)
-```
-但是这个 compression 会使用 LLM 对抽回的文档进行处理压缩(万一他处理的不好呢?). 官方提供了一种可以不改变原始文档, 但能保留核心信息的 : filters.
-
-例子:
-
-```python
-from langchain.retrievers.document_compressors import LLMChainFilter
-
-_filter = LLMChainFilter.from_llm(llm)
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=_filter, base_retriever=retriever
-)
-
-compressed_docs = compression_retriever.invoke(
-    "What did the president say about Ketanji Jackson Brown"
-)
-pretty_print_docs(compressed_docs)
-```
-输出:
-
-```plaintext
-Document 1:
-
-Tonight. I call on the Senate to: Pass the Freedom to Vote Act. Pass the John Lewis Voting Rights Act. And while you’re at it, pass the Disclose Act so Americans can know who is funding our elections.
-
-Tonight, I’d like to honor someone who has dedicated his life to serve this country: Justice Stephen Breyer—an Army veteran, Constitutional scholar, and retiring Justice of the United States Supreme Court. Justice Breyer, thank you for your service.
-
-One of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court.
-
-And I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson. One of our nation’s top legal minds, who will continue Justice Breyer’s legacy of excellence.
-```
-
-不过这个 filter 在过滤的时候, 是把整个文本再吃进去操作, 可能带来更多的 token 计算量. EmbeddingsFilter 可以直接使用 embedding 进行操作.
-
-例子:
-
-```python
-from langchain.retrievers.document_compressors import EmbeddingsFilter
-from langchain_openai import OpenAIEmbeddings
-
-embeddings = OpenAIEmbeddings()
-embeddings_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.76)
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=embeddings_filter, base_retriever=retriever
-)
-
-compressed_docs = compression_retriever.invoke(
-    "What did the president say about Ketanji Jackson Brown"
-)
-pretty_print_docs(compressed_docs)
-```
-
-最后, 官方提供一个 Pipeline 能够把 splitter, embedding, filter, retriever 整到一起.
-
-例子
-
-```python
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
-from langchain_community.document_transformers import EmbeddingsRedundantFilter
-from langchain_text_splitters import CharacterTextSplitter
-
-splitter = CharacterTextSplitter(chunk_size=300, chunk_overlap=0, separator=". ")
-# EmbeddingsRedundantFilter 内部实现对文本的 embedding 和 去重冗余
-redundant_filter = EmbeddingsRedundantFilter(embeddings=embeddings)
-# filter
-relevant_filter = EmbeddingsFilter(embeddings=embeddings, similarity_threshold=0.76)
-# 组合
-pipeline_compressor = DocumentCompressorPipeline(
-    transformers=[splitter, redundant_filter, relevant_filter]
-)
-# creat retriever
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=pipeline_compressor, base_retriever=retriever # 当然要基于基本的 retriever
-)
-
-compressed_docs = compression_retriever.invoke(
-    "What did the president say about Ketanji Jackson Brown"
-)
-pretty_print_docs(compressed_docs)
-```
-输出:
-
-```plaintext
-Document 1:
-
-One of the most serious constitutional responsibilities a President has is nominating someone to serve on the United States Supreme Court.
-
-And I did that 4 days ago, when I nominated Circuit Court of Appeals Judge Ketanji Brown Jackson
-----------------------------------------------------------------------------------------------------
-Document 2:
-
-As I said last year, especially to our younger transgender Americans, I will always have your back as your President, so you can be yourself and reach your God-given potential.
-
-While it often appears that we never agree, that isn’t true. I signed 80 bipartisan bills into law last year
-----------------------------------------------------------------------------------------------------
-Document 3:
-
-A former top litigator in private practice. A former federal public defender. And from a family of public school educators and police officers. A consensus builder
-----------------------------------------------------------------------------------------------------
-Document 4:
-
-Since she’s been nominated, she’s received a broad range of support—from the Fraternal Order of Police to former judges appointed by Democrats and Republicans.
-
-And if we are to advance liberty and justice, we need to secure the Border and fix the immigration system.
-
-We can do both
-```
+至少加入「库里没有答案」与「旧版和新版文档冲突」两类题。只展示一次成功问答，无法判断一个 RAG 应用是否可靠。
 
 ## 3. Tools
 
-[Tools](https://python.langchain.com/v0.1/docs/modules/tools/) 通常和 Agent 搭配使用. 面对复杂的任务, Agent(通常是一个LLM) 通过上下文信息去使用合适的 tool 以完成任务. 一个 tool 通常有以下几个组件:
-
-1. The name of the tool
-
-2. A description of what the tool is
-
-3. JSON schema of what the inputs to the tool are
-
-4. The function to call
-
-5. Whether the result of a tool should be returned directly to the user
-
-The name, description, and JSON schema can be used to prompt the LLM so it knows how to specify what action to take. The function to call is equivalent to taking that action.
-
-:::note
-Importantly, the name, description, and JSON schema (if used) are **all used in the prompt**.
-:::
+Tool 是应用提供的一项可执行能力，例如搜索文档、计算数值或查询服务状态。模型通常生成工具名称和参数，**应用执行函数**，再把结果交回模型。模型声称「我执行了」不是执行成功的证据。
 
 ### Basic Usage Tutorial
 
-这里使用官方的 Wikipedia tool.
-
-```python
-from langchain_community.tools import WikipediaQueryRun
-from langchain_community.utilities import WikipediaAPIWrapper
-
-api_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=100)
-tool = WikipediaQueryRun(api_wrapper=api_wrapper)
-pritn(tool.name,tool.description,tool.args,tool.return_direct)
-tool.run({"query": "langchain"}) # 或者 tool.run("langchain")
-```
-
-输出:
-
-```plaintext
-'Page: LangChain\nSummary: LangChain is a framework designed to simplify the creation of applications '
-```
+一个工具至少要讲清楚名称、用途、输入结构和实际实现。名称与说明影响模型选择，参数 schema 帮助约束输入；它们都不能代替业务权限验证。工具返回结果也应明确区分成功、无结果和失败。[LangChain 工具文档](https://docs.langchain.com/oss/python/langchain/tools)说明了这些构造入口。
 
 ### Custom Tools
 
-官方提供了一些[第三方 tool](https://python.langchain.com/v0.1/docs/integrations/tools/) 可供使用. 不过通常我们会定义自己的 tool.
-
-
-定义一个 tool 的时候, 需要指定以下信息:
-
-name(required) : 一个 agent 可调用的 tools 的名字需要是 unique 的.
-
-description(recommended) : 告知 agent 这个 tool 的用途是什么.
-
-args_schema(recommended) : [Pydantic](https://docs.pydantic.dev/latest/) 类型, 可以用于类型检测, 也可以用于添加一些额外的信息, 最后都会作为 prompt 的一部分.
-
 #### decorator
 
+简单函数可以用装饰器暴露为工具。以下例子只做本地字符串处理，便于观察接口，不涉及网络或文件写入：
+
 ```python
-# Import things that are needed generically
-from langchain.pydantic_v1 import BaseModel, Field
-from langchain.tools import BaseTool, StructuredTool, tool
+from langchain.tools import tool
 
 @tool
-def search(query: str) -> str:
-    """Look up things online."""
-    return "LangChain"
-print(search.name)
-print(search.description)
-print(search.args)
+def normalize_issue_key(value: str) -> str:
+    """把非空的问题编号去掉首尾空白并转成大写，不查询问题内容。"""
+    result = value.strip().upper()
+    if not result:
+        raise ValueError("问题编号不能为空")
+    return result
+
+result = normalize_issue_key.invoke({"value": " docs-42 "})
 ```
 
-输出
+输入 schema 能检查参数形状，但「这个问题是否属于当前用户」之类的规则，仍需由工具服务检查。密钥、身份和权限上下文由应用管理，不应让模型通过可编辑参数自行声明。
 
-```plaintext
-search
-search(query: str) -> str - Look up things online.
-{'query': {'title': 'Query', 'type': 'string'}}
+<a id="subclassing--basetool-recommend"></a>
 
-```
+#### Subclassing BaseTool
 
-```python
+当工具需要维护客户端、定制同步/异步行为或复用复杂实现时，可以继承 `BaseTool`。旧文以 ArXiv 工具为例，其有价值的分层是：工具层提供名称和输入约定；底层客户端负责查询、超时与返回值处理。
 
-@tool
-def multiply(a: int, b: int) -> int:
-    """Multiply two numbers."""
-    return a * b
+继承并不一定比装饰器更合适。先用最简单、可独立测试的函数，确有需要再增加抽象层。
 
-print(multiply.name)
-print(multiply.description)
-print(multiply.args)
+<a id="structuredtool-dataclass"></a>
 
-```
-输出:
+#### StructuredTool
 
-```plaintext
-multiply
-multiply(a: int, b: int) -> int - Multiply two numbers.
-{'a': {'title': 'A', 'type': 'integer'}, 'b': {'title': 'B', 'type': 'integer'}}
-```
-
-可以使用 @tool 的参数指定 tool 的名字, 或者对参数进行描述, 提供额外的信息.
-
-```python
-class SearchInput(BaseModel):
-    query: str = Field(description="should be a search query")
-
-
-@tool("search-tool", args_schema=SearchInput, return_direct=True)
-def search(query: str) -> str:
-    """Look up things online."""
-    return "LangChain"
-print(search.name)
-print(search.description)
-print(search.args)
-print(search.return_direct)
-
-```
-
-输出:
-
-
-```plaintext
-
-search-tool
-search-tool(query: str) -> str - Look up things online.
-{'query': {'title': 'Query', 'description': 'should be a search query', 'type': 'string'}}
-True
-
-```
-
-#### Subclassing  BaseTool (**Recommend**)
-
-更加的自定义化, 但是稍微麻烦一些.
-
-```python
-
-from typing import Optional, Type
-from langchain.pydantic_v1 import BaseModel, Field
-from langchain.tools import BaseTool, StructuredTool, tool
-from langchain.callbacks.manager import (
-    AsyncCallbackManagerForToolRun,
-    CallbackManagerForToolRun,
-)
-
-class SearchInput(BaseModel):
-    query: str = Field(description="should be a search query")
-
-class CustomSearchTool(BaseTool):
-    name = "custom_search"
-    description = "useful for when you need to answer questions about current events"
-    args_schema: Type[BaseModel] = SearchInput # 指定 schema
-
-    def _run(
-        self, query: str, run_manager: Optional[CallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool."""
-        return "LangChain"
-
-    async def _arun(
-        self, query: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool asynchronously."""
-        raise NotImplementedError("custom_search does not support async")
-
-
-class CalculatorInput(BaseModel):
-    a: int = Field(description="first number")
-    b: int = Field(description="second number")
-
-class CustomCalculatorTool(BaseTool):
-    name = "Calculator"
-    description = "useful for when you need to answer questions about math"
-    args_schema: Type[BaseModel] = CalculatorInput
-    return_direct: bool = True
-
-    def _run(
-        self, a: int, b: int, run_manager: Optional[CallbackManagerForToolRun] = None
-    ) -> str:
-        """Use the tool."""
-        return a * b
-
-    async def _arun(
-        self,
-        a: int,
-        b: int,
-        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
-    ) -> str:
-        """Use the tool asynchronously."""
-        raise NotImplementedError("Calculator does not support async")
-
-```
-
-
-输出:
-
-```python
-search = CustomSearchTool()
-print(search.name)
-print(search.description)
-print(search.args)
-'''
-custom_search
-useful for when you need to answer questions about current events
-{'query': {'title': 'Query', 'description': 'should be a search query', 'type': 'string'}}
-'''
-
-multiply = CustomCalculatorTool()
-print(multiply.name)
-print(multiply.description)
-print(multiply.args)
-print(multiply.return_direct)
-'''
-Calculator
-useful for when you need to answer questions about math
-{'a': {'title': 'A', 'description': 'first number', 'type': 'integer'}, 'b': {'title': 'B', 'description': 'second number', 'type': 'integer'}}
-True
-'''
-```
-
-第三方的 tool 基本都是上述的方法, 这里以 [ArXiv tool](https://python.langchain.com/v0.1/docs/integrations/tools/arxiv/) 为例. 其源代码见: [arxiv_tool.py](https://github.com/langchain-ai/langchain/blob/master/libs/community/langchain_community/tools/arxiv/tool.py), [utilities_tool.py](https://github.com/langchain-ai/langchain/blob/480c02bf553de894cedc60504b126807dd6dea00/libs/community/langchain_community/utilities/arxiv.py#L13). 核心代码如下:
-
-```python
-# 在 arxiv_tool.py 文件中
-
-"""Tool for the Arxiv API."""
-from typing import Optional, Type
-from langchain_core.callbacks import CallbackManagerForToolRun
-from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_core.tools import BaseTool
-from langchain_community.utilities.arxiv import ArxivAPIWrapper
-
-class ArxivInput(BaseModel):
-    """Input for the Arxiv tool."""
-    query: str = Field(description="search query to look up") # 用于指定 args_schema
-
-class ArxivQueryRun(BaseTool):
-    """Tool that searches the Arxiv API."""
-    name: str = "arxiv"
-    description: str = (
-        "A wrapper around Arxiv.org "
-        "Useful for when you need to answer questions about Physics, Mathematics, "
-        "Computer Science, Quantitative Biology, Quantitative Finance, Statistics, "
-        "Electrical Engineering, and Economics "
-        "from scientific articles on arxiv.org. "
-        "Input should be a search query."
-    )
-    api_wrapper: ArxivAPIWrapper = Field(default_factory=ArxivAPIWrapper) # 这里做了一个 Wrapper
-    args_schema: Type[BaseModel] = ArxivInput
-
-    def _run(
-        self,
-        query: str,
-        run_manager: Optional[CallbackManagerForToolRun] = None,
-    ) -> str:
-        """Use the Arxiv tool."""
-        return self.api_wrapper.run(query) # 调用的是 Wrapper 的 run
-
-# ===================================
-# 在 utilities_tool.py 中
-
-"""Util that calls Arxiv."""
-"""Util that calls Arxiv."""
-import logging
-import os
-import re
-from typing import Any, Dict, Iterator, List, Optional
-
-from langchain_core.documents import Document
-from langchain_core.pydantic_v1 import BaseModel, root_validator
-
-logger = logging.getLogger(__name__)
-
-
-class ArxivAPIWrapper(BaseModel):
-    # 其他函数省略, 就是一些 import 导入检测之类的.
-    def run(self, query: str) -> str:
-
-        try:
-            if self.is_arxiv_identifier(query):
-                results = self.arxiv_search(
-                    id_list=query.split(),
-                    max_results=self.top_k_results,
-                ).results()
-            else:
-                results = self.arxiv_search(  # type: ignore
-                    query[: self.ARXIV_MAX_QUERY_LENGTH], max_results=self.top_k_results
-                ).results()
-        except self.arxiv_exceptions as ex:
-            return f"Arxiv exception: {ex}"
-        docs = [
-            f"Published: {result.updated.date()}\n"
-            f"Title: {result.title}\n"
-            f"Authors: {', '.join(a.name for a in result.authors)}\n"
-            f"Summary: {result.summary}"
-            for result in results
-        ]
-        if docs:
-            return "\n\n".join(docs)[: self.doc_content_chars_max]
-        else:
-            return "No good Arxiv Result was found"
-
-```
-
-####  StructuredTool dataclass
-
-StructuredTool  方法将上述 "直接定义方法" 与 "SubClass" 的方法结合起来. 阅读[其源代码](https://github.com/langchain-ai/langchain/blob/b53548dcda8fe1dd820f7db31db6b1f3bff6c360/libs/core/langchain_core/tools.py#L702), StructuredTool 内部也是继承的 Base tool.
-
-```python
-
-class CalculatorInput(BaseModel):
-    a: int = Field(description="first number")
-    b: int = Field(description="second number")
-
-def multiply(a: int, b: int) -> int:
-    """Multiply two numbers."""
-    return a * b
-
-
-calculator = StructuredTool.from_function(
-    func=multiply,
-    name="Calculator",
-    description="multiply numbers",
-    args_schema=CalculatorInput,
-    return_direct=True,
-    # coroutine= ... <- you can specify an async method if desired as well
-)
-
-print(calculator.name)
-print(calculator.description)
-print(calculator.args)
-```
-输出:
-
-```plaintext
-
-Calculator
-Calculator(a: int, b: int) -> int - multiply numbers
-{'a': {'title': 'A', 'description': 'first number', 'type': 'integer'}, 'b': {'title': 'B', 'description': 'second number', 'type': 'integer'}}
-
-```
+[`StructuredTool.from_function`](https://github.com/langchain-ai/langchain/blob/master/libs/core/langchain_core/tools/structured.py) 用于把已有函数包装成带结构化参数的工具。它与装饰器、继承方式解决的是相近的问题，不是三个必须按顺序掌握的阶段。旧标题中的「dataclass」也不应当成所有版本的实现保证。
 
 #### Handling Tool Errors
 
-```python
-from langchain_core.tools import ToolException
+工具失败后，不要把错误文本伪装成正常数据。应用需要决定：
 
-def search_tool1(s: str):
-    raise ToolException("The search tool1 is not available.")
+- 输入有问题：给出可修正的信息，而不是无限重试
+- 短暂超时或限流：按预算进行有限重试
+- 权限不足：停止越权步骤，说明需要什么权限
+- 有副作用的操作超时：先核对是否已经执行，避免重复提交
 
-search = StructuredTool.from_function(
-    func=search_tool1,
-    name="Search_tool1",
-    description="A bad tool",
-)
-
-search.run("test")
-
-```
-![image.png](https://s2.loli.net/2024/05/13/u2lFsqzKwxGUrnX.png)
-
-设置 handle_tool_error = True, 可以将 ToolException 的字符串输出:
-
-```python
-search = StructuredTool.from_function(
-    func=search_tool1,
-    name="Search_tool1",
-    description="A bad tool",
-    handle_tool_error=True,
-)
-
-search.run("test") # 输出 'The search tool1 is not available.'
-```
-
-也可以将 handle_tool_error 设置为一个函数, 这个函数必须接受一个 `ToolException`, 然后给一个字符串输出 `str`
-
-```python
-def _handle_error(error: ToolException) -> str:
-    return (
-        "The following errors occurred during tool execution:"
-        + error.args[0]
-        + "Please try another tool."
-    )
-
-search = StructuredTool.from_function(
-    func=search_tool1,
-    name="Search_tool1",
-    description="A bad tool",
-    handle_tool_error=_handle_error,
-)
-
-search.run("test")
-# 输出 : 'The following errors occurred during tool execution:The search tool1 is not available.Please try another tool.'
-
-```
+原文的 `ToolException` / `handle_tool_error` 属于工具对象的错误处理方式；LangChain v1 的 Agent 还提供 middleware 拦截工具调用。不要把旧示例直接混入新 Agent 配置，参见[迁移指南的工具错误处理部分](https://docs.langchain.com/oss/python/migrate/langchain-v1#handling-tool-errors)。无论使用哪种接口，都应保留可供排错的内部日志，同时避免把凭证或完整私有内容写进用户可见错误。
 
 ## 4. Agent
 
+如果应用明确规定「检索一次，然后回答」，这是固定工作流。当模型要根据前一步结果选择下一步工具，并在多轮中推进任务时，才需要讨论 Agent 的控制循环。Agent 不只是一个 LLM，还包括工具执行、状态、停止条件和权限控制。[官方 Agent 文档](https://docs.langchain.com/oss/python/langchain/agents)把模型与这些外围机制放在一起解释。
+
+### 4.1 把循环写清楚，再选框架
+
+以「检查部署说明与当前服务状态是否一致」为例，可以先画出控制逻辑：
+
+```text
+接收用户任务，建立本次状态与预算
+循环：
+    把允许使用的资料和工具交给模型
+    如果模型给出最终答案：检查证据后返回
+    否则：验证工具名、参数与权限
+    需要审批时暂停，等待用户决定
+    执行允许的工具，把真实结果加入状态
+    若超过时间、轮次或费用预算：停止并说明未完成部分
+```
+
+这只是应用层伪代码，不是可直接部署的 Agent。特别是「验证权限」和「需要审批时暂停」必须在执行前发生，不能寄希望于系统提示词阻止所有危险调用。
+
+LangChain 当前的 `create_agent` 提供模型、工具、提示及 middleware 的组合入口，并基于 LangGraph 实现运行机制。若任务的分支和顺序本来就确定，普通函数或显式工作流可能更容易验证，不必先增加一个自主决策循环。[框架概览](https://docs.langchain.com/oss/python/langchain/overview)
+
+### 4.2 状态、记忆与缓存别混在一起
+
+- **对话状态**：本次任务的消息、工具结果、进行到哪一步
+- **长期记忆**：应用选择持久保存、以后再取回的事实或偏好，需要更新和删除规则
+- **检索索引 / embedding 缓存**：便于找到资料或避免重复编码
+- **模型 KV Cache**：推理引擎保存的中间张量，用来减少重复计算
+
+它们保存的东西和生命周期都不同。把聊天历史全留着不等于做好记忆管理；有了长期记忆，也不能据此推断模型参数已经学习了这些内容。
+
+### 4.3 从能演示到能使用
+
+一个可用的 Agent 至少应检查：
+
+1. 工具范围是否最小化，读操作与写操作是否分开
+2. 每次执行有没有真实的状态、结果和可追踪标识
+3. 重启后是否会重复提交之前的写操作
+4. 工具返回恶意文字时，能否守住权限边界
+5. 是否能主动停止，并准确说明已经完成与尚未完成的部分
+
+常驻运行、消息网关、Windows 与 Linux 之间的恢复，则是部署层的问题，放在[Hermes Agent 的 WSL 部署案例](/posts/2026-05-15-hermes-agent-wsl-setup/)里展开。Hermes 是另一个应用实现；阅读该案例不要求先把它当作 LangChain 的插件。
 
 ## Reference
+
+- [LangChain v1 迁移指南](https://docs.langchain.com/oss/python/migrate/langchain-v1)：包结构、旧组件与工具错误处理迁移
+- [LangChain 检索概览](https://docs.langchain.com/oss/python/deepagents/retrieval)：知识库、检索流程与不同 RAG 控制方式
+- [LangChain 文档与检索集成](https://docs.langchain.com/oss/python/integrations/retrievers)：按需求选择实现，而不是复制过时导入路径
+- [LangChain Agent 文档](https://docs.langchain.com/oss/python/langchain/agents)：模型、工具、状态与运行循环
+
+以上链接按 2026-10-07 的官方资料核对。API 可能继续变化，概念边界与中间结果的检查方法比记住一个类的完整参数表更重要。

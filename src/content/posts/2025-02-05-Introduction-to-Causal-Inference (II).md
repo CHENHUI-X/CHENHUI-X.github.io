@@ -12,48 +12,48 @@ draft: false
 ---
 ## 0. 前言
 
-Causal Inference (因果推断) 已经在多个领域发挥出巨大作用, 尽管早已经听说过其大名, 但是从未步入这个领域好好学习一番, 通常是浅尝辄止. 为此在博客开一个系列, 一是用于记录学习, 二是希望能够起到监督作用...
+Causal Inference（因果推断）已经在多个领域发挥出重要作用。我早已听说过它，但一直没有系统学习，往往浅尝辄止。于是开这个博客系列，记录学习过程，也希望借此督促自己。
 
-本篇博客主要是对 [A Survey on Causal Inference](https://arxiv.org/abs/2002.02770) 进行学习和记录.
+本篇记录我对 [A Survey on Causal Inference](https://arxiv.org/abs/2002.02770) 的学习。
 
 :::note
-由于这是个人学习笔记, 我作为初学者, 在博客中记录的内容和理解难免会有错误. 希望各位能够指正, 并请不吝赐教, 在下将不胜感激.
+这是初学者的个人笔记，内容和理解难免有误，欢迎指正。
 :::
 
 
 ## 1. BASIC OF CAUSAL INFERENCE
 
-本节主要给出因果推断的背景知识, 包括数学符号、相关假设等.
+本节介绍因果推断的背景知识，包括数学符号和相关假设。
 
 ### 2.1 Definitions
 
 **Definition 1.**
 _Unit. A unit is the **atomic** research object in the treatment effect study._
 
-> 比如一个患者, 一个独立的人, 或者一系列的人, 如一个班级, 一个市场内部的人群等等.
+> 例如一个患者、一个独立的人，也可以是一组人，如一个班级或一个市场中的人群。
 
 **Definition 2.**
 _Treatment. Treatment refers to the action that applies (exposes, or subjects) to a unit._
 
-> 假设给某个病人开药, “开A药”就是一个 treatment, “开B药”也是一个 treatment. 令 W (W $\in$ {0, 1, 2, . . . , N_w }) 表示某个treatment, 这里 $N_w + 1 $ 表示treatment的个数
+> 假设给某个病人开药，“开 A 药”和“开 B 药”分别是一个 treatment。令 W (W $\in$ {0, 1, 2, . . . , N_w }) 表示某个 treatment，这里 $N_w + 1 $ 是 treatment 的个数。
 
 **Definition 3.**
 _Potential outcome. For each unit-treatment pair, the outcome of that treatment when applied on
 that unit is the potential outcome._
 
-> 基于treatment $w$ 得到的 potential outcome 表示为 $Y(W \ = \ w)$
+> treatment $w$ 对应的 potential outcome 表示为 $Y(W \ = \ w)$
 >
-> 潜在结果是指在不同处理条件下可能产生的结果(不同的处理有不同的结果), 更像是在描述一个状态, 是薛定谔的.
+> 潜在结果指不同处理条件下可能产生的结果（不同的处理有不同的结果），更像是在描述一种“薛定谔式”的状态。
 
 **Definition 4.**
 _Observed outcome. The observed outcome is the outcome of the treatment that is actually applied._
 
-> observed outcome 有时候也称为 factual outcome(事实结果), 我们使用 $Y^F$ 来表示事实结果(F 指 factual ).
+> observed outcome 有时也称为 factual outcome（事实结果），用 $Y^F$ 表示，其中 F 指 factual。
 >
-> 观察到的结果 $Y^F$ 是指实际实施某个处理 $w$ 后的结果, 是一个确定的.
+> 观察到的结果 $Y^F$ 是实际实施某个处理 $w$ 后的确定结果。
 
 :::note
-观测结果($Y^F$)和潜在结果($Y(W \ = \ w)$)的关系是: 当某个treatment $w$ **真正被apply**的时候(具体什么treatment无所谓), 此时有: $Y^F = Y(W \ = \ w)$
+观测结果（$Y^F$）和潜在结果（$Y(W \ = \ w)$）的关系是：当某个 treatment $w$ **真正被施加**时，无论具体是哪种 treatment，都有：$Y^F = Y(W \ = \ w)$
 :::
 
 
@@ -61,27 +61,27 @@ _Observed outcome. The observed outcome is the outcome of the treatment that is 
 _Counterfactual outcome: Counterfactual outcome is the outcome if the unit had taken another
 treatment._
 
-> counterfactual outcome 称为反事实结果, 指除被 treatment $w$ 作用之外的, 其他treatment作用的潜在结果.
+> counterfactual outcome 称为反事实结果，指实际接受的 treatment $w$ 之外，其他 treatment 对应的潜在结果。
 >
-> 因为一个unit只能被某一个treatment作用(比如A), 并且只能观测到这一个具体的潜在结果. 如果想观测另外一个treatment(比如B)在这个unit的结果, 就只能时光回溯到之前的时间点或者去平行世界(因为当前unit的状态已经被改变了), 所以称这些结果为反事实结果.
+> 一个 unit 只能接受某一个 treatment（比如 A），也只能观测到对应的潜在结果。若想观测另一个 treatment（比如 B）在同一 unit 上的结果，就只能回到之前的时间点，或者去平行世界，因为当前 unit 的状态已经改变了。因此，这些结果称为反事实结果。
 
 
 **Definition 6.**
 _Pre-treatment variables: Pre-treatment variables are the variables that will not be affected by the
 treatment._
 
-> 处理前变量也称为 background variables(背景变量),  **通常使用 $X$ 表示**. **他们不会被任何的treatment影响, 但 $X$ 可能会影响treatment的选择!!**. 比如某个人的性别不受 “发广告” 这个treatment的影响, 但反过来, 性别可能会影响广告是否下发.
+> 处理前变量也称为 background variables（背景变量），**通常用 $X$ 表示**。**它们不会被任何 treatment 影响，但 $X$ 可能影响 treatment 的选择。** 比如，某个人的性别不受“发广告”这个 treatment 的影响，但性别可能影响广告是否下发。
 
 **Definition 7.**
 _Post-treatment variables: The post-treatment variables are the variables that are affected by the
 treatment._
 
-> 处理后变量指 、**会被treatment影响的变量**. 比如某个人的打开软件的次数, 会受 “发广告” 这个treatment影响.
+> 处理后变量指**会被 treatment 影响的变量**。比如，某个人打开软件的次数会受“发广告”这个 treatment 影响。
 
 **Definition 8.**
 _Individual Treatment Effect (ITE)_
 
-对于unit i , 其 _ITE_ 计算公式为:
+对于 unit i，其 _ITE_ 计算公式为：
 
 
 $$
@@ -89,12 +89,12 @@ $$
 $$
 
 
-其中, $Y_i(W=1)$ 和 $Y_i(W=0)$ 分别是 unit $i$ 分配到实验组和对照组时的输出.
+其中，$Y_i(W=1)$ 和 $Y_i(W=0)$ 分别是 unit $i$ 分配到实验组和对照组时的输出。
 
 **Definition 9.**
 _Average Treatment Effect (ATE)_
 
-ATE关注整个population上的treatment效果, 其计算公式为:
+ATE 关注整个 population 上的 treatment 效果，计算公式为：
 
 
 $$
@@ -102,13 +102,13 @@ $$
 $$
 
 
-其中, $Y(W=1)$ 和 $Y(W=0)$ 分别是整个population 在实验组和对照组时的输出.
+其中，$Y(W=1)$ 和 $Y(W=0)$ 分别是整个 population 在实验组和对照组时的输出。
 
 
 **Definition 10.**
 _Average Treatment effect on the Treated group (ATT)_
 
-ATT则只关注 `subgroup = treatment_group` 的treatment效果,  其计算公式为:
+ATT 只关注 `subgroup = treatment_group` 的 treatment 效果，计算公式为：
 
 
 $$
@@ -119,7 +119,7 @@ $$
 **Definition 11.**
 _Conditional Average Treatment Effect (CATE)_
 
-CATE关注整个population, 在某个确定性条件 `X = x` 下的treatment效果, 其计算公式为:
+CATE 关注整个 population 在某个确定性条件 `X = x` 下的 treatment 效果，计算公式为：
 
 
 $$
@@ -128,13 +128,13 @@ $$
 
 
 :::note
-因为CATE关注的是, 不同条件(condition or background variables)下的treatment效果, 因此也被称为 **heterogeneous(异质) treatment effect.**
+CATE 关注不同条件（condition or background variables）下的 treatment 效果，因此也被称为 **heterogeneous（异质）treatment effect**。
 :::
 
 
 ### 2.2 Assumptions
 
-为了评估因果效应, 需要做一些基本的假设或者前提.
+评估因果效应需要一些基本假设。
 
 **Assumption 1.**
 _Stable Unit Treatment Value Assumption (SUTVA)._ The potential outcomes for any unit
@@ -146,17 +146,17 @@ do not vary with the treatment assigned to other units, and, for each unit, ther
 **Assumption 2.**
 _Ignorability._ Ttreatment assignment $W$ is independent of the potential outcomes, i.e., $W \perp Y(W = 0), Y(W = 1)$.
 
-> 如果满足 Ignorability, 那么会有 2 个 结果成立 :
+> 如果满足 Ignorability，以下 2 个结果成立：
 >
 > 1. 潜在结果与实际接受的处理在总体中独立。随机分配是一种可能使这个假设成立的设计方法，但不能从观察到“可忽略性”反推出研究本来就是随机分配的；
 >
 > 2. 这种独立性称为可交换性：两组的潜在结果分布可比较，并不要求每个人的其他条件完全相同。
 
-> 实际中, 受到背景变量 $X$ 干扰, 导致 $W$ 和 $Y$ 之间有联系. 举个例子,假设 $W$ 表示 "藏私房钱是否被老婆发现",  $Y(W = 1)$ 表示 "被老婆揍一拳之后的疼痛值"; $W = 0$ 表示没有被揍, $W = 1$ 表示被揍.
-> 此时 $W = 1$ 与 $Y(W = 1)$ 是有联系的, 起码我们知道这样的关系存在: 当 $X = 1$, 即藏私房钱被发现时, $W = 1$ 的取值概率会升高, 同时 $Y(W = 1)$ 会变大.
+> 实际中，背景变量 $X$ 的干扰使 $W$ 和 $Y$ 之间产生联系。例如，假设 $W$ 表示“藏私房钱是否被老婆发现”，$Y(W = 1)$ 表示“被老婆揍一拳之后的疼痛值”；$W = 0$ 表示没有被揍，$W = 1$ 表示被揍。
+> 此时 $W = 1$ 与 $Y(W = 1)$ 有联系，至少存在这样的关系：当 $X = 1$，即藏私房钱被发现时，$W = 1$ 的概率会升高，同时 $Y(W = 1)$ 会变大。
 >
 :::note
-因此会考虑以下情况: 给定背景变量 $X$ , 此时有 $W \perp Y(W = 0), Y(W = 1) \mid X$.
+因此考虑给定背景变量 $X$ 的情况，此时有 $W \perp Y(W = 0), Y(W = 1) \mid X$。
 :::
 
 

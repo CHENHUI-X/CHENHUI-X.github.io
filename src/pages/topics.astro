@@ -1,0 +1,25 @@
+---
+import { articleTopics } from "@constants/article-topics";
+import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { getPostUrlBySlug } from "@utils/url-utils";
+---
+<MainGridLayout title="主题目录" description="按问题组织全部文章：LLM 入门、深入专题、应用部署、数学基础与因果推断。">
+    <article class="card-base p-6 md:p-9 mb-4 text-black/75 dark:text-white/75" data-topic-directory>
+        <h1 class="text-3xl font-bold mb-4">按问题读博客</h1>
+        <p class="mb-3">每篇文章在下面只有一个主题归属。先选要解决的问题，再进入文章；发布日期保留原样，查最近更新可以看<a class="text-[var(--primary)] hover:underline" href="/archive/">时间归档</a>。</p>
+        <p class="mb-6">第一次系统学 LLM？从<a class="text-[var(--primary)] hover:underline" href="/posts/2026-06-03-llm-knowledge-map/">知识地图的 9 步入门路线</a>开始。深入专题可以等遇到问题时再读。</p>
+        <nav aria-label="主题索引" class="flex flex-wrap gap-3 mb-8">
+            {articleTopics.map((topic) => <a class="px-3 py-2 rounded-lg bg-black/5 dark:bg-white/5 text-[var(--primary)]" href={`#${topic.id}`}>{topic.title}</a>)}
+        </nav>
+        {articleTopics.map((topic) => <section id={topic.id} class="mb-10 scroll-mt-24" data-topic-group={topic.id}>
+            <h2 class="text-2xl font-bold mb-2">{topic.title}</h2>
+            <p class="mb-4 text-black/60 dark:text-white/60">{topic.description}</p>
+            <ol class="grid gap-4">
+                {topic.articles.map((article) => <li class="border-l-2 border-[var(--primary)] pl-4">
+                    <a class="font-bold text-[var(--primary)] hover:underline" href={getPostUrlBySlug(article.slug)} data-topic-article>{article.title}</a>
+                    <p class="text-sm mt-1">{article.purpose}</p>
+                </li>)}
+            </ol>
+        </section>)}
+    </article>
+</MainGridLayout>

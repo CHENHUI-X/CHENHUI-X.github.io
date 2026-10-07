@@ -42,7 +42,12 @@ export const siteConfig: SiteConfig = {
 export const navBarConfig: NavBarConfig = {
 	links: [
 		LinkPreset.Home,
+		{ name: "主题目录", url: "/topics/" },
 		LinkPreset.Archive,
+		{
+			name: "LLM 知识地图",
+			url: "/posts/2026-06-03-llm-knowledge-map/",
+		},
 		LinkPreset.About,
 		{
 			name: "GitHub",

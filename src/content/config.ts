@@ -1,4 +1,25 @@
 import { defineCollection, z } from "astro:content";
+import type { CollectionConfig } from "astro/content/config";
+
+type PostsSchema = z.ZodObject<
+	{
+		title: z.ZodString;
+		published: z.ZodDate;
+		updated: z.ZodOptional<z.ZodDate>;
+		draft: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+		pin: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+		description: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+		image: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+		tags: z.ZodDefault<z.ZodOptional<z.ZodArray<z.ZodString>>>;
+		category: z.ZodDefault<z.ZodNullable<z.ZodOptional<z.ZodString>>>;
+		lang: z.ZodDefault<z.ZodOptional<z.ZodString>>;
+		prevTitle: z.ZodDefault<z.ZodString>;
+		prevSlug: z.ZodDefault<z.ZodString>;
+		nextTitle: z.ZodDefault<z.ZodString>;
+		nextSlug: z.ZodDefault<z.ZodString>;
+	},
+	"strip"
+>;
 
 const postsCollection = defineCollection({
 	schema: z.object({
@@ -23,7 +44,10 @@ const postsCollection = defineCollection({
 const specCollection = defineCollection({
 	schema: z.object({}),
 });
-export const collections = {
+export const collections: {
+	posts: CollectionConfig<PostsSchema>;
+	spec: CollectionConfig<z.ZodObject<Record<never, never>, "strip">>;
+} = {
 	posts: postsCollection,
 	spec: specCollection,
 };

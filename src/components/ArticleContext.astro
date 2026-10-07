@@ -1,0 +1,14 @@
+---
+import { getArticleTopic } from "@constants/article-topics";
+
+interface Props {
+	slug: string;
+}
+const { slug } = Astro.props;
+const topic = getArticleTopic(slug);
+const article = topic?.articles.find((item) => item.slug === slug);
+---
+{topic && article && <aside class="mb-6 p-4 rounded-xl bg-black/5 dark:bg-white/5 text-sm" aria-label="文章定位" data-article-context>
+    <p class="mb-2 text-black/60 dark:text-white/60">本文位置：<a class="text-[var(--primary)] hover:underline" href={`/topics/#${topic.id}`}>{topic.title}</a> · <a class="text-[var(--primary)] hover:underline" href="/topics/">全站主题目录</a></p>
+    <p class="text-black/75 dark:text-white/75">{article.purpose}</p>
+</aside>}

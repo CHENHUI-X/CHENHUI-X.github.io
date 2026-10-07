@@ -1,0 +1,18 @@
+---
+import { getArticleTopic } from "@constants/article-topics";
+import { getPostUrlBySlug } from "@utils/url-utils";
+
+interface Props {
+	slug: string;
+}
+const topic = getArticleTopic(Astro.props.slug);
+const related =
+	topic?.articles.filter((item) => item.slug !== Astro.props.slug) ?? [];
+---
+{topic && <nav class="card-base p-6 md:px-9 mb-4" aria-label="同主题文章" data-topic-navigation>
+    <p class="font-bold text-black/75 dark:text-white/75 mb-3">{topic.title} · 按需选读</p>
+    <ul class="grid gap-3 sm:grid-cols-2">
+        {related.map((article) => <li><a class="text-[var(--primary)] hover:underline" href={getPostUrlBySlug(article.slug)}>{article.title}</a></li>)}
+    </ul>
+    <a class="inline-block mt-4 text-[var(--primary)] hover:underline" href="/topics/">← 返回全站主题目录</a>
+</nav>}

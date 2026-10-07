@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="780" viewBox="0 0 720 780" role="img" aria-labelledby="title desc" lang="zh-CN">
+<title id="title">BPE：先合并 rank 更小的一对</title><desc id="desc">规则 b+c 合并为 bc 的 rank 为 1，a+b 合并为 ab 的 rank 为 2。输入 a b c，先选择 b c，因此得到 a bc；此后没有独立 b token，规则 a+b 不可再用。</desc>
+<defs>
+<marker id="arrow-muted" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#586779"/></marker>
+<marker id="arrow-blue" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#2864DC"/></marker>
+<marker id="arrow-teal" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#087F83"/></marker>
+<marker id="arrow-coral" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#C4513E"/></marker>
+<pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M-2 2L2 -2M0 10L10 0M8 12L12 8" stroke="#DCE2E9" stroke-width="1.5"/></pattern>
+</defs>
+<rect x="0" y="0" width="720" height="780" rx="0" fill="#FFFFFF"/>
+<rect x="36" y="30" width="40" height="5" rx="0" fill="#2864DC"/>
+<text x="36" y="79" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="36" font-weight="700" fill="#182638" text-anchor="start">BPE：先合并 rank 更小的一对</text>
+<text x="36" y="123" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="start">人为设定的最小规则表，聚焦一次推理</text>
+<line x1="36.00" y1="147.00" x2="684.00" y2="147.00" stroke="#CDD5DE" stroke-width="1.5" stroke-linecap="round"/>
+<text x="36" y="204" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="28" font-weight="600" fill="#182638" text-anchor="start">已学规则</text>
+<rect x="200" y="169" width="484" height="114" rx="0" fill="#F2F5F8"/>
+<text x="222" y="211" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="30" font-weight="700" fill="#087F83" text-anchor="start">1</text>
+<text x="279" y="211" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="30" font-weight="600" fill="#182638" text-anchor="start">b + c → bc</text>
+<text x="222" y="255" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="30" font-weight="700" fill="#586779" text-anchor="start">2</text>
+<text x="279" y="255" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="30" font-weight="400" fill="#586779" text-anchor="start">a + b → ab</text>
+<text x="36" y="353" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="28" font-weight="400" fill="#586779" text-anchor="start">当前 token</text>
+<rect x="260" y="309" width="100" height="68" rx="6" fill="#EAF0FE" stroke="#2864DC" stroke-width="2"/>
+<text x="310.0" y="354.0" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="32" font-weight="600" fill="#2864DC" text-anchor="middle">a</text>
+<rect x="388" y="309" width="100" height="68" rx="6" fill="#E5F4F1" stroke="#087F83" stroke-width="2"/>
+<text x="438.0" y="354.0" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="32" font-weight="600" fill="#087F83" text-anchor="middle">b</text>
+<rect x="516" y="309" width="100" height="68" rx="6" fill="#E5F4F1" stroke="#087F83" stroke-width="2"/>
+<text x="566.0" y="354.0" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="32" font-weight="600" fill="#087F83" text-anchor="middle">c</text>
+<path d="M392 394 V409 H612 V394" stroke="#087F83" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="502" y="455" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="28" font-weight="600" fill="#087F83" text-anchor="middle">rank 1：先合并</text>
+<line x1="502.00" y1="473.00" x2="502.00" y2="512.00" stroke="#087F83" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow-teal)"/>
+<text x="36" y="566" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="28" font-weight="400" fill="#586779" text-anchor="start">合并结果</text>
+<rect x="260" y="525" width="100" height="68" rx="6" fill="#EAF0FE" stroke="#2864DC" stroke-width="2"/>
+<text x="310.0" y="570.0" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="32" font-weight="600" fill="#2864DC" text-anchor="middle">a</text>
+<rect x="388" y="525" width="228" height="68" rx="6" fill="#E5F4F1" stroke="#087F83" stroke-width="2"/>
+<text x="502.0" y="570.0" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="32" font-weight="600" fill="#087F83" text-anchor="middle">bc</text>
+<line x1="36.00" y1="641.00" x2="684.00" y2="641.00" stroke="#CDD5DE" stroke-width="1.5" stroke-linecap="round"/>
+<text x="36" y="686" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="29" font-weight="600" fill="#182638" text-anchor="start">a | bc 已成为新的 token 边界</text>
+<text x="36" y="725" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="start">不能再把 bc 里的 b 单独取出与 a 合并</text>
+</svg>

@@ -1,5 +1,5 @@
 ---
-title: Kullback–Leibler divergence
+title: KL 散度：定义、直觉与高斯分布推导
 published: 2024-04-19
 description: 介绍 KL 散度（Kullback-Leibler divergence）的定义、离散与连续版本的公式，以及其在衡量两个概率分布差异性中的核心作用。
 category: Deep Learning
@@ -12,324 +12,285 @@ draft: false
 ---
 ## 0. 前言
 
-我们有2个分布 $P$ 和 $Q$, 如何比较二者之间的差异性? 在数理统计上, K-L 散度是一个常用的方法.
+假设真实数据来自分布 $P$，而我们用分布 $Q$ 去预测。怎样衡量这套预测和真实分布之间的差异？
 
+先从一次观测看：结果 $x$ 发生时，预测概率越小，负对数损失 $-\ln Q(x)$ 越大。如果换成真实分布，损失就是 $-\ln P(x)$。**KL 散度比较的是两种损失之差，再按照真实分布 $P$ 求平均。**
+
+这也解释了为什么要写清方向：$D_{\mathrm{KL}}(P\|Q)$ 按 $P$ 加权，换成 $D_{\mathrm{KL}}(Q\|P)$ 就换了参照分布，通常得到不同答案。
+
+本文统一使用自然对数 $\ln$，单位是 nat；改用 $\log_2$ 时单位为 bit，数值相差一个固定比例。
 
 ## 1. 定义
 
-### 1.1 离散版本
+### 1.1 离散版本与零概率
 
-For discrete probability distributions $P$ and $Q$ defined on the same sample space $\mathcal {X}$ .
-
-
-$$
-D_{KL}(P \ ||\  Q)  = \sum_{x \in \mathcal {X}} P(x) \ log(\frac{P(x)} {Q(x)})
-$$
-
-
-which is equivalent to
-
-
-$$
-D_{KL}(P \ ||\  Q)  = - \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{Q(x)} {P(x)})
-$$
-
-
-### 1.2 连续版本
-
-
-$$
-D_{KL}(P \ ||\  Q)  = \int_{x \in \mathcal {X}} p(x) \ log(\frac{p(x)} {q(x)}) \ dx
-$$
-
-
-## 2. 理解
-
-### 2.1 公式上
-
-有人会把KL散度理解为一种"距离",不过"距离"需要满足以下几个性质
-
-- 非负性 : 满足
-
-> 证明
-
+设 $P$ 和 $Q$ 定义在同一个离散样本空间 $\mathcal X$ 上：
 
 $$
 \begin{aligned}
 D_{\mathrm{KL}}(P\|Q)
-&=-\sum_{x\in\mathcal X}P(x)\log\frac{Q(x)}{P(x)}\\
-&\ge-\log\left(\sum_{x:P(x)>0}P(x)\frac{Q(x)}{P(x)}\right)
-\quad\text{(Jensen's inequality)}\\
-&=-\log\left(\sum_{x:P(x)>0}Q(x)\right)\ge-\log 1=0.
+&=\sum_{x\in\mathcal X}P(x)\ln\frac{P(x)}{Q(x)}\\
+&=\mathbb E_{X\sim P}\left[\ln\frac{P(X)}{Q(X)}\right].
 \end{aligned}
 $$
 
-若某处 $P(x)>0$ 但 $Q(x)=0$，则按定义散度为 $+\infty$，非负性仍成立。原式不能去掉期望权重后直接对各项求和。
+遇到零概率时，不能直接按普通除法计算：[1]
 
+- 若 $P(x)=0$，这一项按约定取 0，包括 $P(x)=Q(x)=0$ 的情况；可以直接只对 $P(x)>0$ 的位置求和
+- 若 $P(x)>0$ 但 $Q(x)=0$，则 $D_{\mathrm{KL}}(P\|Q)=+\infty$：真实可能发生的结果，被预测模型判定为绝不可能
 
-- 同一性 : 满足
+因此，要让 KL 有限，$Q$ 必须覆盖所有在 $P$ 下有正概率的位置。对于有限样本空间，这个条件足够；对于无限样本空间，即使每个这样的 $Q(x)$ 都大于 0，求和仍可能发散。
 
-> 证明
+例如，$P=(1,0)$、$Q=(1/2,1/2)$ 时，$D_{\mathrm{KL}}(P\|Q)=\ln2$，但反过来的 KL 是 $+\infty$。方向不仅影响大小，还可能影响是否有限。
 
+### 1.2 连续版本与绝对连续
 
-$$
-D_{KL}(P \ ||\  P)  =  \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{P(x)} {P(x)}) = 0
-$$
-
-
-- 对称性 : 不满足
-
+若 $P,Q$ 相对于同一坐标空间上的体积元素都有密度 $p,q$，定义为：
 
 $$
-\begin{align*}
-D_{KL}(P \ ||\  Q)  &=  \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{P(x)} {Q(x)}) \\
-&\neq\\
-D_{KL}(Q \ ||\  P)  &=  \ \sum_{x \in \mathcal {X}} Q(x) \ log(\frac{Q(x)} {P(x)}) \\
-\end{align*}
+D_{\mathrm{KL}}(P\|Q)
+=\int p(x)\ln\frac{p(x)}{q(x)}\,dx.
 $$
 
+这里的 $p(x),q(x)$ 是密度，不是单点概率。判断是否遗漏了真实可能发生的结果，要看一整块集合承载的概率，不能仅凭“某个点的密度为 0”下结论。
 
-> 一般来说不等, 所以对称性不满足
+严格地说，这个条件是：对于任意可测集合 $A$，只要 $Q(A)=0$，就有 $P(A)=0$。这称为 **$P$ 对 $Q$ 绝对连续**，记为 $P\ll Q$。如果这个条件不成立，KL 为 $+\infty$；条件成立也不保证积分一定有限。
 
-- 三角不等式 : 不满足
+## 2. 它为什么不是距离？
 
-假设有 `P Q R` 三个分布, 探究
-$D_{KL}(P \ ||\  R)$ 与 $D_{KL}(P \ ||\  Q)$ 、$D_{KL}(Q \ ||\  R)$ 的关系。
+### 2.1 非负性与取零的条件
 
-
-$$
-\begin{align*}
-D_{KL}(P \ ||\  R)  &=  \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{P(x)} {R(x)}) \\
-&=  \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{P(x)} {R(x)} * \frac{Q(x)} {Q(x)} ) \\
-&=  \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{P(x)} {Q(x)} * \frac{Q(x)} {R(x)} ) \\
-&=  D_{KL}(P \ ||\  Q) + \ \sum_{x \in \mathcal {X}} P(x) \ log(\frac{Q(x)} {R(x)} ) \\
-\end{align*}
-$$
-
-
-那就需要看后者
-
+KL 满足：
 
 $$
-\sum_{x \in \mathcal {X}} P(x) \ log(\frac{Q(x)} {R(x)} )
+D_{\mathrm{KL}}(P\|Q)\ge0,
+\qquad
+D_{\mathrm{KL}}(P\|Q)=0\iff P=Q.
 $$
 
+离散情形的 $P=Q$ 表示每个位置的概率都相同；密度形式中表示 $p=q$ 几乎处处，即允许在零测集上不同，但它们仍定义同一个概率分布。[1]
 
-与
-
-
-$$
-D_{KL}(Q \ ||\  R)
-$$
-
-
-之间的大小关系无法从定义直接判定。一个具体反例是 $P=(0.1,0.9)$、$Q=(0.2,0.8)$、$R=(0.3,0.7)$：用自然对数计算，$D_{KL}(P\|R)\approx0.11632$，而 $D_{KL}(P\|Q)+D_{KL}(Q\|R)\approx0.06242$。因此三角不等式不成立：
-
-
-$$
-D_{KL}(P \ ||\  R) > D_{KL}(P \ ||\  Q) + D_{KL}(Q \ ||\  R)
-$$
-
-
-:::note
-因此称其为“距离”是不合适的， 充其量只能说其可以度量两个分布之间的差异性。
-:::
-
-### 2.2 从熵的角度
-
-"熵"通常指的是[香农熵(Shannon entropy)](https://zh.wikipedia.org/zh-hans/%E7%86%B5_(%E4%BF%A1%E6%81%AF%E8%AE%BA)). 原来是信息论里边的东西, 其公式大家很熟悉:
-
-
-$$
-H(X) = \sum_{x \in \mathcal {X}} P(x) \ log\ \frac{1} {P(x)}
-$$
-
-
-:::note
-如果你不知道这个公式为什么是这样, 而不是那样, 可以看我在 B站 发的视频 : [https://www.bilibili.com/video/BV1kg411u7RP](https://www.bilibili.com/video/BV1kg411u7RP)
-:::
-
-然后来看以下推导:
-
-
-$$
-\begin{align*}
-I(X,Y) &= D_{KL}(p(x,y)\,\|\,p(x)p(y)) \quad \text{（定义）}\\
-&=  \ \sum_{x , y} p_{xy} \ log(\frac{p_{xy}} {p_x \times p_y})  \\
-& = \ \sum_{x , y} p_{xy} \ log(\frac{p_{xy}} {p_x}) - \ \sum_{x , y} p_{xy} \ log \ p_{y} \\
-& = \ \sum_{x , y} p_{xy} \ log \ p(y|x) - \ \sum_{y}  \ (\sum_{x} p_{xy}) \ log \ p_{y} \\
-& = \ \sum_{x , y} p_{x}p_{y|x} \ log \ p(y|x) - \ \sum_{y}  \ p_{y} \ log \ p_{y} \\
-& = \ \sum_{x} p_{x} \ \sum_{y } p_{y|x} \ log \ p(y|x) - \ \sum_{y}  \ p_{y} \ log \ p_{y} \\
-& = - \ \sum_{x } p_{x} \ H(y|X=x) - \ \sum_{y}  \ p_{y} \ log \ p_{y} \\
-& = -H(Y|X) +  H(Y) \\
-& = H(Y) - H(Y|X)  \\
-\end{align*}
-$$
-
-
-其中, $I(X,Y)$ 称为随机变量 X 与 Y 的互信息量,
-$H(Y\ |\ X)$
-表示在已知随机变量X的情况下,Y的熵,也称条件熵.
-
-假设 $P = p(x,y), Q =  p(x) * p(y)$
-我们从 $I(X,Y) = D_{KL}(P\ || \ Q) = H(Y) - H(Y|X)$
-的角度来看, 当
-$I(X,Y) = 0$
-就是想说
-$H(Y) - H(Y|X) = 0$
-
-:::note
-表明已知信息 X , 仍然有 $H(Y\|X) = H(Y)$, 即 X 对 Y 的熵降低无任何作用 <=> X 和 Y 独立 <=> P = Q
-:::
-
-这样看来, $minimize \ KL(P,Q)$ 就是想让二者从`信息量上`尽量的相近
-
-## 3. 应用
-
-
-$$
-\begin{align*}
-D_{KL}(P \ ||\  Q)  &= \sum_{x \in \mathcal {X}} P(x) \ log \ \frac{P(x)} {Q(x)} \\
-&= \sum_{x \in \mathcal {X}} P(x) \ log \ P(x) - \sum_{x \in \mathcal {X}} P(x) \ log \ Q(x) \\
-&=  - H(P) + \sum_{x \in \mathcal {X}} P(x) \ log \ \frac{1}{Q(x)} \\
-&=  - H(P) + H(P,Q)
-\end{align*}
-$$
-
-
->这里 H(P,Q) 称为 分布 P 和 分布 Q 的交叉熵, 通常我们在机器学习或者深度学习中, 可以把 P 分布理解为真实的概率分布(未知,但是固定) , 因此 - H(P) 就是个常数 ; Q 为我们模型输出的概率分布, 所以可以通过
-$minimize \ H(P,Q)$
-去等价
-$minimize \ D_{KL}(P \ ||\  Q) $
-. 即 交叉熵 损失函数.
-:::note
-:::
-## 4. 补充
-
-KL divergence between two multivariate Gaussian distributions.
-
-Probabilty density function of multivariate Normal distribution is given by:
-
-
-$$
-p(\mathbf{x}) = \frac{1}{(2\pi)^{k/2}|\Sigma|^{1/2}} \exp\left(-\frac{1}{2}(\mathbf{x}-\boldsymbol{\mu})^T\Sigma^{-1}(\mathbf{x}-\boldsymbol{\mu})\right)
-$$
-
-
-假设2个分布分别为 $\mathcal{N}(\boldsymbol{\mu_p},\,\Sigma_p) $ 和 $\mathcal{N}(\boldsymbol{\mu_q},\,\Sigma_q)$ , 其中 $\mu$ 为 $k$ 维 列向量.
-
+下面在有限离散空间上证明。令 $S=\{x:P(x)>0\}$；先假设 $Q(x)>0$ 对所有 $x\in S$ 成立。由于 $-\ln$ 是严格凸函数，使用 Jensen 不等式：
 
 $$
 \begin{aligned}
-D_{KL}(p||q) & = \mathbb{E}_p\left[\log(p) - \log(q)\right]
-\newline
-& = \mathbb{E}_p\left[\frac{1}{2}\log\frac{|\Sigma_q|}{|\Sigma_p|} - \frac{1}{2}(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p}) + \frac{1}{2}(\mathbf{x}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\mathbf{x}-\boldsymbol{\mu_q})\right]
-\newline
-& = \frac{1}{2}\mathbb{E}_p\left[\log\frac{|\Sigma_q|}{|\Sigma_p|}\right] - \frac{1}{2}\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p})\right] + \frac{1}{2}\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\mathbf{x}-\boldsymbol{\mu_q})\right]
-\newline
-& = \frac{1}{2}\log\frac{|\Sigma_q|}{|\Sigma_p|} - \frac{1}{2}\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p})\right] + \frac{1}{2}\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\mathbf{x}-\boldsymbol{\mu_q})\right]
+D_{\mathrm{KL}}(P\|Q)
+&=\sum_{x\in S}P(x)\left[-\ln\frac{Q(x)}{P(x)}\right]\\
+&\ge-\ln\left(\sum_{x\in S}P(x)\frac{Q(x)}{P(x)}\right)\\
+&=-\ln\left(\sum_{x\in S}Q(x)\right)\ge0.
 \end{aligned}
 $$
 
+这里不能丢掉期望的权重 $P(x)$。若某处 $P(x)>0$ 而 $Q(x)=0$，KL 为 $+\infty$，非负性仍成立。
 
-其中
-$(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p})$
-是一个实数. 所以可以重新写为 :
+若最后等于 0，上述两个不等式必须同时取等号：第一步要求 $Q(x)/P(x)$ 在 $S$ 上为常数，第二步要求 $\sum_{x\in S}Q(x)=1$。两者合起来得到常数为 1，且 $Q$ 在 $S$ 外没有概率质量，所以 $P=Q$。反过来，把 $P=Q$ 代入定义自然得到 0。
 
+### 2.2 不对称
 
-$$
-tr \left\{(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}(\mathbf{x}-\boldsymbol{\mu_p})\right\}
-$$
-
-
-其中 tr{} 表示  trace operator , 利用 trace trick (轮换性) , 可以将上式修改为:
-
+取 $P=(0.1,0.9)$、$Q=(0.2,0.8)$：
 
 $$
-tr \left\{(\mathbf{x}-\boldsymbol{\mu_p})(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}\right\}
+D_{\mathrm{KL}}(P\|Q)\approx0.036690,
+\qquad
+D_{\mathrm{KL}}(Q\|P)\approx0.044403.
 $$
 
+所以 KL 一般不满足对称性。不过，这并不表示对所有 $P,Q$ 都有“不等”；某些特殊分布的两个方向也会相等。
 
-于是第2项可修改为:
+### 2.3 不满足三角不等式
 
-
-$$
-\frac{1}{2}\mathbb{E}_p\left[tr\left\{(\mathbf{x}-\boldsymbol{\mu_p})(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}\right\}\right]
-$$
-
-
-然后, 将 expectation 和 trace 交换位置, 且 $\Sigma_p^{-1}$ 是常数矩阵:
-
+仍取上面的 $P,Q$，再令 $R=(0.3,0.7)$。直接计算可得：
 
 $$
 \begin{aligned}
-& = \frac{1}{2}tr\left\{\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_p})(\mathbf{x}-\boldsymbol{\mu_p})^T\Sigma_p^{-1}\right]\right\}
-\newline
-& = \frac{1}{2}tr\left\{\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_p})(\mathbf{x}-\boldsymbol{\mu_p})^T\right]\Sigma_p^{-1}\right\}
-\newline
-& = \frac{1}{2}tr\left\{\Sigma_p\Sigma_p^{-1}\right\}
-\newline
-& = \frac{1}{2}tr\left\{I_k\right\}
-\newline
-& = \frac{k}{2}
+D_{\mathrm{KL}}(P\|R)&\approx0.116322,\\
+D_{\mathrm{KL}}(P\|Q)+D_{\mathrm{KL}}(Q\|R)
+&\approx0.036690+0.025732\\
+&\approx0.062422.
 \end{aligned}
 $$
 
+左边大于右边，给出了三角不等式不成立的具体反例。因此 KL 可以衡量分布差异，但不是数学意义上的距离。
 
-而第3项(证明在最后) :
+## 3. 与熵、交叉熵和互信息的关系
 
+### 3.1 固定真实分布时，为什么用交叉熵训练？
 
-$$
-\mathbb{E}_p\left[(\mathbf{x}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\mathbf{x}-\boldsymbol{\mu_q})\right] = (\boldsymbol{\mu_p}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\boldsymbol{\mu_p}-\boldsymbol{\mu_q}) + tr\left\{\Sigma_q^{-1}\Sigma_p\right\}
-$$
-
-
-于是:
-
+对离散分布，熵和交叉熵分别为：
 
 $$
-D_{KL}(p||q) = \frac{1}{2}\left[\log\frac{|\Sigma_q|}{|\Sigma_p|} - k + (\boldsymbol{\mu_p}-\boldsymbol{\mu_q})^T\Sigma_q^{-1}(\boldsymbol{\mu_p}-\boldsymbol{\mu_q}) + tr\left\{\Sigma_q^{-1}\Sigma_p\right\}\right]
+H(P)=-\sum_xP(x)\ln P(x),
+\qquad
+H(P,Q)=-\sum_xP(x)\ln Q(x).
 $$
 
-
-当 $q \sim \mathcal{N}(0,\,I)$ :
-
+在这些量有限时，展开定义得到：
 
 $$
-D_{KL}(p||q) = \frac{1}{2}\left[\boldsymbol{\mu_p}^T\boldsymbol{\mu_p} + tr\left\{\Sigma_p\right\} - k - \log|\Sigma_p|\right]
+\begin{aligned}
+D_{\mathrm{KL}}(P\|Q)
+&=\sum_xP(x)\ln P(x)-\sum_xP(x)\ln Q(x)\\
+&=H(P,Q)-H(P).
+\end{aligned}
 $$
 
+如果真实分布 $P$ 固定，只调整模型 $Q$，$H(P)$ 就是不随模型参数变化的常数。因此最小化交叉熵，等价于最小化这个方向的 KL。实践中通常用数据样本的平均负对数似然估计交叉熵。
 
----
+这里有两个边界：若 $P$ 也随待优化参数变化，就不能随意丢掉 $H(P)$；在无限或连续空间里，也不能把未定义的“无穷减无穷”当作合法推导。连续情形需使用微分熵，并保证相应积分和差值有意义。
 
-关于第3项的证明:
+:::note
+如果想先理解熵为什么采用负对数，可以看我在 B站 的[介绍视频](https://www.bilibili.com/video/BV1kg411u7RP)。语言模型中的交叉熵与困惑度，可接着阅读 [Perplexity](/posts/2024-04-10-perplexity/)。
+:::
 
+### 3.2 互信息是特定两个分布之间的 KL
+
+知道 $X$ 后，能减少多少对 $Y$ 的不确定性？这由互信息描述。此时比较的两种分布必须明确：一边是实际联合分布 $P_{XY}$，另一边是把两者视作独立时的边缘分布乘积 $P_XP_Y$。[1]
+
+在有限离散情形下：
 
 $$
-\begin{equation}\begin{aligned}
-\mathbb{E}_{\boldsymbol{x}\sim p(\boldsymbol{x})}\left[(\boldsymbol{x}-\boldsymbol{\mu}_q)^{\top}\boldsymbol{\Sigma}_q^{-1}(\boldsymbol{x}-\boldsymbol{\mu}_q)\right]=&\,\mathbb{E}_{\boldsymbol{x}\sim p(\boldsymbol{x})}\left[\text{Tr}\left((\boldsymbol{x}-\boldsymbol{\mu}_q)^{\top}\boldsymbol{\Sigma}_q^{-1}(\boldsymbol{x}-\boldsymbol{\mu}_q)\right)\right]\\
-=&\,\mathbb{E}_{\boldsymbol{x}\sim p(\boldsymbol{x})}\left[\text{Tr}\left(\boldsymbol{\Sigma}_q^{-1}(\boldsymbol{x}-\boldsymbol{\mu}_q)(\boldsymbol{x}-\boldsymbol{\mu}_q)^{\top}\right)\right]\\
-=&\,\text{Tr}\left(\boldsymbol{\Sigma}_q^{-1}\mathbb{E}_{\boldsymbol{x}\sim p(\boldsymbol{x})}\left[(\boldsymbol{x}-\boldsymbol{\mu}_q)(\boldsymbol{x}-\boldsymbol{\mu}_q)^{\top}\right]\right)\\
-=&\,\text{Tr}\left(\boldsymbol{\Sigma}_q^{-1}\mathbb{E}_{\boldsymbol{x}\sim p(\boldsymbol{x})}\left[\boldsymbol{x}\boldsymbol{x}^{\top}-\boldsymbol{\mu}_q\boldsymbol{x}^{\top} - \boldsymbol{x}\boldsymbol{\mu}_q^{\top} +  \boldsymbol{\mu}_q\boldsymbol{\mu}_q^{\top}\right]\right)\\
-=&\,\text{Tr}\left(\boldsymbol{\Sigma}_q^{-1}\left(\boldsymbol{\Sigma}_p + \boldsymbol{\mu}_p\boldsymbol{\mu}_p^{\top}-\boldsymbol{\mu}_q\boldsymbol{\mu}_p^{\top} - \boldsymbol{\mu}_p\boldsymbol{\mu}_q^{\top} +  \boldsymbol{\mu}_q\boldsymbol{\mu}_q^{\top}\right)\right)\\
-=&\,\text{Tr}\left(\boldsymbol{\Sigma}_q^{-1}\boldsymbol{\Sigma}_p + \boldsymbol{\Sigma}_q^{-1}(\boldsymbol{\mu}_p-\boldsymbol{\mu}_q)(\boldsymbol{\mu}_p-\boldsymbol{\mu}_q)^{\top}\right)\\
-=&\,\text{Tr}\left(\boldsymbol{\Sigma}_q^{-1}\boldsymbol{\Sigma}_p\right) + (\boldsymbol{\mu}_p-\boldsymbol{\mu}_q)^{\top}\boldsymbol{\Sigma}_q^{-1}(\boldsymbol{\mu}_p-\boldsymbol{\mu}_q)\\
-\end{aligned}\end{equation}
+\begin{aligned}
+I(X;Y)
+&=D_{\mathrm{KL}}(P_{XY}\|P_XP_Y)\\
+&=\sum_{x,y}p(x,y)\ln\frac{p(x,y)}{p(x)p(y)}\\
+&=\sum_{x,y}p(x,y)\ln\frac{p(y\mid x)}{p(y)}\\
+&=H(Y)-H(Y\mid X).
+\end{aligned}
 $$
 
+条件熵 $H(Y\mid X)$ 是在不同 $X$ 取值下的熵再求平均。根据 KL 取零的条件：
 
-注意到当 $\boldsymbol{\mu}_q=\boldsymbol{\mu}_p,\boldsymbol{\Sigma}_q=\boldsymbol{\Sigma}_p$, 上式就是 $n$ , 对应正态分布的熵.
+$$
+I(X;Y)=0
+\iff P_{XY}=P_XP_Y
+\iff X\text{ 与 }Y\text{ 独立}.
+$$
 
+这是“互信息等于某个 KL”的特殊构造。任意两个分布的 KL 并不能都解释为两个变量的互信息；减小任意 $D_{\mathrm{KL}}(P\|Q)$，也不能直接解释为“让两个变量更独立”或“只让两个熵的数值接近”。熵相同的两个分布，仍然可能有很大的 KL。
+
+## 4. 两个多元高斯分布之间的 KL
+
+高斯分布之间的差异来自均值和协方差。均值不同意味着分布中心偏移；协方差不同意味着各方向的伸展程度不同。下面把这两部分写成可计算的表达式。
+
+设：
+
+$$
+P=\mathcal N(\boldsymbol\mu_p,\Sigma_p),
+\qquad
+Q=\mathcal N(\boldsymbol\mu_q,\Sigma_q),
+$$
+
+其中 $\boldsymbol\mu_p,\boldsymbol\mu_q\in\mathbb R^k$ 为列向量，$\Sigma_p,\Sigma_q\in\mathbb R^{k\times k}$ 均为对称正定矩阵。正定条件保证逆矩阵与正的行列式存在；以下密度和公式不能直接套在奇异协方差上。
+
+### 4.1 从密度展开
+
+$P$ 的密度为：
+
+$$
+p(\mathbf x)
+=\frac{1}{(2\pi)^{k/2}|\Sigma_p|^{1/2}}
+\exp\left[-\frac12(\mathbf x-\boldsymbol\mu_p)^T\Sigma_p^{-1}(\mathbf x-\boldsymbol\mu_p)\right].
+$$
+
+把两个对数密度相减，再对 $\mathbf X\sim P$ 求期望：
+
+$$
+\begin{aligned}
+D_{\mathrm{KL}}(P\|Q)
+={}&\frac12\ln\frac{|\Sigma_q|}{|\Sigma_p|}\\
+&-\frac12\mathbb E_P\left[(\mathbf X-\boldsymbol\mu_p)^T\Sigma_p^{-1}(\mathbf X-\boldsymbol\mu_p)\right]\\
+&+\frac12\mathbb E_P\left[(\mathbf X-\boldsymbol\mu_q)^T\Sigma_q^{-1}(\mathbf X-\boldsymbol\mu_q)\right].
+\end{aligned}
+$$
+
+注意，这两个二次型都在 $P$ 下求期望，不能把最后一项的期望分布换成 $Q$。
+
+### 4.2 怎样计算二次型的期望？
+
+先考虑一个更通用的式子。设 $A$ 是固定的 $k\times k$ 矩阵，$\mathbf a$ 是固定向量。令 $\boldsymbol\delta=\boldsymbol\mu_p-\mathbf a$，把 $\mathbf X-\mathbf a$ 拆成 $(\mathbf X-\boldsymbol\mu_p)+\boldsymbol\delta$。
+
+因为 $\mathbb E_P[\mathbf X-\boldsymbol\mu_p]=0$，展开后二次型的交叉项期望为 0，剩下：
+
+$$
+\mathbb E_P\left[(\mathbf X-\mathbf a)^TA(\mathbf X-\mathbf a)\right]
+=\operatorname{tr}(A\Sigma_p)
++(\boldsymbol\mu_p-\mathbf a)^TA(\boldsymbol\mu_p-\mathbf a).
+$$
+
+其中 $\operatorname{tr}$ 表示矩阵对角线元素之和。协方差项的推导是：
+
+$$
+\begin{aligned}
+\mathbb E_P\left[(\mathbf X-\boldsymbol\mu_p)^TA(\mathbf X-\boldsymbol\mu_p)\right]
+&=\operatorname{tr}\left(A\,\mathbb E_P[(\mathbf X-\boldsymbol\mu_p)(\mathbf X-\boldsymbol\mu_p)^T]\right)\\
+&=\operatorname{tr}(A\Sigma_p).
+\end{aligned}
+$$
+
+这个恒等式只需要均值和协方差存在，不依赖高斯假设。分别代入 $A=\Sigma_p^{-1},\mathbf a=\boldsymbol\mu_p$ 和 $A=\Sigma_q^{-1},\mathbf a=\boldsymbol\mu_q$，得到：
+
+$$
+\begin{aligned}
+\mathbb E_P[(\mathbf X-\boldsymbol\mu_p)^T\Sigma_p^{-1}(\mathbf X-\boldsymbol\mu_p)]&=k,\\
+\mathbb E_P[(\mathbf X-\boldsymbol\mu_q)^T\Sigma_q^{-1}(\mathbf X-\boldsymbol\mu_q)]
+&=\operatorname{tr}(\Sigma_q^{-1}\Sigma_p)
++(\boldsymbol\mu_p-\boldsymbol\mu_q)^T\Sigma_q^{-1}(\boldsymbol\mu_p-\boldsymbol\mu_q).
+\end{aligned}
+$$
+
+### 4.3 最终公式与检查
+
+合并上述各项：[2]
+
+$$
+\boxed{
+\begin{aligned}
+D_{\mathrm{KL}}(P\|Q)=\frac12\Bigl[&\ln\frac{|\Sigma_q|}{|\Sigma_p|}-k
++\operatorname{tr}(\Sigma_q^{-1}\Sigma_p)\\
+&+(\boldsymbol\mu_p-\boldsymbol\mu_q)^T\Sigma_q^{-1}(\boldsymbol\mu_p-\boldsymbol\mu_q)\Bigr].
+\end{aligned}
+}
+$$
+
+几个有用的检查：
+
+- 当 $P=Q$，行列式比为 1，迹为 $k$，均值差为 0，所以 KL 为 0
+- 当 $\Sigma_p=\Sigma_q=\Sigma$，只剩 $\tfrac12(\boldsymbol\mu_p-\boldsymbol\mu_q)^T\Sigma^{-1}(\boldsymbol\mu_p-\boldsymbol\mu_q)$
+- 当 $Q=\mathcal N(\mathbf0,I_k)$，公式简化为
+
+$$
+D_{\mathrm{KL}}(P\|Q)
+=\frac12\left[\boldsymbol\mu_p^T\boldsymbol\mu_p
++\operatorname{tr}(\Sigma_p)-k-\ln|\Sigma_p|\right].
+$$
+
+例如 $P=\mathcal N(1,4)$、$Q=\mathcal N(0,1)$，第二个参数表示方差：
+
+$$
+D_{\mathrm{KL}}(P\|Q)
+=\frac12(1+4-1-\ln4)
+\approx1.306853.
+$$
+
+### 4.4 二次型期望不是高斯熵
+
+上面的 $k$ 只是平方偏差经过协方差逆矩阵加权后的期望。它是计算熵时的一部分，但不等于高斯分布的熵。保留密度中的归一化常数，才能得到微分熵：[1]
+
+$$
+\begin{aligned}
+h(P)
+&=-\mathbb E_P[\ln p(\mathbf X)]\\
+&=\frac{k}{2}\ln(2\pi)+\frac12\ln|\Sigma_p|+\frac{k}{2}\\
+&=\frac12\ln\left((2\pi e)^k|\Sigma_p|\right).
+\end{aligned}
+$$
+
+微分熵可能为负，并且会随坐标单位改变；KL 仍然非负。不要把离散熵的所有直觉直接套到微分熵上。
 
 ## Reference
 
-[1] [https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence](https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence)
+[1] [John Duchi：Lecture Notes on Statistics and Information Theory，第 2 章](https://stanford.edu/class/stats311/lecture-notes.pdf)
 
-[2] [https://zh.wikipedia.org/zh-hans/%E4%BA%92%E4%BF%A1%E6%81%AF](https://zh.wikipedia.org/zh-hans/%E4%BA%92%E4%BF%A1%E6%81%AF)
+[2] [Zhang 等：On the Properties of Kullback-Leibler Divergence Between Multivariate Gaussian Distributions](https://arxiv.org/abs/2102.05485)
 
-[3] [https://en.wikipedia.org/wiki/Entropy_(information_theory)](https://en.wikipedia.org/wiki/Entropy_(information_theory))
-
-
-[4] [https://mr-easy.github.io/2020-04-16-kl-divergence-between-2-gaussian-distributions/](https://mr-easy.github.io/2020-04-16-kl-divergence-between-2-gaussian-distributions/)
-
-[5] [https://kexue.fm/archives/8512](https://kexue.fm/archives/8512)
+[3] [原高斯推导参考：KL Divergence between 2 Gaussian Distributions](https://mr-easy.github.io/2020-04-16-kl-divergence-between-2-gaussian-distributions/)

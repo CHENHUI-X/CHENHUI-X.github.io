@@ -205,3 +205,8 @@
     background: rgba(255, 255, 255, 0.06);
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
+
+/* Preserve the transparent paper figure on its intended white canvas. */
+.custom-md img[src$="/sourced/roformer-figure-1.svg"] {
+    background: #fff;
+}

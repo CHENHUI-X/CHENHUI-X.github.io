@@ -11,252 +11,224 @@ draft: false
 ---
 ## 0. 前言
 
-在机器学习或深度学习中，无论是分类、回归还是其他场景，通常都是利用模型去拟合一个函数。在这个过程中，正则化是一种常用的手段，用来防止过拟合。本篇博客主要从几个角度探讨正则化的理解，并解释它为何能够防止过拟合。
-
-
-:::note
-阅读前, 需要你 : 有高数基础知识, 线代基础知识, 统计学习基础知识, 当然还要有 ML和 DL 的知识背景.
-:::
-
-## 1. 公式
-
-给定输入 $x_1,x_2...x_n$ 和输出 $y_1,y_2...y_n$，我们通过一个模型 $f(w,x)$ 来映射输入输出之间的关系，其中 $w$ 表示模型参数。参数的求解通过优化以下损失函数：
-
-
-$$
-L = \sum_{i} L(x_i,y_i)  + R(w)
-$$
-
-
-这里 $R(w)$ 是关于参数 $w$ 的一个函数.对于 L1 Regularization
-
-
-$$
-R(w) = \lambda \|w\|_1
-$$
-
-
-对于 L2 Regularization
-
-
-$$
-R(w) = \lambda {\|w\|_2}^2
-$$
-
-
-## 2. 理解
-
-> 从式子上看, Regularization 看起来就是想让参数 $w$ 的范数小一点 , 下面来看为什么 $w$ 的范数小一点, 就能减缓过拟合.
-
-
-首先我们来看过拟合是什么? 定义这里就不说了, 直观看个图吧.
-
-<img src="https://s2.loli.net/2024/04/20/csCq1bnfWRQ7mg4.png" alt="image.png" width="300" height="300" />
-
-上图中,我们有蓝色和红色,2组类别的数据点, 想训练一个分类器f(w,x)去将蓝色点和红色点分开.
-
-可以看到, 绿色的线($f_1$)近乎完美的对数据进行了拟合, 黑色($f_2$)的看起来差一些.
+模型可以把训练集拟合得很好，却把噪声也当成规律。L1 和 L2 Regularization 在训练目标中加入对参数大小的偏好，限制某些过度拟合的方式。本篇分别从优化、几何和贝叶斯角度解释它们，并说明哪些直觉需要附加条件。
 
 :::note
-但是啊, 我是说有没有一种可能, 这个数据集他有异常点(比如加粗的那几个), 如果你拟合的太好, 反而会把噪声也拟合了, 导致你的模型泛化性能不好. 反观黑色的线, 就看起来更加不错.
+需要的前置知识是导数、向量范数和基本概率。正则化强度仍要通过验证集等方式选择；加入正则项并不保证所有模型的泛化性能都会提高。
 :::
 
-那么如何才能让模型从绿色变成黑色的线呢? 即怎么把函数的"弯弯绕绕"给他拿走.
+## 1. 公式与系数约定
 
-我们对函数 $f(x)$ 在某个点进行泰勒展开:
-
-
-$$
-f(w,x) = f(w,a) + f'(w,a)(x - a) + \frac{f''(w,a)}{2!}(x - a)^2 + \cdots
-$$
-
-
-高阶导数可以描述局部曲率，但它们与参数范数之间**没有普遍的一一对应关系**。只有在特定模型和参数化方式下，限制参数大小才可能限制函数变化幅度；不能仅由泰勒展开就推出“权重越小，函数一定越平滑”。
-
-> 正则化是对参数大小施加偏好，以降低模型对训练数据噪声的敏感性；它是否改善泛化需要结合模型、数据和正则化强度验证。
-
-## 3. 等价形式
-
-### 3.1 给权重 $w$ 加约束
-
-> 让 $w$ 小一点等价于让 $w$ 不太大 - 鲁迅
-
-所以优化目标可以变为:
-
+设模型参数 $w\in\mathbb R^d$，数据损失为 $L(w)$。例如：
 
 $$
-minimize \ L(w,x) , \ s.t. {\|w\|_2}^2 \leq C
+L(w)=\frac1n\sum_{i=1}^n\ell(f(w,x_i),y_i).
 $$
 
-
-使用拉格朗日乘数法, 上述问题变为:
-
+本文使用如下约定，且始终令 $\lambda\ge0$：
 
 $$
-\mathop{minimize}\limits_{w} \  \mathop{maximize}\limits_{\lambda} \ L(w,\lambda,x) = L(w) + \lambda ( {\|w\|_2}^2 -  C)
+J_{\mathrm{L1}}(w)=L(w)+\lambda\|w\|_1,
+\qquad
+J_{\mathrm{L2}}(w)=L(w)+\lambda\|w\|_2^2.
 $$
 
+其中 $\|w\|_1=\sum_j|w_j|$，$\|w\|_2^2=\sum_jw_j^2$。L2 正则项使用的是**范数的平方**。也有资料把它写成 $(\lambda_2/2)\|w\|_2^2$，这样梯度是 $\lambda_2w$；与本文等价时需要 $\lambda_2=2\lambda$。
 
-剩下过程就是,求导等于0, 然后计算相应的 $w$ 和 $\lambda$ 即可. 不过这里想说的是, 在对 $w$ 求导的时候, 你会发现其实并没有 $C$ 的事情 :
+损失取总和还是平均值也会改变正则项的相对强度，不能脱离损失定义直接比较两个实现中的 `lambda`。
 
+## 2. 为什么限制参数可能有帮助
 
-$$
-\frac{\partial J}{\partial w} = \frac{\partial L}{\partial w} + 2 * \lambda w
-$$
+<img src="https://s2.loli.net/2024/04/20/csCq1bnfWRQ7mg4.png" alt="不同复杂度分类边界的示意" width="300" height="300" />
 
+训练数据含有噪声时，过于曲折的分类边界可能同时记住规律和偶然误差。正则化可以让优化更偏向某些简单解，但“参数小”与“函数平滑”不是普遍等价的。
 
-于是不妨直接 $minimize$ 下式:
+### 2.1 Taylor 展开能说明什么
 
-
-$$
-minimize \ L(w,x) + \lambda {\|w\|_2}^2
-$$
-
-
-> 1范数同理, 不再赘述.
-
-### 3.2 让权重 $w$ 衰减
-
+先固定参数 $w$，只考虑单变量输入 $x$。若 $f(w,\cdot)$ 在 $a$ 附近三次连续可微，则有有限阶展开：
 
 $$
-minimize \ J = \ L(w,x) + \lambda {\|w\|_2}^2
+f(w,x)=f(w,a)+\partial_x f(w,a)(x-a)
++\frac{\partial_x^2f(w,a)}2(x-a)^2+R_3(x).
 $$
 
-
-梯度下降:
-
+如果连接 $a$ 与 $x$ 的区间上满足 $|\partial_x^3f(w,\xi)|\le M$，则：
 
 $$
-\begin{align*}
-w_{t+1} &= w_t-\eta\left(\nabla L(w_t)+2\lambda w_t\right) \\
-&=(1-2\lambda\eta)w_t-\eta\nabla L(w_t) \\
-\end{align*}
+|R_3(x)|\le\frac M6|x-a|^3.
 $$
 
+因此，局部导数可以描述变化率、曲率和近似误差。但这个公式并未建立导数与权重大小之间的直接关系，也不意味着任意函数都等于其无穷 Taylor 级数。ReLU 在折点处不满足这里的可微条件，不能直接套用。
 
-当 $2 \lambda \eta \in (0,1)$ 时，每次更新权重都是在上一次权重衰减后的基础上进行的。
-
-
-### 3.3 给权重 $w$ 限定分布
-
-从统计学上来看, $f(w,x)$ 输出的是一个分布去拟合 y 的分布 , 使用贝叶斯公式:
-
+在线性模型 $f(w,x)=w^\top x$ 中，Cauchy–Schwarz 不等式给出：
 
 $$
-p(w\mid \mathcal D)=\frac{p(\mathcal D\mid w)p(w)}{p(\mathcal D)}
+|f(w,x)-f(w,x')|\le\|w\|_2\|x-x'\|_2.
 $$
 
+这时限制 $\|w\|_2$ 确实限制了模型对输入扰动的敏感度。对多层网络、带归一化的模型或不同参数化，需要另外分析，不能仅靠一幅曲线或 Taylor 展开得出泛化结论。
 
-其中 $\mathcal D$ 是观测数据；对固定数据优化 $w$ 时，证据 $p(\mathcal D)$ 与 $w$ 无关。
+## 3. 正则化的三种理解
 
+### 3.1 给权重加约束：什么时候与惩罚形式对应
 
-极大似然估计核心公式为:
-
-$$
-\hat w_{\mathrm{MLE}}=\operatorname*{argmax}_w p(\mathcal D\mid w)
-$$
-
-> 极大似然估计只最大化数据的似然 $p(\mathcal D\mid w)$，不引入参数先验。它与最大化后验概率不是同一个问题。
-
-
-最大后验估计核心公式为:
+记 $R(w)=\|w\|_1$ 或 $R(w)=\|w\|_2^2$。约束问题是：
 
 $$
-\hat w_{\mathrm{MAP}}=\operatorname*{argmax}_w p(\mathcal D\mid w)p(w)
+\min_w L(w)\quad\text{subject to}\quad R(w)\le C,\qquad C\ge0.
 $$
 
-> 最大后验估计在似然之外，还纳入参数的先验分布 $p(w)$。
-
-OK , 基于最大后验估计, 取 log 得到:
-
-
-
-
-
-
-
+其 Lagrangian 为：
 
 $$
-\begin{align*}
-\hat w_{\mathrm{MAP}}
-&=\operatorname*{argmax}_w\left[\log p(\mathcal D\mid w)+\log p(w)\right]
-\end{align*}
+\mathcal L(w,\lambda)=L(w)+\lambda(R(w)-C),\qquad\lambda\ge0.
 $$
 
+对固定 $\lambda$，$-\lambda C$ 与 $w$ 无关，所以最小化 Lagrangian 与最小化 $L(w)+\lambda R(w)$ 得到相同的 $w$。但这不意味着任意给定的 $C$ 与 $\lambda$ 都匹配，更不意味着可以忽略约束，直接令所有变量的导数等于零。
 
-我们不看前半部分,只看后半部分.
-
-- 假设 $w \sim N(0 , \sigma ^ 2)$
-
+以可微的凸函数 $L:\mathbb R^d\to\mathbb R$ 和上述凸函数 $R$ 为例，若约束问题存在最优解并满足 Slater 条件，即存在 $\bar w$ 使 $R(\bar w)<C$，则最优解可以与非负乘子 $\lambda^*$ 配对，满足 KKT 条件：
 
 $$
-p(w_j) = \frac{1}{\sqrt{2\pi\sigma^2}}
-\exp\left(-\frac{w_j^2}{2\sigma^2}\right)
+\begin{aligned}
+R(w^*)&\le C &&\text{（可行性）},\\
+\lambda^*&\ge0 &&\text{（乘子符号）},\\
+\lambda^*(R(w^*)-C)&=0 &&\text{（互补松弛）},\\
+0&\in\nabla L(w^*)+\lambda^*\partial R(w^*)
+&&\text{（驻点条件）}.
+\end{aligned}
 $$
 
+这里 $\partial R$ 是次梯度集合，允许处理 L1 在零点不可导的情况。在这些凸性和约束资格条件下，KKT 是最优性的刻画；一般非凸问题不能据此保证全局最优。[Boyd and Vandenberghe，Convex Optimization，第 5 章](https://www.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf)
 
-则
+对应关系有两个容易忽略的细节：
 
+- 若已经求出惩罚问题的一个**全局**最优解 $w_\lambda$，取 $C=R(w_\lambda)$，则它也是这个约束问题的全局最优解；这个方向不需要凸性
+- 反方向需要条件，且通常不能声称 $C$ 与 $\lambda$ 一一对应，或两个问题的整个解集完全相同。约束不活跃时，乘子可能为 0
 
-$$
--\log p(w)=\frac{\|w\|_2^2}{2\sigma^2}+C
-$$
+一个边界反例是：最小化 $(w-1)^2$，约束 $w^2\le0$。唯一可行解是 0；而惩罚目标 $(w-1)^2+\lambda w^2$ 对任何有限 $\lambda\ge0$ 的最优解都是 $1/(1+\lambda)$，不等于 0。这里严格可行点不存在。
 
+### 3.2 让权重衰减：先限定优化器
 
-:::note
-若各参数 $w_j$ 独立服从零均值、方差 $\sigma^2$ 的高斯先验，MAP 的负对数目标会增加 $\|w\|_2^2/(2\sigma^2)$。因此 L2 惩罚对应高斯先验；其方差由正则化系数及似然目标的缩放共同决定，不必是标准正态分布。
-:::
-
-
-- 假设 $w \sim Laplace(0 , b)$
-
+对本文的 L2 目标做普通梯度下降：
 
 $$
-f(w) = \frac {1} {2b} exp(- \frac{|w|}{b})
+\begin{aligned}
+w_{t+1}
+&=w_t-\eta_t\bigl(\nabla L(w_t)+2\lambda w_t\bigr)\\
+&=(1-2\eta_t\lambda)w_t-\eta_t\nabla L(w_t).
+\end{aligned}
 $$
 
+当 $0<2\eta_t\lambda<1$ 时，第一项确实把旧权重按比例缩小。注意总更新还包含数据梯度，因此不保证每一步的参数范数都下降。
 
-则
+这个代数等价适用于不带 momentum、没有自适应缩放的普通 SGD。将 L2 梯度加入 momentum 或 Adam 的状态，与独立衰减权重一般不同，详见 [Weight Decay 与 L2 Regularization](/posts/2024-04-20-weight-decay-and-l2-regularization/)。
 
+### 3.3 参数先验：MLE 与 MAP 的区别
+
+对于固定数据 $\mathcal D$，贝叶斯公式为：
 
 $$
--\log p(w)=\frac{\|w\|_1}{b}+C
+p(w\mid\mathcal D)=\frac{p(\mathcal D\mid w)p(w)}{p(\mathcal D)}.
 $$
 
+MLE 只最大化似然 $p(\mathcal D\mid w)$；MAP 则最大化后验密度，等价于：
 
-:::note
-若各参数 $w_j$ 独立服从零均值、尺度为 $b$ 的拉普拉斯先验，MAP 的负对数目标会增加 $\|w\|_1/b$。注意这里是 L1 范数，**没有平方**。
-:::
+$$
+\hat w_{\mathrm{MAP}}=
+\operatorname*{argmin}_w\left[-\log p(\mathcal D\mid w)-\log p(w)\right].
+$$
 
+这里证据 $p(\mathcal D)$ 与 $w$ 无关，可以从优化目标中去掉。
 
-## 4. 区别
+若各坐标独立服从零均值 Gaussian 先验 $w_j\sim\mathcal N(0,\sigma^2)$，则：
 
+$$
+p(w_j)=\frac1{\sqrt{2\pi}\sigma}
+\exp\left(-\frac{w_j^2}{2\sigma^2}\right),\qquad
+-\log p(w)=\frac{\|w\|_2^2}{2\sigma^2}+\text{constant}.
+$$
 
-### 4.1 函数性质
+若各坐标独立服从 Laplace 先验 $w_j\sim\operatorname{Laplace}(0,b)$，则：
 
+$$
+p(w_j)=\frac1{2b}\exp\left(-\frac{|w_j|}{b}\right),\qquad
+-\log p(w)=\frac{\|w\|_1}{b}+\text{constant}.
+$$
 
-我们可以从标准正态分布和拉普拉斯分布的函数性质,来窥探L1 Regularization 和 L2 Regularization 的区别.
+当 $L$ 是**总**负对数似然时，本文 L2 的 $\lambda=1/(2\sigma^2)$，L1 的 $\lambda=1/b$；若 $L$ 是 $n$ 个样本的平均负对数似然，则对应系数分别要除以 $n$。这是从 MAP 角度解释正则项，并不意味着训练得到的权重必须服从这个先验，也不涉及对整个后验做积分。
 
-![untitled.png](https://s2.loli.net/2024/04/20/nhvpas6JESRMAUf.png)
+## 4. 为什么 L1 更容易产生零系数
 
-根据上图可以看到, L1 Regularization (拉普拉斯分布) 在 0 附近形状更尖锐, 将 w 推向0的时候更加强硬. 而  L2 Regularization (标准正态分布) 显得更加柔和.
+### 4.1 密度形状：先把尺度写清楚
 
+Laplace 在零点有尖角，Gaussian 在零点平滑；但“哪个峰更高”还取决于尺度。下面列出具体密度，避免根据标签或比例不准确的示意曲线作判断。
 
-### 4.2 几何性质
+| 分布 | 密度 $p(w)$ | $p(0)$ | $p(1.5)$ | $p(3)$ |
+| --- | --- | --- | --- | --- |
+| $\operatorname{Laplace}(0,b=1.5)$ | $\frac13e^{-\lvert w\rvert/1.5}$ | $1/3\approx0.333333$ | $e^{-1}/3\approx0.122626$ | $e^{-2}/3\approx0.045112$ |
+| $\mathcal N(0,\sigma^2=2.25)$ | $\frac1{1.5\sqrt{2\pi}}e^{-w^2/4.5}$ | $0.265962$ | $0.161314$ | $0.035994$ |
 
-此外也可以从几何性质上对 L1 Regularization 和 L2 Regularization 进行分析.
+Gaussian 这一行的标准差是 1.5，**不是 Standard Normal**；标准正态必须是 $\mathcal N(0,1)$。Laplace 的 $b=1.5$ 意味着峰值为 $1/(2b)=1/3$，不是 0.2。两行尺度参数数值相同，不代表方差相同。密度定义可对照 [SciPy Laplace 文档](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.laplace.html) 与 [SciPy Normal 文档](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.norm.html)。
 
-![image.gif](https://miro.medium.com/v2/resize:fit:1600/format:webp/1*_e8BLNA749W_7yxi7hz-DA.gif)
+密度曲线只提供直觉。零系数的直接原因，要看惩罚项的次梯度。
 
-1范数在几何上表现为一个高维的四方体,2范数则是一个高维的球体. 可以从上图看到,在做minimize时候,L1 Regularization 的 "尖儿" 更容易触到靠内的等高线,即 "尖儿"的位置具有更低的值, 而 "尖儿"的位置,就意味着 w 的某个分量就是0. 而2范数因为整个表面都是外凸出的弧,在哪个地方都有可能取得最小值.
+### 4.2 L1 在零点的次梯度
 
-![image.png](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*GdOo-X5Mq2CYLzci6reoZw.png)
+绝对值函数在零点没有普通导数，但次梯度为：
 
-这也就是为什么说, L1 Regularization 能够比 L2 Regularization 更加的 "Sparsity".所以 L1 正则项的另外一个应用就是能够进行特征选择: [LASSO回归](https://en.wikipedia.org/wiki/Lasso_(statistics))通过在原始损失函数上添加 L1 Regularization,导致特征 $i$ 对应的权重 $w_i$ 为 0, 我们认为, 权重 $w_i=0$ 的特征就是可以去除的.
+$$
+\partial|w_j|=\begin{cases}
+\{1\},&w_j>0,\\
+[-1,1],&w_j=0,\\
+\{-1\},&w_j<0.
+\end{cases}
+$$
 
+因此，对可微凸损失，L1 目标的最优性条件是：
+
+$$
+0\in\nabla L(w^*)+\lambda\partial\|w^*\|_1.
+$$
+
+在零坐标上，只要 $|\partial_jL(w^*)|\le\lambda$，就能选到一个次梯度抵消数据梯度。这允许一段范围内的数据梯度对应**恰好为零**的系数。相较之下，L2 的梯度 $2\lambda w_j$ 在 $w_j=0$ 时也是 0，通常只是连续缩小系数。L1 也不保证任何数据、任何 $\lambda$ 下都产生零；普通次梯度迭代更不保证每一步得到精确零。
+
+### 4.3 可以手算的 Soft Thresholding
+
+考虑最简单的平方损失：
+
+$$
+\min_w\frac12\|w-z\|_2^2+\lambda\|w\|_1.
+$$
+
+各坐标独立，最优解是 Soft Thresholding：
+
+$$
+w_j^*=\operatorname{sign}(z_j)\max(|z_j|-\lambda,0).
+$$
+
+取 $z=(3,-0.4,0.2)$、$\lambda=0.5$，得到 $w^*=(2.5,0,0)$。而在同一个平方损失上加入本文定义的 L2 项，解为：
+
+$$
+w^*=\frac{z}{1+2\lambda}=(1.5,-0.2,0.1).
+$$
+
+这不是说一般 LASSO 都能对原始观测值直接做一次阈值操作；这里的闭式解依赖于平方损失可按坐标分离。一般设计矩阵下需要另外求解。[Ryan Tibshirani：Subgradients and Soft Thresholding](https://www.stat.cmu.edu/~ryantibs/convexopt-F13/lectures/06-sgs.pdf)
+
+### 4.4 几何性质
+
+![L1 与 L2 约束和损失等高线的示意](https://miro.medium.com/v2/resize:fit:1600/format:webp/1*_e8BLNA749W_7yxi7hz-DA.gif)
+
+二维 L1 球 $\{w:\|w\|_1\le C\}$ 是菱形；三维是八面体；更高维称为 **cross-polytope**。它不是高维立方体，立方体对应的是 $\|w\|_\infty\le C$。L2 球 $\{w:\|w\|_2\le r\}$ 则是通常的欧氏球；若写成 $\|w\|_2^2\le C$，半径为 $\sqrt C$。
+
+L1 边界有许多坐标为零的角和面，损失等高线与这些位置接触时会得到稀疏解。L2 边界平滑，没有同样的坐标轴偏好。几何图能帮助理解次梯度条件，但不能据此断言“L1 的最优解永远位于顶点”。
+
+![正则化约束的几何示意](https://miro.medium.com/v2/resize:fit:1400/format:webp/1*GdOo-X5Mq2CYLzci6reoZw.png)
+
+LASSO 因而可以用于特征选择。不过系数被压到 0 只说明该特征在当前模型、数据缩放和正则强度下没有被选中，不等于证明它在所有场景中都没有用。特别是特征高度相关时，选择结果可能不稳定。
 
 ## Reference
 
-[1] [Why L1 norm creates Sparsity compared with L2 norm](https://satishkumarmoparthi.medium.com/why-l1-norm-creates-sparsity-compared-with-l2-norm-3c6fa9c607f4)
-
-[2] [Regularization Wiki](https://en.wikipedia.org/wiki/Regularization_(mathematics))
+1. [Boyd and Vandenberghe, Convex Optimization](https://www.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf)，第 5 章的强对偶、Slater 条件与 KKT
+2. [Ryan Tibshirani, Subgradients](https://www.stat.cmu.edu/~ryantibs/convexopt-F13/lectures/06-sgs.pdf)，零点次梯度与 Soft Thresholding
+3. [SciPy：Laplace](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.laplace.html) 与 [Normal](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.norm.html)，密度及尺度参数
+4. [Loshchilov and Hutter, Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101)，L2 与 Weight Decay 的区别

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="790" viewBox="0 0 720 790" role="img" aria-labelledby="title desc" lang="zh-CN">
+<title id="title">量化误差：舍入与截断分开看</title><desc id="desc">正半轴使用相同刻度。范围内 0.34 舍入至 0.3，绝对误差 0.04 不超过半步长 0.05；范围外 1.0 截断至 0.7，误差 0.30，半步长界不适用。</desc>
+<defs>
+<marker id="arrow-muted" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#586779"/></marker>
+<marker id="arrow-blue" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#2864DC"/></marker>
+<marker id="arrow-teal" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#087F83"/></marker>
+<marker id="arrow-coral" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#C4513E"/></marker>
+<pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M-2 2L2 -2M0 10L10 0M8 12L12 8" stroke="#DCE2E9" stroke-width="1.5"/></pattern>
+</defs>
+<rect x="0" y="0" width="720" height="790" rx="0" fill="#FFFFFF"/>
+<rect x="36" y="30" width="40" height="5" rx="0" fill="#2864DC"/>
+<text x="36" y="79" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="36" font-weight="700" fill="#182638" text-anchor="start">量化误差：舍入与截断分开看</text>
+<text x="36" y="123" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="start">Δ = 0.1，q ∈ [−7, 7]，表示范围 [−0.7, 0.7]</text>
+<line x1="36.00" y1="147.00" x2="684.00" y2="147.00" stroke="#CDD5DE" stroke-width="1.5" stroke-linecap="round"/>
+<text x="36" y="203" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="29" font-weight="600" fill="#182638" text-anchor="start">① 范围内：最近舍入</text>
+<rect x="70" y="311" width="392" height="30" rx="0" fill="#E5F4F1"/>
+<line x1="70.00" y1="326.00" x2="646.00" y2="326.00" stroke="#586779" stroke-width="2" stroke-linecap="round" marker-end="url(#arrow-muted)"/>
+<line x1="70.00" y1="317.00" x2="70.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="70" y="375" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">0.0</text>
+<line x1="126.00" y1="317.00" x2="126.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="182.00" y1="317.00" x2="182.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="238.00" y1="317.00" x2="238.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="238" y="375" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">0.3</text>
+<line x1="294.00" y1="317.00" x2="294.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="350.00" y1="317.00" x2="350.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="350" y="375" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">0.5</text>
+<line x1="406.00" y1="317.00" x2="406.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="462.00" y1="317.00" x2="462.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="462" y="375" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">0.7</text>
+<line x1="518.00" y1="317.00" x2="518.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="574.00" y1="317.00" x2="574.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="630.00" y1="317.00" x2="630.00" y2="335.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="630" y="375" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">1.0</text>
+<line x1="462.00" y1="294.00" x2="462.00" y2="341.00" stroke="#C4513E" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 5"/>
+<circle cx="260.40" cy="276.00" r="7" fill="#2864DC"/>
+<text x="260.4" y="250" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="31" font-weight="600" fill="#2864DC" text-anchor="middle">0.34</text>
+<line x1="260.40" y1="286.00" x2="238.00" y2="313.00" stroke="#2864DC" stroke-width="2" stroke-linecap="round" marker-end="url(#arrow-blue)"/>
+<circle cx="238.00" cy="326.00" r="7" fill="#087F83"/>
+<text x="474" y="271" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="30" font-weight="600" fill="#087F83" text-anchor="start">|e| = 0.04</text>
+<text x="36" y="441" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="29" font-weight="600" fill="#182638" text-anchor="start">② 范围外：截到边界</text>
+<rect x="70" y="548" width="392" height="30" rx="0" fill="#E5F4F1"/>
+<line x1="70.00" y1="563.00" x2="646.00" y2="563.00" stroke="#586779" stroke-width="2" stroke-linecap="round" marker-end="url(#arrow-muted)"/>
+<line x1="70.00" y1="554.00" x2="70.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="70" y="612" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">0.0</text>
+<line x1="126.00" y1="554.00" x2="126.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="182.00" y1="554.00" x2="182.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="238.00" y1="554.00" x2="238.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="238" y="612" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">0.3</text>
+<line x1="294.00" y1="554.00" x2="294.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="350.00" y1="554.00" x2="350.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="350" y="612" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">0.5</text>
+<line x1="406.00" y1="554.00" x2="406.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="462.00" y1="554.00" x2="462.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="462" y="612" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">0.7</text>
+<line x1="518.00" y1="554.00" x2="518.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="574.00" y1="554.00" x2="574.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<line x1="630.00" y1="554.00" x2="630.00" y2="572.00" stroke="#586779" stroke-width="1.5" stroke-linecap="round"/>
+<text x="630" y="612" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="middle">1.0</text>
+<line x1="462.00" y1="531.00" x2="462.00" y2="578.00" stroke="#C4513E" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 5"/>
+<circle cx="630.00" cy="513.00" r="7" fill="#2864DC"/>
+<text x="630" y="487" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="31" font-weight="600" fill="#2864DC" text-anchor="middle">1.0</text>
+<line x1="620.00" y1="513.00" x2="467.00" y2="513.00" stroke="#C4513E" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow-coral)"/>
+<line x1="462.00" y1="525.00" x2="462.00" y2="552.00" stroke="#C4513E" stroke-width="2" stroke-linecap="round" marker-end="url(#arrow-coral)"/>
+<circle cx="462.00" cy="563.00" r="7" fill="#C4513E"/>
+<text x="539" y="471" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#182638" text-anchor="start"></text>
+<text x="390" y="483" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="30" font-weight="600" fill="#C4513E" text-anchor="middle">|e| = 0.30</text>
+<line x1="36.00" y1="649.00" x2="684.00" y2="649.00" stroke="#CDD5DE" stroke-width="1.5" stroke-linecap="round"/>
+<text x="36" y="694" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="29" font-weight="600" fill="#182638" text-anchor="start">半步长界 |e| ≤ Δ / 2 只覆盖舍入</text>
+<text x="36" y="733" font-family="Noto Sans CJK SC, Noto Sans SC, Microsoft YaHei, PingFang SC, Arial, sans-serif" font-size="26" font-weight="400" fill="#586779" text-anchor="start">两条数轴同尺度；仅画正半轴，边界在 0.7</text>
+</svg>

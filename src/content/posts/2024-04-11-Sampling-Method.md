@@ -11,142 +11,235 @@ draft: false
 ---
 ## 0. 前言
 
+知道一个概率分布，并不等于知道怎样从中抽样。本文讨论**如何用容易生成的随机数，得到服从目标分布的样本**。这些样本可以用来模拟随机现象，也可以用于 Monte Carlo 估计，例如用样本平均值估计期望。
 
-比如在老虎机场景,  我们想知道哪一台老虎机的赢面更大,  通常是给定所有老虎机 "赢" 的参数分布 ,  比如 Dirichlet distribution,  初始化 $\alpha1 \ \alpha2 \ …$  ,  然后根据实际数据采样,  更新 Dirichlet distribution 的参数即可.
+先用 Thompson Sampling 说明为什么要对参数抽样，再介绍 Inverse Transform Sampling 和 Rejection Sampling。若你关心的是语言模型如何使用 Temperature、Top-K、Top-P 选下一个 token，请阅读 [LLM Decoding](/posts/2026-05-16-llm-decoding-strategies/)。那里讨论的是如何修改、截断或搜索 token 分布；这里讨论的是给定目标分布后，怎样正确地抽样。
 
-具体采样流程(通常使用在类似多臂老虎机场景) :
+## 1. 一个动机：Beta–Bernoulli Thompson Sampling
 
-[1] 首先假设 参数p的先验分布 (比如 beta 分布 $B(m, n)$,  Dirichlet 分布 $D(a, b, c, ..., z)$)
-
-[2] 然后 **基于该分布 ,   采样一组参数(就是各个机器的成功概率)** ,  然后基于当前的参数抽卡,  并选择最大的p对应的老虎机作为成功case ,  然后观察其结果,  并更新对应参数(比如实际是另外一个老虎机赢了). 重复此步骤.
-
-
-:::note
-**这里就会涉及到一个问题,  对参数采样,  怎么采才能尽可能的符合、或者接近参数本身的分布**？
-:::
-
-
-## 1. 基于Monte-Carlo的方法
-
-- 引理1
-
-> 设 X 是一个随机变量，其分布函数$f(x)$,  累积分布函数 (CDF,  Cumulative distribution function) 为 F(x) ,  该函数是一个单调递增的函数,  其值域为[ 0 ,   1 ]. 现在定义一个新的随机变量$Y = F(X) $ ,  则 随机变量 $Y$ 的分布是均匀分布.
-
-- 证明
-
-
-> 对于任意实数$y$ ,  我们有:
->
-> 
-$$
-P(Y<=y)  = P(F(X) <= y) = P(X <= F^{-1}(y) = F( F^{-1}(y))
-$$
-
->
-> 由于F(x)是单调递增函数, 因此$F^{-1}(y)$具有唯一解 $x$ , 令$x = F^{-1}(y)$ , 则有 $F(x) = y$ .
->
-> 因此
->
-> 
-$$
-P( Y <= y) = F(F^{-1}(y)) = F(x) = y
-$$
-
->
-> 即有
->
-> 
-$$
-P( Y <= y)  = y
-$$
-
->
-> 即 Y是均匀分布
-
-
-### 1.1 逆变换采样法
-
-设 X 是一个随机变量，其分布函数$f(x)$,  累积分布函数 (CDF,  Cumulative distribution function) 为 F(x). 则依据如下采样过程,  得到的x是服从分布$f(x)$的.
-
-1. 从均匀分布 U(0,  1) 中生成一个随机数 u
-2. 计算 F(x) = u 的解 x
-3. 输出 x 作为采样结果
-
-- 证明
-
-> 根据引理1容易知道,  如果从均匀分布 $U(0,  1) $ 中生成一个随机数 u，并令 $x = F^{-1} (u)$，则 $x$ 服从原分布$ F(x)$。(理解为本身这个$F$就是我们想采样的 $f$ 对应的 $F$,  那反函数求解出来的 $x$ 自然就是 满足 $f(x)$ 和 $F(x)$ ) ,  即为 逆变换方法 ,  几个具体实现: [https://lwz322.github.io/2019/06/02/ITM.html](https://lwz322.github.io/2019/06/02/ITM.html)
-
-### 1.2 拒绝采样法
-
-- 准备工作
-    1. 已知 概率密度函数$f(y)$,  我们需要依据这个分布进行抽样
-    2. 找一个能够直接采样、且在 $f(y)>0$ 的地方也满足 $g(y)>0$ 的提议分布 $g(y)$（如在有界支撑上选合适的均匀分布）
-    3. 找一个常数 $c$,  满足对 $\forall y$ ,  均有 $c \times g(y) >= f(y)$,  即 $c$ 是函数 $\frac {f(y)} {g(y)}$ 的上界 或者 $c \times g(y)$ 能够覆盖 $f(y)$
-
-- 抽样流程
-    1. 从 $g(y)$ 中中随机采样一个样本 $y_i$
-    2. 从均匀分布 $U(0, 1)$ 中采样一个随机数 $u_i$
-    3. 如果 $u_i \le \frac{f(y_i)}{c g(y_i)}$，则保留样本，否则返回第 1 步。被保留样本的密度为 $f$，接受率为 $1/c$（假设 $f,g$ 均已归一化）
-
-- 证明
-
-令 $Y\sim g$、$U\sim U(0,1)$ 且二者独立，接受事件为 $A=\{U\le f(Y)/(c g(Y))\}$。对连续变量，$g(y)$ 是**密度**，不是点事件 $P(Y=y)$ 的概率。由全概率公式：
+假设有 $K$ 台机器，第 $i$ 台每次返回奖励 $r\in\{0,1\}$，成功概率 $p_i$ 未知但固定。采用独立先验：
 
 $$
-\begin{aligned}
-P(A)&=\int g(t)\frac{f(t)}{c g(t)}\,dt=\frac1c,\\
-P(Y\le y,A)&=\int_{-\infty}^{y}g(t)\frac{f(t)}{c g(t)}\,dt
-=\frac{F(y)}c.
-\end{aligned}
+p_i\sim\operatorname{Beta}(\alpha_i,\beta_i),\qquad \alpha_i,\beta_i>0.
 $$
 
-因此 $P(Y\le y\mid A)=P(Y\le y,A)/P(A)=F(y)$，即接受后的样本服从目标分布。这个证明同时说明：必须有 $c g(y)\ge f(y)$，否则所谓的接受概率可能超过 1。
+这里每台机器有自己的成功概率，$p_1,\ldots,p_K$ **不需要加起来等于 1**。因此，不能把它们默认当成一个 Dirichlet 分布的概率向量。Beta 是定义在 $[0,1]$ 上的单变量分布；它与二分类概率向量 $(p,1-p)$ 的 Dirichlet 表示有关，但不是“两维随机变量”的意思。
 
+在这个独立 Beta–Bernoulli 模型里，每轮操作如下：
 
-- 直觉理解
-
-假设复杂分布 $P(z)$ ,  存在常数 $k$ 与 任意分布 $q(z)$ ,  以 $z_0$ 点为例,  画直线,  任意从均匀分布抽取一个点 $u_i$,  可以理解为在 $x = z_0$ 这条直线上取一点: 就是 $u_i  * k * q(z_0)$,  其处于阴影即拒绝 (即 $U * k * q(z_0) > p(z_0)$) , 处于白色区域即接受( $U * k * q(z_0) <= p(z_0)$ ) ,  这样从 $z_0$ 出来的点对应的最大概率就是$ f(z_0) $ , 等价于是从 $f(x)$ 抽样出来的
-
-
-![image.png](https://s2.loli.net/2024/04/11/XO3GehobsnckrNQ.png)
-
-----
-上述2个方法都属于Monte-Carlo 方法,  并且是已知 $P(\theta)$ 的情况下 ,  然后在某些特殊场景下,  已知了 参数的后验分布 和 先验分布 的关系(比如之前提到的共轭) , 才能得到一个比较简易的形式 ,  直接对后验分布更新. (当我们面临无法得到具体形式的非共轭后验分布时，我们无法采用这种算法。)
-
-然而,  面对一些复杂的分布,  即使我们已知了 $P(\theta)$  ,  再利用贝叶斯公式的时候 ,  其分母涉及到积分, 往往也是很难求解的
-
+1. 从每台机器当前的后验中抽一个候选成功概率：$\tilde p_i\sim\operatorname{Beta}(\alpha_i,\beta_i)$
+2. 选择 $a=\operatorname*{argmax}_i\tilde p_i$，实际尝试这台机器
+3. 观察它返回的奖励 $r$，只更新被选择机器的参数：
 
 $$
-P(\theta|X) = \frac {P(X|\theta)P(\theta)} {\int P(X|\theta)P(\theta) d \theta}
+\alpha_a\leftarrow\alpha_a+r,\qquad
+\beta_a\leftarrow\beta_a+(1-r).
 $$
 
+抽到最大的 $\tilde p_i$ 不意味着这台机器本轮必定成功，也不是观察到了“另一台机器赢了”。通常只有被选择机器的结果可见。在带有关联先验或额外反馈的其他模型中，更新范围才可能不同。[Thompson Sampling 教程，第 3 章](https://arxiv.org/html/1707.02038v3)
 
-上述提到分母有时候很难进行积分，对于这个问题，一个直观的想法就是 ，能不能通过某个手段把 分母去掉？
+例如，某台机器从 $\operatorname{Beta}(1,1)$ 出发，被选择三次，依次得到 $1,0,1$，后验就是 $\operatorname{Beta}(3,2)$，其均值为 $3/5$。下面是一次决策与更新的 Python 实现：
 
+```python
+import random
+
+
+def thompson_step(alpha, beta, pull, rng):
+    # pull(a) 实际尝试第 a 台机器，并返回 0 或 1
+    if not alpha or len(alpha) != len(beta):
+        raise ValueError("alpha and beta must have the same nonzero length")
+    if any(a <= 0 or b <= 0 for a, b in zip(alpha, beta)):
+        raise ValueError("Beta parameters must be positive")
+    samples = [rng.betavariate(a, b) for a, b in zip(alpha, beta)]
+    arm = max(range(len(samples)), key=samples.__getitem__)
+    reward = pull(arm)
+    if reward not in (0, 1):
+        raise ValueError("Bernoulli reward must be 0 or 1")
+    alpha[arm] += reward
+    beta[arm] += 1 - reward
+    return arm, reward
+```
+
+这里调用了现成的 Beta 随机数生成器。下面介绍逆变换和拒绝采样，解释这些基础采样方法为什么有效。
+
+## 2. Inverse Transform Sampling
+
+### 2.1 CDF 与 Probability Integral Transform
+
+累积分布函数定义为 $F(x)=P(X\le x)$。它单调不减、右连续，取值位于 $[0,1]$，但不一定严格递增，也不一定能取到区间内每一个值。若分布有密度，则用 $f$ 表示密度，不把 $f(x)$ 和点概率 $P(X=x)$ 混为一谈。
+
+**如果 $F$ 连续，那么 $F(X)\sim U(0,1)$。** 这叫 Probability Integral Transform。为便于理解证明，先看 $F$ 在其取值介于 0 与 1 的区间上严格递增的情形。对 $0<u<1$：
 
 $$
-P(\theta_a|X) = \frac {P(X|\theta_a)P(\theta_a)} {P(X)}
+P(F(X)\le u)=P(X\le F^{-1}(u))=F(F^{-1}(u))=u.
 $$
 
+连续 CDF 即使有平坦区间，这个结论仍成立；那些区间没有概率质量，只是不能直接声称普通反函数处处存在且唯一。对于离散分布，结论一般不成立：若 $P(X=0)=P(X=1)=1/2$，则 $F(X)$ 只能取 $1/2$ 和 $1$，显然不是连续均匀分布。
+
+### 2.2 用广义逆同时处理连续和离散分布
+
+真正用于采样的方向是从均匀分布出发。对任意 CDF，定义其广义逆，也叫 quantile function：
 
 $$
-P(\theta_b|X) = \frac {P(X|\theta_b)P(\theta_b)} {P(X)}
+Q(u)=\inf\{x\in\mathbb R:F(x)\ge u\},\qquad 0<u<1.
 $$
 
-
-二者做比值
-
+先生成 $U\sim U(0,1)$，再令 $X=Q(U)$。由 CDF 的单调性和右连续性：
 
 $$
-\gamma = \frac {P(\theta_a|X)}{P(\theta_b|X)} = \frac {P(X|\theta_a)P(\theta_a)}{P(X|\theta_b)P(\theta_b)}
+P(Q(U)\le x)=P(U\le F(x))=F(x).
 $$
 
+因此结果具有目标分布。**这个方向不要求 $F$ 连续，也不要求有概率密度。** 普通反函数存在时，广义逆与普通反函数一致。[Devroye，Non-Uniform Random Variate Generation，第 II 章](https://luc.devroye.org/chapter_two.pdf)
 
-这样避免了分母的积分，这里 $P(\theta_a)$ 可以参考 Dirichlet Distribution （多维）或者 Beta Distribution （二维）. 思想是这样的,  不过需要一点点其他知识.
+例如，离散变量取值为 $0,1,2$，对应概率为 $0.2,0.5,0.3$：
 
-:::note
-未完待续...
-:::
+$$
+Q(u)=\begin{cases}
+0,&0<u\le0.2,\\
+1,&0.2<u\le0.7,\\
+2,&0.7<u<1.
+\end{cases}
+$$
+
+长度分别为 $0.2,0.5,0.3$ 的区间，恰好产生相应的采样概率。
+
+### 2.3 连续例子：指数分布
+
+设 $X\sim\operatorname{Exponential}(\rho)$，其中 $\rho>0$ 是 rate。对 $x\ge0$，有 $F(x)=1-e^{-\rho x}$，所以：
+
+$$
+X=-\frac{\log(1-U)}{\rho}.
+$$
+
+下面的实现使用 Python 标准库。`random()` 返回 $[0,1)$ 中的浮点数，避免了 $U=1$ 时的无穷值；$U=0$ 时得到合法的边界值 0。`log1p(-u)` 比直接计算 `log(1-u)` 更适合很小的 $u$。
+
+```python
+import math
+import random
 
 
-##  Reference
+def sample_exponential(rate, rng):
+    if not math.isfinite(rate) or rate <= 0:
+        raise ValueError("rate must be positive and finite")
+    return -math.log1p(-rng.random()) / rate
+
+
+rng = random.Random(2024)
+samples = [sample_exponential(2.0, rng) for _ in range(30000)]
+print(sum(samples) / len(samples))  # 应接近理论均值 1 / 2
+```
+
+理论推导使用理想连续随机数；程序使用有限精度伪随机数。对于没有简单 quantile function 的分布，还需数值求逆，并控制数值误差。
+
+## 3. Rejection Sampling
+
+### 3.1 已归一化的目标密度
+
+目标密度为 $f$，选择一个容易采样的 proposal density $g$，并找到有限常数 $c$，使：
+
+$$
+f(y)\le c g(y)
+$$
+
+在整个目标支撑上成立。特别地，$f(y)>0$ 的地方不能被 $g$ 漏掉。不能只在若干测试点检查这个上界，就认定条件成立。
+
+每次独立生成 $Y\sim g$ 和 $U\sim U(0,1)$。若：
+
+$$
+U\le\frac{f(Y)}{c g(Y)},
+$$
+
+就接受 $Y$；否则重新生成。设接受事件为 $A$，对于任意可测集合 $B$：
+
+$$
+P(Y\in B,A)=\int_B g(y)\frac{f(y)}{c g(y)}\,dy
+=\frac1c\int_B f(y)\,dy.
+$$
+
+令 $B=\mathbb R$ 得 $P(A)=1/c$，所以：
+
+$$
+P(Y\in B\mid A)=\int_B f(y)\,dy.
+$$
+
+被接受样本的分布正是目标分布。直觉上，先在包络曲线 $cg$ 下均匀取点，再保留落在 $f$ 下的点：候选的密度 $g$ 与接受概率中的 $1/g$ 恰好抵消。
+
+![Rejection Sampling 包络与接受区域示意](https://s2.loli.net/2024/04/11/XO3GehobsnckrNQ.png)
+
+### 3.2 不知道归一化常数也能采样
+
+假设只知道非负函数 $h$，目标密度为：
+
+$$
+f(y)=\frac{h(y)}Z,\qquad 0<Z=\int h(y)\,dy<\infty.
+$$
+
+若能够找到已知的有限常数 $M$，满足 $h(y)\le M g(y)$，则接受概率可以直接写成：
+
+$$
+a(y)=\frac{h(y)}{M g(y)}.
+$$
+
+无需在算法中计算 $Z$。同样积分可得：
+
+$$
+P(A)=\frac ZM,\qquad
+p(y\mid A)=\frac{g(y)a(y)}{Z/M}=\frac{h(y)}Z.
+$$
+
+因此，拒绝采样并不要求后验与先验共轭。难点通常在于找到有效且足够贴近目标的包络；如果 $Z/M$ 很小，大量候选会被丢弃。[UC Berkeley Data 102：Rejection Sampling](https://data102.org/fa21/assets/slides/lecture8.pdf)
+
+例如，取 $h(y)=y\mathbf 1_{[0,1]}(y)$、$g$ 为 $U(0,1)$ 的密度、$M=1$。接受概率为 $y$，接受率为 $Z/M=1/2$，结果密度为 $f(y)=2y$，均值为 $2/3$。
+
+```python
+import random
+
+
+def sample_linear_density(n, rng):
+    if not isinstance(n, int) or n <= 0:
+        raise ValueError("n must be a positive integer")
+    samples, proposals = [], 0
+    while len(samples) < n:
+        y = rng.random()
+        u = rng.random()
+        proposals += 1
+        if u < y:
+            samples.append(y)
+    return samples, n / proposals
+
+
+samples, acceptance = sample_linear_density(30000, random.Random(2024))
+print(sum(samples) / len(samples))  # 接近 2 / 3
+print(acceptance)                  # 接近 1 / 2
+```
+
+## 4. 后验分布与下一步
+
+贝叶斯后验常写为：
+
+$$
+p(\theta\mid\mathcal D)=
+\frac{p(\mathcal D\mid\theta)p(\theta)}
+{\int p(\mathcal D\mid v)p(v)\,dv}.
+$$
+
+共轭性让后验落在熟悉的分布族里，便于更新参数，但不是一切采样方法的前提。逆变换需要能够计算 quantile function；拒绝采样只需可计算的未归一化目标及有效包络。即使概率密度写得出来，这些操作也未必高效。
+
+如果包络难找，可以考虑 MCMC。例如 Metropolis–Hastings 从满足 $h(\theta)>0$ 的当前位置 $\theta$ 提议 $\theta'\sim q(\cdot\mid\theta)$，其接受概率为：
+
+$$
+\min\left(1,
+\frac{h(\theta')q(\theta\mid\theta')}
+{h(\theta)q(\theta'\mid\theta)}\right),\qquad
+h(\theta)=p(\mathcal D\mid\theta)p(\theta).
+$$
+
+后验的归一化常数在比值中抵消；**对称 proposal 的两个 $q$ 项相同，可以约去；一般 proposal 不能省略这个比值**。MCMC 还需要检查链的收敛与相关性，不能把每次输出默认看成独立的精确后验样本。[Hastings, 1970](https://doi.org/10.1093/biomet/57.1.97)
+
+## Reference
+
+1. [Russo et al., A Tutorial on Thompson Sampling](https://arxiv.org/abs/1707.02038)，第 3 章的 Beta–Bernoulli 模型
+2. [Luc Devroye, Non-Uniform Random Variate Generation](https://luc.devroye.org/rnbookindex.html)，第 II、III 章的逆变换与拒绝采样
+3. [Jacob Steinhardt, Data 102 Lecture 8](https://data102.org/fa21/assets/slides/lecture8.pdf)，未归一化目标与 MCMC 的衔接
+4. [Hastings, Monte Carlo Sampling Methods Using Markov Chains and Their Applications](https://doi.org/10.1093/biomet/57.1.97)，Metropolis–Hastings 的原始文献

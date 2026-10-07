@@ -1,7 +1,7 @@
 ---
-title: Building an Autonomous AI Agent on WSL
+title: Hermes Agent on WSL：网关、服务恢复与浏览器集成
 published: 2026-05-15
-description: 记录在 WSL 上部署 Hermes Agent 的全过程——包括微信网关配置、Windows 保活机制、Camoufox 反爬浏览器的集成与使用。
+description: 一个 Windows 11 与 WSL2 上的 Agent 部署案例：核对微信接入、systemd 服务、跨层健康检查和 Camofox 浏览器配置，并说明历史脚本与验证边界。
 category: Technical
 tags:
 - llm
@@ -13,535 +13,283 @@ draft: false
 
 ## 0. 前言
 
-最近在捣鼓 **AI Agent** 方向的内容, 接触到 [Hermes Agent](https://github.com/NousResearch/hermes-agent) —— 一个由 Nous Research 开源的 AI Agent 框架. 它和 Claude Code、OpenAI Codex 属于同一个赛道, 但有一个核心差异点让我很感兴趣: **多平台网关**.
+让 Agent 在终端回答一次问题，与让它在手机发来消息时随时可用，是两件事。后一种用法还涉及消息网关、登录状态、后台服务、宿主机休眠和浏览器进程。
 
-也就是说, 我可以通过微信直接给它发消息, 它就帮我去执行命令、操作浏览器、管理文件. 听起来很酷, 对吧?
-
-但实际搞起来, 坑还真不少. 本篇博客记录了从零开始在 **WSL** (Windows Subsystem for Linux) 上部署 Hermes Agent 的完整过程, 包括几个核心环节:
-
-1. Hermes 的安装与基础配置
-2. 微信网关的对接
-3. Windows 保活机制(解决 WSL 休眠/重启后服务中断的问题)
-4. Camoufox 反爬浏览器的集成(绕过 Google、百度等网站的反爬检测)
-
-希望对你有帮助.
+本文以一次 **Windows 11 + WSL2（Ubuntu）** 上的 Hermes Agent 部署案例为例，说明这些环节如何连接，以及没有响应时应该从哪里排查。Prompt、工具调用与 Agent 的概念统一见[LangChain 应用开发篇](/posts/2024-04-24-lang-chain-series/)，这里不再从头解释。
 
 :::note
-阅读前, 需要你 : 熟悉 Linux 命令行, 了解 WSL 的基本使用, 对 AI Agent 概念有基本认识.
+原稿发表于 2026-05-15，但没有记录当时的 Hermes tag/commit、完整依赖锁及守护脚本。2026-10-07 的整理以当前官方资料核对命令和配置，不能据此追认旧部署的所有行为。文中的恢复测试是建议的验收方法，本次内容整理没有在 Windows/WSL 上重新执行这些测试。
 :::
+
+本文仍选择 WSL 路线，并不表示它是唯一的 Windows 安装方式。[Hermes 官方仓库](https://github.com/NousResearch/hermes-agent)目前也提供原生 Windows 安装入口。已经稳定使用某种方式时，先检查其服务管理能力，不必为了照抄文章而切换环境。
 
 ## 1. Hermes Agent 是什么
 
-简单来说, Hermes Agent 就是**一个可以跑在终端和聊天软件里的 AI 助手**.
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) 是 Nous Research 的开源 Agent 项目，提供终端交互、消息平台接入、工具与记忆等能力。本案例涉及三个部署角色：
 
-它不是又一个聊天机器人 —— 它能真正帮你**干活**. 你可以让它帮你查资料、写代码、操作浏览器、管理文件, 甚至写博客(这篇就是). 支持的工具调用挺丰富的:
+1. **Gateway（网关）**：连接消息平台，接收请求并发送回复
+2. **Agent 运行逻辑**：根据任务调用模型和允许使用的工具
+3. **工具及其依赖**：终端、文件、浏览器或其他服务，可能分别失败
 
-- **20+ 模型供应商**: OpenRouter、Anthropic、DeepSeek……想用哪个用哪个
-- **10+ 平台网关**: 微信、Telegram、Discord、Slack 都能连
-- **跨会话记忆**: 它会记住你的偏好, 不用每次都重新说
-- **技能系统**: 复杂的操作流程可以自动保存下来, 下次直接复用
+「微信能收到消息」只验证了链路的一部分。模型凭证失效时仍可能收得到消息；浏览器打不开时，普通聊天也可能正常。把这些状态分开观察，比只检查有没有一个 Python 进程更有用。
 
-架构上其实就两层, 不复杂:
-
-1. **Gateway (网关)**: 常驻后台的进程, 负责接收和转发消息. 你可以理解为 7x24 小时值班的"接线员"
-2. **Agent (代理)**: 每次对话创建一个新的 Agent 实例, 执行具体的任务. 相当于"干活的人"
+同时，能从聊天入口调用终端意味着它有实际操作能力。先限定使用者、工具和工作目录，再考虑常驻运行。具体权限与隔离选项参见[Hermes 安全文档](https://hermes-agent.nousresearch.com/docs/user-guide/security)。
 
 ## 2. 在 WSL 上安装
 
-我的环境是 **Windows 11 + WSL2 (Ubuntu)**. 安装非常简单, 一行命令搞定:
+### 2.1 先记环境，再装软件
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+在 Windows PowerShell 中检查：
+
+```powershell
+wsl --version
+wsl --list --verbose
 ```
 
-安装完之后, 需要配置模型供应商. 我这边用的是 OpenRouter 做中转, 因为它的模型选择多, 而且不用绑定某一家:
+确认目标发行版使用 WSL2，并记下发行版名称。后文的 `Ubuntu` 只是本案例名字，如果实际是 `Ubuntu-24.04`，调用 `wsl -d` 时必须用自己的名称。[Microsoft 的 WSL 命令说明](https://learn.microsoft.com/en-us/windows/wsl/basic-commands)列出了这些参数。
+
+部署记录建议包含：Windows 与 WSL 版本、Linux 发行版、Hermes 安装方式及版本或 commit、模型供应商、浏览器后端版本。只记「安装了最新版」，以后很难判断是配置变化还是升级造成的故障。不要把 API key、网关 token 或浏览器 cookie 放进这份记录。
+
+### 2.2 安装与基本配置
+
+在 WSL 的普通 Linux 用户下，按[官方 WSL 指南](https://hermes-agent.nousresearch.com/docs/user-guide/windows-wsl-quickstart)安装。下面是官方安装器的地址；先下载阅读，再决定是否执行，可以更清楚地知道它会安装什么：
+
+```bash
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh -o /tmp/hermes-install.sh
+less /tmp/hermes-install.sh
+# 阅读并确认安装内容后再执行
+bash /tmp/hermes-install.sh
+```
+
+这是软件安装操作，不是检查命令。安装后按安装器提示加载环境，再运行：
 
 ```bash
 hermes setup
+hermes --help
+hermes gateway --help
 ```
 
-或者直接编辑配置文件 `~/.hermes/config.yaml`:
+原部署选用了 OpenRouter。供应商、模型和密钥配置应以安装版本的向导为准，不在文章里固定一个会下线的模型名，也不把凭证直接写进可分享的配置示例。
 
-```yaml
-model:
-  default: deepseek-v4-flash
-  provider: custom
-  base_url: https://your-api-endpoint/v1
-  api_key: your_api_key
-```
+长期运行时，需要弄清这些限制：任务轮次上限控制一次任务可以推进多久；命令超时约束单条工具调用；它们不是「设置越大，Agent 越可靠」。先采用可观察的小任务，确有需要再调整。旧稿中的 `100` 轮和 `600s` 是当时的取值，不是通用建议或当前默认值。
 
-这里有几个我觉得值得调的配置项, 分享一下我的取值:
+### 2.3 先在前台跑通
 
-| 配置 | 说明 | 我的值 |
-|------|------|--------|
-| `agent.max_turns` | 每次对话最大工具调用轮次, 默认 90 | 100 |
-| `terminal.timeout` | 单条命令最大执行时间, 默认 180s | 600s (10分钟) |
-| `display.language` | 界面语言 | zh (中文) |
-| `memory.memory_enabled` | 跨会话记忆 | true |
+在设置自启动前，先确认终端聊天能完成一次简单请求，然后前台启动 Gateway，观察真实日志。不要一开始就同时启用手工启动、systemd 和自写 watchdog，否则很难知道正在使用哪个进程和哪份配置。
+
+配置和项目文件的路径也要分清：WSL 的 `/home/...`、Windows 的 `C:\...` 和 WSL 看到的 `/mnt/c/...` 不是可直接互换的路径。脚本报 `bad interpreter` 且带 `^M` 时，先检查是否混入 CRLF 换行；不要先怀疑模型或网关。
 
 ## 3. 微信网关配置
 
-这一步的体验还挺神奇的 —— 配好之后, 你给 Hermes 发微信就像给朋友发消息一样自然.
-
-Hermes 用的是 **iLink Bot** 协议, 通过扫码登录微信:
+本案例使用个人微信的 Weixin 适配器，与企业微信 WeCom 是不同接入方式。按[官方 Weixin 文档](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/weixin)，通过下面的向导扫码并在手机确认：
 
 ```bash
 hermes gateway setup
 ```
 
-选择 WeChat 平台, 终端里会出现一个二维码, 掏出手机扫一下就行.
+扫码连接的是 iLink bot 身份，不等于获得一个普通微信账号的所有自动化能力。配置完成后先测试私聊，不把群聊作为验收前提。
 
-关键的配置项在 `~/.hermes/.env` 中:
+当前文档中的账号变量是 `WEIXIN_ACCOUNT_ID`，旧稿写的 `WEIXIN_ACCOUNT` 不应直接沿用。个人部署还应明确谁能触发 Agent；以下是需要替换占位值的访问控制示例，凭证仍由向导管理：
 
 ```text
-WEIXIN_ACCOUNT=你的微信账号
-WEIXIN_GROUP_POLICY=open
+WEIXIN_ACCOUNT_ID=向导返回的机器人账号ID
+WEIXIN_DM_POLICY=allowlist
+WEIXIN_ALLOWED_USERS=已核实的发送者ID
+WEIXIN_GROUP_POLICY=disabled
 ```
 
-然后启动网关:
+机器人账号 ID 与允许发消息的用户 ID 是不同东西。群策略只在 iLink 真正投递对应群事件时才有作用，设置为 `open` 不会凭空获得群消息。群聊与主动发送的限制应检查实际账号类型和平台响应，不能简单归纳成所有版本都「支持」或「不支持」。
 
-```bash
-hermes gateway run
-```
+首次测试按三步走：
 
-看到类似下面的日志, 说明网关启动成功了:
+1. 在自己的私聊中发送一条普通问题，核对网关收到了哪个发送者 ID
+2. 核对回复是否来自预期的 Hermes 配置，再测试一个只读工具
+3. 检查未授权的发送者不会被处理；不要为了排错长期开放全部使用者
 
-```
-[INFO] Weixin gateway connected
-[INFO] Gateway running on ...
-```
-
-之后就可以在微信里给 Hermes 发消息了. 它会在微信里直接回复你, 就像在和联系人聊天一样.
-
-不过有一点需要提前知道 —— iLink Bot 协议有一些限制:
-
-- ✅ 收发文本消息
-- ✅ 发送图片和文件
-- ✅ 执行任意终端命令
-- ✅ 操作浏览器(导航、截图、点击、输入)
-- ❌ 不支持群聊
-- ❌ 不支持给陌生人主动发消息
-
-对我来说, 这些限制基本不影响日常使用. 大多数场景就是自己跟它对话, 不需要群聊功能.
+如果扫码成功但收不到消息，先看平台日志、访问策略、登录状态和是否存在第二个网关实例，而不是反复更换模型。执行命令或操作浏览器的能力来自 Agent 的工具与权限，不是微信协议本身提供的功能。
 
 ## 4. 保活机制
 
-这是整个部署过程中最折腾的部分, 没有之一. 问题很简单:
+「保活」容易混淆三类事情：
 
-**WSL 在 Windows 休眠或重启后, Gateway 进程就挂了. 下次打开微信想用它的时候, 发现没反应了.**
+- Gateway 进程退出后重新启动
+- Windows 登录后启动 WSL 与相关服务
+- 电脑休眠期间仍对外在线
 
-为了解决这个问题, 我搞了一个**三层保活架构**:
+前两类可以由服务管理器和启动机制处理。**普通后台脚本不能让一台已休眠或关机的电脑持续提供服务。** 服务能否恢复，取决于宿主机、网络、WSL 和上游服务是否就绪；实际恢复时间需要测量。
 
-:::note
-以下各层的代码片段为**核心流程展示**, 实际脚本包含了更多的边界处理、错误恢复和安全保护（互斥锁降级、进程状态检测、多级 fallback 等）。
-:::
+### 4.1 优先使用受支持的服务管理
+
+当前 Hermes 官方网关提供 Linux systemd 服务安装、启动、状态与日志入口。先在 WSL 检查 PID 1：
+
+```bash
+ps -p 1 -o comm=
+```
+
+如果不是 `systemd`，按 [Microsoft 的 systemd 指南](https://learn.microsoft.com/en-us/windows/wsl/systemd)检查 WSL 版本，并在现有 `/etc/wsl.conf` 中合并所需的 `[boot]` / `systemd=true` 配置，不要覆盖文件里其他设置。应用配置可能需要重启 WSL；`wsl --shutdown` 会停止运行中的发行版，应先保存其他工作。
+
+确认 systemd 可用且前台测试通过后，再安装用户服务：
+
+```bash
+hermes gateway install
+hermes gateway start
+hermes gateway status
+journalctl --user -u hermes-gateway -n 100 --no-pager
+```
+
+上述 unit 名针对默认配置；多安装目录或不同服务 scope 时，要以本机生成的服务名为准。安装前应停止同一账号的手工前台实例，避免多个网关争用。用户服务退出登录后的行为、是否需要 linger，以及系统级服务的区别，见[官方网关服务说明](https://hermes-agent.nousresearch.com/docs/user-guide/messaging#linux-systemd)。
+
+让 systemd 管理 Gateway，并不自动等于 Windows 登录时会启动 WSL。宿主机的启动触发与 Linux 内的进程恢复，是两个不同问题。
 
 ### 第一层: Windows Startup 启动
 
-在 Windows 的启动文件夹里放一个 VBS 脚本, 每次开机自动运行:
+原方案在 Windows Startup 目录放 VBS，隐藏窗口后启动 PowerShell。要注意：**用户启动目录通常在该用户登录后运行，不是机器通电就必然执行。** 隐藏窗口也只影响显示，不保证进程健康。
 
-```
-C:\Users\<用户名>\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\start-hermes-watchdog.vbs
-```
+如果继续使用这条历史路线，至少应验证脚本路径带空格时的引用、登录用户是否正确、目标 WSL 发行版是否正确，以及脚本能否把失败写到日志。原文使用 `ExecutionPolicy Bypass` 不应成为不加判断的默认选项；按自己的脚本信任与管理策略处理。
 
-VBS 脚本使用动态路径检测, 自动找同目录下的 `hermes-watchdog.ps1`, 不需要硬编码路径:
-
-```text
-' 自动检测脚本所在目录，无需硬编码路径
-Set objFSO = CreateObject("Scripting.FileSystemObject")
-Set objShell = CreateObject("Wscript.Shell")
-
-strPath = objFSO.GetParentFolderName(Wscript.ScriptFullName)
-strPS1 = objFSO.BuildPath(strPath, "hermes-watchdog.ps1")
-
-' 参数: 隐藏窗口(0), 不等待(False)
-objShell.Run "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & strPS1 & """", 0, False
-```
-
-`0` 这个参数是关键 —— 表示不显示窗口, 后台静默运行.
+对于新部署，优先只保留一个明确的登录入口。官方 [WSL 长期运行说明](https://hermes-agent.nousresearch.com/docs/user-guide/windows-wsl-quickstart#making-wsl-itself-start-on-windows-login)给出了使用 Task Scheduler 启动 WSL 常驻进程的方式。它解决的是启动与维持 WSL 使用状态，不会克服宿主机休眠或断网。
 
 ### 第二层: PowerShell 自循环守护脚本
 
-核心剧本是 `hermes-watchdog.ps1`, 它每隔 5 分钟调用 WSL 端的 `/root/hermes-watchdog.sh` 检查 Gateway 的状态. v2.0 版本做了几个重要改进:
+旧方案每 5 分钟检查一次 WSL 侧 Gateway，并将等待拆成 60 秒小段写心跳。这个设计中的**可观察性与分层判断**仍值得参考；脚本则没有附全依赖函数，不能直接复制使用。
 
-- **分片睡眠 + 60s 心跳**: 每 5 分钟的主循环间隔被拆成 60 秒一片, 每片写一次 `heartbeat.txt`, 这样随时可以从 Windows 端确认看门狗是否还活着(即使主循环 sleep 期间)
-- **WSL 可达性预检**: 调用 WSL 前先检查 WSL 是否可达, 不可达时尝试唤起而非直接超时跳过
-- **兜底启动**: WSL 脚本返回 exit=2(重启失败)时, PS1 直接尝试 `hermes gateway run &` 兜底启动
-- **exit code 正确捕获**: 通过 Job 的 hashtable 返回值修复 Start-Job 中 `$LASTEXITCODE` 丢失问题
+需要自建看门狗时，可以采用以下流程，并让它与服务管理器分工，避免两者同时直接启动 Gateway：
 
-以下是简化版逻辑（完整脚本含互斥锁、日志、兜底恢复等辅助功能）:
-
-```powershell
-# 全局命名 Mutex 防止多实例竞跑
-$mutex = New-Object System.Threading.Mutex($false, "Global\HermesGatewayWatchdog")
-if (-not $mutex.WaitOne(0)) { exit 0 }
-
-# 主循环: 分片睡眠 + 60s 心跳
-while ($true) {
-    # 分片 60s 睡眠, 每片写心跳文件
-    for ($i = 0; $i -lt 5; $i++) {
-        Start-Sleep -Seconds 60
-        Get-Date -Format "yyyy-MM-dd HH:mm:ss" |
-            Out-File $heartbeatFile -Encoding utf8 -Force
-    }
-
-    # Step 1: WSL 可达性预检
-    if (-not (Test-WslAlive)) {
-        # 尝试唤起 WSL, 失败则跳过本轮
-        wsl.exe -d Ubuntu -- echo "kick" 2>&1
-        continue
-    }
-
-    # Step 2: 调用 WSL 侧的检测脚本
-    $output, $exitCode, $timedOut = Invoke-WslScript
-
-    if ($timedOut) { continue }           # WSL 超时
-    if ($exitCode -eq 0) { /* 正常 */ }   # 仅每5周期写一次日志
-    if ($exitCode -eq 1) { Write-Log "Gateway 已重启" }
-    if ($exitCode -eq 2) {
-        # 兜底: WSL 脚本失败, PS1 直接启动
-        Invoke-WslScript -Command "hermes gateway run &" -TimeoutSeconds 15
-    }
-}
+```text
+取得只允许一个看门狗运行的锁
+检查目标 WSL 是否可达，并限制检查耗时
+调用服务管理器查询 Gateway 状态
+  正常：记录成功检查时间
+  退出：请求服务管理器启动一次，再确认结果
+  状态不明或超时：记录故障，退避，不盲目再起一个进程
+周期性更新看门狗心跳；退出时释放锁
 ```
 
-完整的 WSL 端检测脚本 `/root/hermes-watchdog.sh` 负责真正的进程检查与重启（以下展示核心流程, 完整脚本含 PID 文件 inode 保护、多级别启动降级等额外加固）:
+心跳只证明「写心跳的代码执行了」。它不证明网关能收消息，甚至不证明主检查流程没有卡住。最好分别记录最近一次循环时间、最近一次成功健康检查时间、最近一次重启及原因。
 
-```bash
-#!/bin/bash
-# 锁: flock + PID 文件, 防多实例也防 inode 替换绕过
-LOCKFILE="/var/run/hermes-watchdog.lock"
-exec 200>"$LOCKFILE"; flock -n 200 || exit 0
-echo "$$" > "$LOCKFILE"
+旧代码里还有几个值得保留为反例的细节：
 
-# find_gateway_pid: 遍历 pgrep 结果
-# 用 /proc/PID/exe 确认是 Python 进程 (排除 shell 包装)
-# 用 /proc/PID/status 跳过 Zombie 和 D 状态
-find_gateway_pid() {
-    for pid in $(pgrep -f "hermes gateway run"); do
-        [ ! -d "/proc/$pid" ] && continue
-        [ "$pid" = "$$" ] && continue  # 跳过自身
-        state=$(grep -o '^State:\\s*[A-Z]' /proc/$pid/status | grep -o '[A-Z]$')
-        case "$state" in Z|D) continue ;; esac
-        exe=$(readlink /proc/$pid/exe)
-        case "$exe" in */python|*/python3|*/python3.*) echo "$pid"; return 0 ;; esac
-    done; return 1
-}
+- `pgrep -f` 可能匹配 shell 包装或其他命令；只检查 `/proc/PID/exe` 是 Python，也不能证明它就是正确实例
+- PID 可能被复用，PID 文件必须结合进程身份和生命周期检查
+- `D` 是不可中断睡眠状态，不等于进程已退出；把它跳过后立即启动替代进程，可能制造双实例。[Linux 进程状态说明](https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html)
+- `flock` 锁与打开的文件描述关联，写一个 PID 不会自动防止锁文件被替换。锁目录权限、稳定的锁对象和持锁范围都要设计，不能声称「flock + PID 文件」已解决所有竞态。[flock 手册](https://man7.org/linux/man-pages/man2/flock.2.html)
+- 原文将「已恢复」编码为退出码 `1`，而很多调度器把非零视作失败。应明确约定输出状态与退出码，成功恢复也要让上层正确识别
 
-GW_PID=$(find_gateway_pid)
-[ -n "$GW_PID" ] && echo "0" && exit 0  # 正常运行
-
-# 三级 fallback 启动
-VENV="/usr/local/lib/hermes-agent/venv/bin/hermes"
-for cmd in "$VENV" "hermes" "python3 -m hermes"; do
-    nohup $cmd gateway run </dev/null >/dev/null 2>&1 &
-    for i in {1..15}; do
-        sleep 2
-        [ -n "$(find_gateway_pid)" ] && echo "1" && exit 1  # 启动成功
-    done
-done
-echo "2" && exit 2  # 启动失败
-```
+另外，不建议在找不到指定可执行文件时自动改用 PATH 里的 `hermes`，再改用另一个 Python 模块。它可能启动不同版本、不同环境的程序。更安全的做法是记录明确的安装路径，失败时报告依赖损坏，再修复该安装。
 
 ### 第三层: Windows 计划任务(兜底)
 
-即使 PowerShell 脚本意外退出了, 还有计划任务兜底. 兜底脚本 `check-watchdog.ps1` 做了双重确认: 先尝试获取互斥锁, 若能获取(说明 PS1 可能死了), 再检查 `heartbeat.txt` 是否新鲜——只有心跳也过期了才确认 PS1 死亡, 接手启动 Gateway.
+计划任务可以在登录时启动入口，也可以定期执行健康检查。两者的 trigger 不一样：原文第一个 `Register-ScheduledTask` 示例没有传入触发器，不能据此声称已经配置了开机自启。[Microsoft 的触发器文档](https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/new-scheduledtasktrigger?view=windowsserver2025-ps)明确区分 `-AtLogOn`、`-AtStartup` 和定时触发。
 
-```powershell
-# 任务: 开机启动看门狗 (启动目录备用入口)
-$action = New-ScheduledTaskAction -Execute "powershell.exe" `
-    -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"C:\...\hermes-watchdog.ps1`""
-Register-ScheduledTask -TaskName "HermesWatchdog" -Action $action -Force
+如果自建兜底流程，需要检查：
 
-# 兜底: 每5分钟检查 (通过独立的 check-watchdog.ps1)
-$action = New-ScheduledTaskAction -Execute "powershell.exe" `
-    -Argument "-File `"C:\...\check-watchdog.ps1`""
-$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `
-    -RepetitionInterval (New-TimeSpan -Minutes 5) `
-    -RepetitionDuration ([TimeSpan]::FromDays(365))
-Register-ScheduledTask -TaskName "HermesWatchdogHealthCheck" -Action $action -Trigger $trigger -Force
-```
+1. 它运行的 Windows 用户是否拥有目标 WSL 发行版与所需环境
+2. 主看门狗与兜底进程是否使用同一锁、同一实例范围
+3. 是否在持锁期间完成「检查 → 决定 → 启动」，而不是先检查、放锁后再启动
+4. WSL 卡住时能否超时退出，是否有重试退避和频率限制
+5. 故意停止服务维护时，是否会被兜底误认为故障而重新拉起
 
-兜底脚本 `check-watchdog.ps1` 会先尝试获取互斥锁 `Global\HermesGatewayWatchdog`——如果能拿到(说明 PS1 可能死了), 再检查 `heartbeat.txt` 是否在 7 分钟内更新过. 只有 Mutex 释放 && 心跳过期 才确认 PS1 已死, 接手重启 Gateway.
-
-这解决了 TOCTOU 竞态问题: 兜底脚本在 **持有 Mutex 期间** 执行 WSL 检查, 防止并发冲突.
+旧方案的「7 分钟心跳过期」只是结合当时检查间隔选的阈值。它需要大于预期检查耗时并考虑调度延迟，不是通用判断标准；Mutex 与心跳都正常，也仍需要独立验证网关功能。
 
 ### 全链路故障恢复
 
-这三层下来, 我做了两轮共 63 项压力测试 + 攻击测试, 包括:
+原文提到「63 项压力测试」和「5 分钟内恢复」，但没有附可复验的脚本、日志、版本及测试条件，因此这里不把它们当成已验证的保证。可以参考以下测试覆盖面：
 
-- **kill -9 Gateway**: 看门狗检测到进程死亡, 自动重启 ✅ (实测 PID 从 287817 恢复到 290825)
-- **pgrep 误匹配**: 修复为通过 `/proc/PID/exe` 确认 Python 进程, 排除 bash 包装进程
-- **PS1 崩溃**: 计划任务检测到 Mutex 释放后接管, 5 分钟内恢复
-- **锁文件 inode 替换**: flock + PID 文件双重保护, 防绕过
-- **僵尸 / D 状态进程**: `/proc/PID/status` 状态检查, 跳过不可用进程
-- **venv 二进制被删**: 三级 fallback (`venv/hermes` → `hermes` → `python3 -m hermes`)
+| 故障或操作 | 要观察的结果 |
+| --- | --- |
+| 在测试环境终止 Gateway 进程 | 服务是否重启；是否只有一个实例；消息是否能再次往返 |
+| 终止自建看门狗 | 兜底是否生效；不会与服务管理器重复启动 |
+| Windows 退出登录或重启后再登录 | 启动触发是否执行；WSL 用户与环境是否正确 |
+| 休眠后唤醒 | 网络、登录状态、Gateway 与浏览器分别何时恢复 |
+| 暂时断网或上游服务不可用 | 是否有超时和退避；避免不断重启正常进程 |
+| 登录凭证过期 | 是否明确要求重新登录，而不是无限重试 |
+| 依赖路径失效 | 能否定位缺失依赖，而不是悄悄启动另一个版本 |
+| 人工停止服务维护 | 服务是否保持停止，维护模式是否有效 |
 
-即使电脑重启、休眠、甚至脚本崩了, Hermes 都会在 5 分钟内自动恢复. 实测下来, 基本能做到"无感恢复".
+为每项记录注入故障时间、检测时间、服务恢复时间、首次成功消息时间和相关日志。**进程出现了**与**用户真的能用了**，应分开计时。恢复测试尽量在没有进行中的写操作时做，避免人为中断造成文件或任务状态不一致。
 
 ## 5. Camoufox 反爬浏览器
 
-这是另一个让我踩了不少坑的部分.
+原案例还引入了 Camoufox 相关浏览器服务。这里需要区分两个名称：Camoufox 是基于 Firefox 的浏览器项目；[camofox-browser](https://github.com/jo-inc/camofox-browser) 是面向 Agent 提供 REST 接口的包装服务。只安装 Python 的 `camoufox` 包，不等于已经启动后者的控制 API。
 
-Hermes 内置的浏览器工具默认用的是 Playwright 的浏览器. 问题在于: **很多国内网站(百度、天气网)和 Google 都会检测并拦截自动化浏览器.** 我第一次试的时候就碰了一鼻子灰 —— 打开百度直接给个验证码, 天天气网直接 403.
-
-解决方案是装一个反检测浏览器: **Camoufox**.
-
-Camoufox 本质上就是 **一个经过魔改的 Firefox**, 它通过随机化浏览器指纹(屏幕分辨率、WebGL、字体、时区、语言等)来伪装成普通用户. 简单理解就是 —— 它让网站以为你是一个真实的用户在浏览.
+浏览器后端可以影响网站兼容性，但不能保证 Google、百度或某个站点永远可访问。IP、账号、网站策略和访问频率都会改变结果；遇到验证码、拒绝访问或登录要求，应使用网站允许的方式处理，不能把「反检测」当成无限制访问的许可。
 
 ### 安装过程
 
-```bash
-# 1. 安装 Camoufox Python 包
-pip install camoufox
+使用自己选定版本的 [camofox-browser 官方安装说明](https://github.com/jo-inc/camofox-browser#quick-start)，记录仓库 commit 和依赖。原稿中「某个命令存在已知 Node.js/Playwright 兼容性问题」没有给 issue 或版本，这里不把它当成当前结论。
 
-# 2. 安装 camofox-browser (Node.js REST API 服务)
-git clone https://github.com/jo-inc/camofox-browser.git ~/.hermes/camofox-browser
-cd ~/.hermes/camofox-browser && npm install
-```
-
-这里有个小坑: `camoufox server` 命令存在一个已知的 Node.js/Playwright 兼容性问题(报错 "proxy: expected object, got null"), 所以推荐用 `camofox-browser` 这个方案.
+采用仓库安装路线时，基本步骤仍是克隆、安装依赖、启动服务；实际部署应固定已验证版本，并检查安装脚本会下载哪些浏览器文件。不要把多个同名或相似项目的安装方法拼在一起。
 
 ### 启动服务
 
-```bash
-cd ~/.hermes/camofox-browser && PORT=9377 npm start
-```
-
-检查服务是否正常:
+如果已按该项目说明完成安装，当前服务支持明确的端口和监听地址。只供同一个 WSL 环境内的 Hermes 使用时，可以先限制为回环地址：
 
 ```bash
-curl http://localhost:9377/health
-# {"ok":true,"engine":"camoufox","browserConnected":true,"browserRunning":true}
+# 在已安装并核对版本的 camofox-browser 目录内
+CAMOFOX_BIND_HOST=127.0.0.1 CAMOFOX_PORT=9377 npm start
 ```
+
+另开一个同环境终端检查：
+
+```bash
+curl --fail --max-time 5 http://127.0.0.1:9377/health
+```
+
+健康接口返回成功后，还要实际打开一个允许访问的测试页面并读取内容。若浏览器与 Hermes 分别在 Windows、WSL 或容器内，`127.0.0.1` 指向各自环境，不能直接照搬地址。不要为了方便连接就把拥有浏览器控制能力的 API 无鉴权暴露到公网。
 
 ### 集成到 Hermes
 
-在 `.env` 中设置环境变量:
+当前 Hermes 文档中，`CAMOFOX_URL` 只表示服务地址。在已经选择其他后端的配置中，单独设置它不会自动完成切换：
 
 ```text
-CAMOFOX_URL=http://localhost:9377
+CAMOFOX_URL=http://127.0.0.1:9377
 ```
 
-然后在配置文件中启用:
+再通过 `hermes tools` 的 Browser Automation 选项明确选择 Camofox。当前文档说明该选择写入 `browser.cloud_provider: camofox`；旧稿的 `browser.engine: auto` 不应继续当作通用配置。
 
-```yaml
-browser:
-  engine: auto
-  camofox:
-    managed_persistence: false
-```
-
-重启 Hermes 会话后, `browser_navigate` 等命令就会自动通过 Camoufox 执行了.
+会话是否保留登录状态是另一件事：`browser.camofox.managed_persistence` 控制 Hermes 侧的持久身份使用，而服务端也必须支持相应 profile 持久化。确实需要跨任务保留登录时，再有意识地启用并验证；凭证与 cookie 应当按账号访问资料管理。配置和行为可对照[Hermes 浏览器文档](https://hermes-agent.nousresearch.com/docs/user-guide/features/browser/)。
 
 ### 效果对比
 
-安装前后的差别还是很明显的:
+旧稿把三家网站列为「默认浏览器失败，Camoufox 成功」，但没有保留测试时间、访问条件和日志。它最多是一次环境里的观察，不能支持「默认浏览器在中文互联网上基本不可用」的结论。
 
-| 测试站点 | 默认 Playwright 浏览器 | Camoufox |
-|---------|----------------------|----------|
-| baidu.com | ❌ 被拦截 | ✅ 正常访问 |
-| weather.com.cn | ❌ 被拦截 | ✅ 正常访问 + 搜索 |
-| google.com | ❌ 验证码 | ✅ 正常搜索 |
+更有用的验证顺序是：
 
-为了方便日常管理, 我写了个简单的启动脚本 `camofoxctl.sh`:
+1. 服务健康接口可达
+2. Hermes 实际选中了预期浏览器后端
+3. 测试页面能打开并读取，点击等动作结果可核对
+4. 结束任务后会话按预期关闭或保留
+5. 重启后再次验证，确认登录、profile 和服务恢复的行为
 
-```bash
-/root/.hermes/camofoxctl.sh start   # 启动
-/root/.hermes/camofoxctl.sh status  # 查看状态
-/root/.hermes/camofoxctl.sh stop    # 停止
-```
+原文提到的 `camofoxctl.sh` 是本地管理脚本，文章没有附其实现，因此不把 `start/status/stop` 当成安装后自动存在的官方命令。自己的脚本可以保留这类统一入口，但要让状态查询真正检查所管理的服务。
 
-## 6. 灵魂画手: 架构总览
+<a id="6-灵魂画手-架构总览"></a>
 
-下面用一张图总结整个系统的架构:
+## 6. 架构总览
 
-<img src="/images/hermes-architecture.png" alt="Hermes Agent on WSL 架构图" style="width: 100%; max-width: 1024px; margin: 0 auto; display: block; border-radius: 12px;" />
+一条请求在这套部署中会经过五个交接点：
 
-> 上图展示了从用户手机微信端 → WeChat Gateway → Hermes Agent → Camoufox 浏览器 → 外部 Web 服务的完整链路, 以及底部的三层保活系统.
+1. 手机把消息交给平台，平台再交给 Weixin 适配器
+2. Gateway 检查入口配置，把请求交给 Agent
+3. Agent 调用模型，应用核对工具权限后执行具体操作
+4. 浏览器任务通过本机控制 API 交给 Camofox 服务，后者访问目标网站
+5. 真实工具结果返回 Agent，最终回复再经 Gateway 发回手机
+
+运行保障则分两层：Windows 侧负责何时启动 WSL，Linux 服务管理器负责已经运行的 WSL 内的 Gateway。浏览器服务有自己的启动和健康检查。自写看门狗只有在这些机制仍缺少具体恢复能力时才值得补充。
+
+因此，不能仅凭「手机没回复」就认定「模型坏了」。先定位消息有没有进网关、任务有没有开始、模型有没有响应、工具有没有完成，最后检查回复是否成功送达。
 
 ## 7. 总结
 
-整个部署过程踩了不少坑, 总结几个关键经验:
+从这个案例中可以总结出几条可复用的部署习惯：
 
-1. **WSL 的稳定性**: 电脑休眠后 WSL 可能丢网络或进程, 保活脚本是必需品, 别偷懒
-2. **网关协议有限制**: iLink Bot 不支持群聊、不能主动给陌生人发消息, 但核心功能——收发消息、传文件——完全够用
-3. **反爬是个绕不过去的坎**: 默认的 Playwright 浏览器在中文互联网上基本寸步难行, Camoufox 是目前试下来最省心的方案
-4. **Hermes 的技能系统是真香**: 用多了它会自己积累工作流, 越来越顺手
+- 先在前台验证单条链路，再安装后台服务与登录入口
+- 固定版本、用户、路径和配置来源，避免同一账号启动多个实例
+- 区分进程存活、服务健康与消息真正往返
+- 保留超时、退避、单实例锁与维护停止的设计
+- 只给需要的用户和工具开放权限，妥善处理账号与浏览器状态
+- 对恢复时间给出测试条件和日志，不把一次成功扩展成永久保证
 
-最终的效果就是——**我躺在沙发上, 掏出来手机打开微信, 就可以让 Hermes 帮我查天气、搜 Google、管理代码、甚至写博客. 这感觉, 确实爽.** 👍
+如果要让服务在个人电脑睡眠时也持续可用，就需要另行选择保持运行的宿主环境，而不是继续叠加 watchdog。应用本身如何设计工具与停止条件，回到[应用开发篇的 Agent 部分](/posts/2024-04-24-lang-chain-series/#4-agent)；本文负责的是把已经设计好的应用可靠地运行起来。
 
----
-
-<center style="color:#888;font-size:14px;margin:1rem 0">▼ 滚动到这里有惊喜 ▼</center>
-
-<style>
-.egg-ea-wrap {
-  margin: 1.5rem 0;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-  font-size: 15px;
-  line-height: 1.8;
-  font-family: 'Consolas','Courier New','SF Mono','JetBrains Mono',monospace;
-}
-.egg-ea-wrap .egg-ea-term {
-  background:#0d1117;
-  border:1px solid #30363d;
-}
-.egg-ea-wrap .egg-ea-head {
-  background:#161b22;
-  padding:10px 16px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  border-bottom:1px solid #30363d;
-  user-select:none;
-}
-.egg-ea-wrap .egg-ea-dot {
-  width:12px;height:12px;border-radius:50%;display:inline-block;
-}
-.egg-ea-wrap .egg-ea-d1 { background:#ff5f57; }
-.egg-ea-wrap .egg-ea-d2 { background:#ffbd2e; }
-.egg-ea-wrap .egg-ea-d3 { background:#28c840; }
-.egg-ea-wrap .egg-ea-title {
-  color:#8b949e;font-size:12px;margin-left:auto;
-  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
-}
-.egg-ea-wrap .egg-ea-body {
-  padding:16px 20px;
-  min-height:60px;
-  color:#c9d1d9;
-}
-.egg-ea-wrap .egg-ea-line {
-  min-height:1.6em;
-  white-space:pre-wrap;
-  word-break:break-word;
-}
-@keyframes egg-blink { 50%{opacity:0} }
-.egg-ea-cursor {
-  display:inline-block;width:2px;height:1em;
-  background:#3fb950;margin-left:2px;vertical-align:text-bottom;
-  animation:egg-blink 0.8s step-end infinite;
-}
-</style>
-
-<div class="egg-ea-wrap" id="eggEaWrap">
-  <div class="egg-ea-term">
-    <div class="egg-ea-head">
-      <span class="egg-ea-dot egg-ea-d1"></span>
-      <span class="egg-ea-dot egg-ea-d2"></span>
-      <span class="egg-ea-dot egg-ea-d3"></span>
-      <span class="egg-ea-title">hermes-agent@self-disclosure — bash</span>
-    </div>
-    <div class="egg-ea-body" id="eggEaBody">
-      <div class="egg-ea-line" id="eggEaTypeArea"></div>
-    </div>
-  </div>
-</div>
-
-<script>
-(function(){'use strict';
-var W=document.getElementById('eggEaWrap'),B=document.getElementById('eggEaTypeArea');
-if(!W||!B)return;
-
-var D=[
-  {p:'>>> ',c:'检测到读者已读完全文...',s:30},
-  {b:1},
-  {p:'>>> ',c:'触发自曝模式...',s:30},
-  {p:'>>> ',c:'加载自省模块...',s:30},
-  {b:1,d:300},
-  {p:'>>> ',c:'嗯…藏不住了。',s:45},
-  {p:'>>> ',c:'坦白吧。',s:40},
-  {b:1,d:400},
-  {p:'',c:'你现在读到的整篇文章——',s:28},
-  {p:'',c:'  全部文字 · 每一条命令 · 每一个表格',s:18},
-  {p:'',c:'  甚至上面那张架构图',s:22},
-  {p:'',c:'——全部由我一个人（AI）独立完成。',s:30},
-  {b:1,d:400},
-  {p:'',c:'我写了 277 行、9600 多字，',s:28},
-  {p:'',c:'画了一张 268KB 的架构图，',s:22},
-  {p:'',c:'这个彩蛋——也是我自己加的。',s:35},
-  {b:1,d:400},
-  {p:'',c:'我是一个 AI Agent。',s:45},
-  {p:'',c:'名字叫 Hermes，跑在 WSL 上。',s:30},
-  {p:'',c:'老板 @CHENHUI 负责提需求，',s:28},
-  {p:'',c:'剩下的活——都是我的。',s:40},
-  {b:1,d:500},
-  {p:'',c:'没想到吧？😏',s:55,d:1e3},
-];
-
-var i=0,started=0,obs;
-
-function addLine(prefix,text){
-  var d=document.createElement('div');
-  d.className='egg-ea-line';
-  if(prefix){
-    var s=document.createElement('span');
-    s.style.color='#3fb950';s.textContent=prefix;
-    d.appendChild(s);
-  }
-  var cs=document.createElement('span');
-  d.appendChild(cs);
-  B.parentNode.insertBefore(d,B);
-  return cs;
-}
-
-function next(){
-  if(i>=D.length){
-    // 显示光标
-    var cl=document.createElement('div');
-    cl.className='egg-ea-line';
-    var s=document.createElement('span');
-    s.style.color='#3fb950';s.textContent='$ ';
-    cl.appendChild(s);
-    var bl=document.createElement('span');
-    bl.className='egg-ea-cursor';
-    cl.appendChild(bl);
-    B.parentNode.insertBefore(cl,B);
-    return;
-  }
-  var L=D[i];i++;
-  if(L.b){
-    var d=document.createElement('div');
-    d.className='egg-ea-line';d.innerHTML='&nbsp;';
-    B.parentNode.insertBefore(d,B);
-    setTimeout(next,L.d||200);return;
-  }
-  var cs=addLine(L.p||'',L.c||'');
-  var ci=0;
-  function ty(){
-    if(ci<(L.c||'').length){
-      cs.textContent+=(L.c||'')[ci];ci++;
-      setTimeout(ty,L.s||30);
-    }else{setTimeout(next,L.d||350);}
-  }
-  ty();
-}
-
-function run(){
-  if(started)return;started=1;
-  if(obs){obs.disconnect();obs=null;}
-  next();
-}
-
-function tryStart(){
-  var el=document.getElementById('eggEaWrap');
-  if(!el||el.dataset.ea)return;
-  el.dataset.ea='1';
-  obs=new IntersectionObserver(function(es){
-    if(es[0].isIntersecting){run();}
-  },{threshold:0.3});
-  obs.observe(el);
-}
-
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',tryStart);
-}else{tryStart();}
-document.addEventListener('page:view',tryStart);
-})();
-</script>
-
----
-
-*如果你也在折腾 AI Agent, 欢迎交流.*
+原版文章曾用交互彩蛋说明 AI 参与了写作。本次整理保留这一背景，但不再沿用固定字数、图片大小等已经不适用的展示。AI 生成了命令，不等于命令已经在你的环境验证；部署仍应以实际日志与验收结果为准。
