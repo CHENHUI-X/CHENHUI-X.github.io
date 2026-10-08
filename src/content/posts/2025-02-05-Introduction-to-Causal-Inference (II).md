@@ -1,7 +1,7 @@
 ---
-title: Causal Inference Series (II)
+title: 因果推断（二）：ITE、ATE、ATT 和 CATE 有什么区别
 published: 2025-02-05
-description: 因果推断系列第二篇，基于因果推断综述论文，系统介绍因果推断的基本符号、关键假设和核心定义。
+description: 用参加课程辅导的例子区分 ITE、ATE、ATT 和 CATE，再推导需要满足哪些假设，才能从观测成绩计算平均处理效应。
 category: Causal Inference
 tags:
 - machine learning
@@ -10,154 +10,214 @@ tags:
 - causal inference
 draft: false
 ---
-## 0. 前言
+<span id="0-前言"></span>
 
-Causal Inference（因果推断）已经在多个领域发挥出重要作用。我早已听说过它，但一直没有系统学习，往往浅尝辄止。于是开这个博客系列，记录学习过程，也希望借此督促自己。
+<span id="0-本篇使用的资料"></span>
 
-本篇记录我对 [A Survey on Causal Inference](https://arxiv.org/abs/2002.02770) 的学习。
+## 0. 接着看不同人群的处理效应
+
+上一篇从潜在结果出发，介绍了平均处理效应。这一篇继续看：如果只关心参加辅导的人，或者基础成绩相近的一组人，应该计算哪一种效应？
+
+下面的定义和假设主要参考 [A Survey on Causal Inference](https://arxiv.org/abs/2002.02770)。
 
 :::note
 这是初学者的个人笔记，内容和理解难免有误，欢迎指正。
 :::
 
 
-## 1. BASIC OF CAUSAL INFERENCE
+<span id="1-basic-of-causal-inference"></span>
 
-本节介绍因果推断的背景知识，包括数学符号和相关假设。
+<span id="1-潜在结果框架中的定义与假设"></span>
 
-### 2.1 Definitions
+## 1. 先定义要比较谁，再看怎么计算
 
-**Definition 1.**
-_Unit. A unit is the **atomic** research object in the treatment effect study._
+本篇沿用第一篇的潜在结果框架，把处理符号 $T$ 改记为综述中的 $W$。需要条件概率和期望的基础。主要用课程辅导作例子：某位学生是否参加课程辅导（$W=1$ 参加，$W=0$ 不参加），$Y$ 是之后的考试分数，$X$ 是辅导开始前的基础成绩。处理效应描述的是同一个人在两种方案下的结果差，而不同指标会对不同人群取平均。因此，先弄清楚指标比较的是哪些人，再看数据是否足够算出它。
 
-> 例如一个患者、一个独立的人，也可以是一组人，如一个班级或一个市场中的人群。
+<span id="11-definitions"></span>
 
-**Definition 2.**
-_Treatment. Treatment refers to the action that applies (exposes, or subjects) to a unit._
+<span id="11-研究对象潜在结果与处理效应"></span>
 
-> 假设给某个病人开药，“开 A 药”和“开 B 药”分别是一个 treatment。令 W (W $\in$ {0, 1, 2, . . . , N_w }) 表示某个 treatment，这里 $N_w + 1 $ 是 treatment 的个数。
+### 1.1 从一个人的结果，到一群人的平均效应
 
-**Definition 3.**
-_Potential outcome. For each unit-treatment pair, the outcome of that treatment when applied on
-that unit is the potential outcome._
+**定义 1：研究单元（Unit）。** 研究单元就是我们安排处理、记录结果的对象。在辅导例子里，一个学生就是一个研究单元。
 
-> treatment $w$ 对应的 potential outcome 表示为 $Y(W \ = \ w)$
+> 研究单元可以是一位患者或一个人，也可以是一组人，例如一个班级或一个市场中的人群。具体取决于研究怎样定义处理对象。
+
+**定义 2：处理（Treatment）。** 处理就是我们要比较的行动或条件，例如参加辅导和不参加辅导。
+
+> 假设给某个病人开药，“开 A 药”和“开 B 药”分别是一种处理。令 W (W $\in$ {0, 1, 2, . . . , N_w }) 表示处理类别，这里 $N_w + 1 $ 是处理的个数。
+
+**定义 3：潜在结果（Potential outcome）。** 对每个研究单元和每一种处理，都可以定义“这个单元接受该处理时会得到的结果”，即相应的潜在结果。
+
+> 处理 $w$ 对应的潜在结果记为 $Y(w)$
 >
-> 潜在结果指不同处理条件下可能产生的结果（不同的处理有不同的结果），更像是在描述一种“薛定谔式”的状态。
+> $Y_i(w)$ 指同一个体 $i$ 在指定处理 $w$ 下的结果。这里括号表示处理方案，不是条件概率事件；$Y_i(1)$ 对实际未处理的人也有定义。不同处理对应的潜在结果也可能具有相同的数值。
 
-**Definition 4.**
-_Observed outcome. The observed outcome is the outcome of the treatment that is actually applied._
+**定义 4：观测结果（Observed outcome）。** 观测结果是研究单元实际接受的处理所对应的结果。
 
-> observed outcome 有时也称为 factual outcome（事实结果），用 $Y^F$ 表示，其中 F 指 factual。
+> 观测结果有时也称为 factual outcome（事实结果），用 $Y^F$ 表示，其中 F 指 factual。
 >
-> 观察到的结果 $Y^F$ 是实际实施某个处理 $w$ 后的确定结果。
+> 对某位已经考完试的学生，观测结果就是表中记下的成绩。换到总体来看，不同学生的成绩仍然可以用随机变量描述。
 
 :::note
-观测结果（$Y^F$）和潜在结果（$Y(W \ = \ w)$）的关系是：当某个 treatment $w$ **真正被施加**时，无论具体是哪种 treatment，都有：$Y^F = Y(W \ = \ w)$
+观测结果（$Y^F$）和潜在结果（$Y(w)$）的关系是：当研究单元**实际接受处理** $w$ 时，在一致性假设下都有 $Y^F=Y(w)$。二元处理时也可写成 $Y^F=WY(1)+(1-W)Y(0)$：当 $W=1$ 只留下第一项，当 $W=0$ 只留下第二项。
 :::
 
 
-**Definition 5.**
-_Counterfactual outcome: Counterfactual outcome is the outcome if the unit had taken another
-treatment._
+**定义 5：反事实结果（Counterfactual outcome）。** 如果研究单元接受另一种处理，它会得到的结果称为反事实结果。
 
-> counterfactual outcome 称为反事实结果，指实际接受的 treatment $w$ 之外，其他 treatment 对应的潜在结果。
+> 反事实结果对应实际接受的处理 $w$ 之外的其他处理，是那些处理下的潜在结果。
 >
-> 一个 unit 只能接受某一个 treatment（比如 A），也只能观测到对应的潜在结果。若想观测另一个 treatment（比如 B）在同一 unit 上的结果，就只能回到之前的时间点，或者去平行世界，因为当前 unit 的状态已经改变了。因此，这些结果称为反事实结果。
+> 在同一个研究时点和相同初始条件下，一个研究单元只能实际接受一种处理，也只能观察那一列潜在结果。之后让同一个人改用另一处理，时间、状态或前次处理的影响也可能改变，因此通常不能直接当作原时点缺失的那个反事实。
 
 
-**Definition 6.**
-_Pre-treatment variables: Pre-treatment variables are the variables that will not be affected by the
-treatment._
+把“实际看到的结果”和“缺失的另一种结果”放在同一张图里，更容易区分个体效应与组间差异：
 
-> 处理前变量也称为 background variables（背景变量），**通常用 $X$ 表示**。**它们不会被任何 treatment 影响，但 $X$ 可能影响 treatment 的选择。** 比如，某个人的性别不受“发广告”这个 treatment 的影响，但性别可能影响广告是否下发。
+<img src="/images/llm-series/sourced/facure-anatomy2.png" alt="Facure 教材原图：左侧同一研究单元的两个潜在结果纵向配对，右侧两组未处理潜在结果的差异显示选择偏差" width="820" style="background: white;" />
 
-**Definition 7.**
-_Post-treatment variables: The post-treatment variables are the variables that are affected by the
-treatment._
+这张原图另用“学校是否提供平板电脑”作示意，横轴是学费，纵轴是考试表现，**不是下文辅导四人表的数据**。图中 $T$ 对应本文的 $W$，$Y_1,Y_0$ 对应 $Y(1),Y(0)$。
 
-> 处理后变量指**会被 treatment 影响的变量**。比如，某个人打开软件的次数会受“发广告”这个 treatment 影响。
+- 左图：深色点表示观测结果，浅色点补出无法同时观测的反事实；同一横坐标的一对点，纵向差才是同一单元的处理效应。
+- 右图：把两组都放到“不处理”的 $Y_0$ 状态，两组平均值仍可不同。这个差异是选择偏差，不能算作处理带来的收益。
+- 因此 ATE 与 ATT 都先问“同一人的两种结果差多少”，再决定平均哪些人；都不能只把两组深色点的平均值直接相减。
 
-**Definition 8.**
-_Individual Treatment Effect (ITE)_
+图源：[Matheus Facure，Causal Inference for the Brave and True，第 1 章 Bias](https://matheusfacure.github.io/python-causality-handbook/01-Introduction-To-Causality.html#bias)，[MIT 许可](/images/llm-series/sourced/facure-LICENSE.txt)。原图保留，未替换数据或坐标。
 
-对于 unit i，其 _ITE_ 计算公式为：
+**定义 6：处理前变量（Pre-treatment variables）。** 处理前变量不会受到本次研究中的处理影响。
 
+> 处理前变量也称为 background variables（背景变量），通常用 $X$ 表示。它们不受本次处理影响，但可能影响谁接受处理。比如，某个人的性别不受“发广告”这一处理的影响，但性别可能影响广告是否下发。
 
-$$
-\text{ITE}_i = Y_i(W=1) - Y_i(W=0)
-$$
+**定义 7：处理后变量（Post-treatment variables）。** 处理后变量会受到本次研究中的处理影响。
 
+> 在这里，处理后变量指会受处理影响的变量。比如，某个人打开软件的次数会受“发广告”这一处理影响。
 
-其中，$Y_i(W=1)$ 和 $Y_i(W=0)$ 分别是 unit $i$ 分配到实验组和对照组时的输出。
+**定义 8：个体处理效应（Individual Treatment Effect，ITE）。**
 
-**Definition 9.**
-_Average Treatment Effect (ATE)_
-
-ATE 关注整个 population 上的 treatment 效果，计算公式为：
+对于个体 i，其 ITE 的计算公式为：
 
 
 $$
-\text{ATE} = \mathbb{E}[Y(W=1) - Y(W=0)]
+\text{ITE}_i = Y_i(1) - Y_i(0)
 $$
 
 
-其中，$Y(W=1)$ 和 $Y(W=0)$ 分别是整个 population 在实验组和对照组时的输出。
+其中，$Y_i(1)$ 和 $Y_i(0)$ 分别是个体 $i$ 接受处理和不接受处理时的潜在结果。
 
+**定义 9：平均处理效应（Average Treatment Effect，ATE）。**
 
-**Definition 10.**
-_Average Treatment effect on the Treated group (ATT)_
-
-ATT 只关注 `subgroup = treatment_group` 的 treatment 效果，计算公式为：
-
-
-$$
-\text{ATT} = \mathbb{E}[Y(W=1)|W=1] - \mathbb{E}[Y(W=0)|W=1]
-$$
-
-
-**Definition 11.**
-_Conditional Average Treatment Effect (CATE)_
-
-CATE 关注整个 population 在某个确定性条件 `X = x` 下的 treatment 效果，计算公式为：
+ATE 对目标总体中所有个体的处理效应取平均，计算公式为：
 
 
 $$
-\text{CATE} = \mathbb{E}[Y(W=1)|X=x] - \mathbb{E}[Y(W=0)|X=x]
+\text{ATE} = \mathbb{E}[Y(1) - Y(0)]
+$$
+
+
+这里的期望是对目标总体中的个体取平均，并非只平均实际实验组或对照组的人。对有限的 $n$ 个个体，可以写成 $\frac1n\sum_i[Y_i(1)-Y_i(0)]$；这个式子说明了 ATE 的含义，但真实数据缺少反事实结果，所以不能照着它逐人相减。
+
+
+**定义 10：已处理人群的平均处理效应（Average Treatment effect on the Treated group，ATT）。**
+
+ATT 只关注实际接受处理的人。问题是“这些已接受辅导的人，相比他们自己没接受辅导时平均提高多少”，计算公式为：
+
+
+$$
+\text{ATT} = \mathbb{E}[Y(1)|W=1] - \mathbb{E}[Y(0)|W=1]
+$$
+
+
+注意第二项仍以 $W=1$ 为条件：它是接受辅导者**假如没有辅导**的平均成绩，不是直接拿未辅导组的成绩代替。两组原本基础不同的话，直接相减会混入选择差异。
+
+**定义 11：条件平均处理效应（Conditional Average Treatment Effect，CATE）。**
+
+CATE 对满足条件 `X = x` 的子人群求平均处理效应，计算公式为：
+
+
+$$
+\text{CATE} = \mathbb{E}[Y(1)|X=x] - \mathbb{E}[Y(0)|X=x]
 $$
 
 
 :::note
-CATE 关注不同条件（condition or background variables）下的 treatment 效果，因此也被称为 **heterogeneous（异质）treatment effect**。
+CATE 用于比较不同背景条件下的平均处理效应，因而也用于描述**异质处理效应（heterogeneous treatment effect）**。
 :::
 
 
-### 2.2 Assumptions
+下面的假设数据为每个人列出了两种潜在结果，便于比较这几个定义。在真实数据中，每人只能观测其中一列：
 
-评估因果效应需要一些基本假设。
+| 个体 | 基础组 $X$ | 实际 $W$ | $Y(0)$ | $Y(1)$ | 个体效应 |
+| --- | --- | --- | --- | --- | --- |
+| 甲 | 低 | 1 | 50 | 70 | 20 |
+| 乙 | 低 | 0 | 60 | 70 | 10 |
+| 丙 | 高 | 1 | 80 | 84 | 4 |
+| 丁 | 高 | 0 | 90 | 92 | 2 |
 
-**Assumption 1.**
-_Stable Unit Treatment Value Assumption (SUTVA)._ The potential outcomes for any unit
-do not vary with the treatment assigned to other units, and, for each unit, there are no different forms or versions of each treatment level, which lead to different potential outcomes.
+以四人各占四分之一为目标人群，ATE 为 $9$，实际处理者甲、丙的 ATT 为 $12$；低基础组 CATE 为 $15$，高基础组为 $3$。实际观察组均值差却是 $(70+84)/2-(60+90)/2=2$，与上述效应不同。ATE、ATT、CATE 的区别在于对哪些人加权平均，并没有改变“每个人的两个潜在结果之差”这个起点。
 
-> 1. 一个个体的潜在结果不受其他个体接受何种处理的影响（无干扰）；这**不等于**要求不同个体的观测数据在统计上独立。2. 同一处理水平没有会改变结果的隐藏版本。
+<span id="12-assumptions"></span>
+
+<span id="12-识别因果效应所需的假设"></span>
+
+### 1.2 什么条件下，观测数据能回答因果问题
+
+要用实际成绩估计辅导的效果，需要下面这些假设。术语沿用综述，但可以结合辅导例子理解。
+
+**假设 1：稳定单元处理值假设（Stable Unit Treatment Value Assumption，SUTVA）。** 这个假设包括无干扰和无隐藏处理版本两部分：
+
+1. 一个个体的潜在结果不受其他个体接受何种处理的影响，即无干扰。这与“不同个体的观测数据在统计上独立”是不同的要求。
+2. 对同一个人，记为同一处理的方案不能包含会导致不同结果的隐藏版本。也就是说，研究需要先说清“参加辅导”具体指什么。
 
 
-**Assumption 2.**
-_Ignorability._ Ttreatment assignment $W$ is independent of the potential outcomes, i.e., $W \perp Y(W = 0), Y(W = 1)$.
+**假设 2：可忽略性（Ignorability）。** 处理分配 $W$ 与潜在结果独立，即 $W \perp Y(0), Y(1)$。
 
-> 如果满足 Ignorability，以下 2 个结果成立：
+> 可忽略性可以从以下两方面理解：
 >
-> 1. 潜在结果与实际接受的处理在总体中独立。随机分配是一种可能使这个假设成立的设计方法，但不能从观察到“可忽略性”反推出研究本来就是随机分配的；
+> 1. 潜在结果与实际接受的处理在总体中独立。随机分配是一种支持该假设的研究设计；但即使假设成立，也不能反推出研究采用了随机分配。
 >
-> 2. 这种独立性称为可交换性：两组的潜在结果分布可比较，并不要求每个人的其他条件完全相同。
+> 2. 这种独立性称为可交换性：对同一种处理，两组中相应潜在结果的总体分布相同，并不要求每个人的其他条件完全相同。
 
-> 实际中，背景变量 $X$ 的干扰使 $W$ 和 $Y$ 之间产生联系。例如，假设 $W$ 表示“藏私房钱是否被老婆发现”，$Y(W = 1)$ 表示“被老婆揍一拳之后的疼痛值”；$W = 0$ 表示没有被揍，$W = 1$ 表示被揍。
-> 此时 $W = 1$ 与 $Y(W = 1)$ 有联系，至少存在这样的关系：当 $X = 1$，即藏私房钱被发现时，$W = 1$ 的概率会升高，同时 $Y(W = 1)$ 会变大。
->
-:::note
-因此考虑给定背景变量 $X$ 的情况，此时有 $W \perp Y(W = 0), Y(W = 1) \mid X$。
-:::
+在辅导例子中，基础较弱的学生可能更愿意参加辅导，基础成绩又会影响两种情况下的期末成绩，于是处理分配与潜在结果并不独立。我们可以考虑较弱的条件假设：
 
+$$
+(Y(0),Y(1))\perp W\mid X.
+$$
 
-## Reference
+它表示：在基础条件 $X$ 相同的人群中，是否参加辅导与两种情况下的潜在成绩独立。如果漏掉了学习动机，而它同时影响报名和成绩，这个假设就可能不成立。写下 $\mid X$ 表示按这些背景变量分层；条件可交换性是否成立，仍取决于所选的 $X$ 是否已包含足够的混杂因素。
+
+**假设 3：正值性（Positivity，也称重叠）与一致性。** 对目标人群中出现的 $x$，要求 $0<P(W=1\mid X=x)<1$，让每层都能比较两种处理。若低基础学生全都参加辅导，就没有该层的未辅导观察值；用模型猜出该层未辅导者的成绩，需要额外的外推假设，不能补上原有数据缺少对照的问题。一致性还要求实际接受的方案与所定义的处理一致，才有 $Y^F=Y(W)$。例如“一次答疑”和“整学期一对一辅导”若都混记为 $W=1$，就需要重新定义处理版本。
+
+<span id="13-从定义走到可计算的公式"></span>
+
+### 1.3 用观测均值计算 ATE、ATT 和 CATE
+
+ATE、ATT 和 CATE 都是用潜在结果定义的。要从数据中计算它们，需要利用上述假设，将潜在结果的均值表示成可观测的组内均值。固定 $x$ 后，有：
+
+$$
+\begin{aligned}
+\mathbb E[Y(w)\mid X=x]
+&=\mathbb E[Y(w)\mid W=w,X=x] &&\text{（条件可交换性）}\\
+&=\mathbb E[Y^F\mid W=w,X=x] &&\text{（一致性）}.
+\end{aligned}
+$$
+
+因此令 $m_w(x)=\mathbb E[Y^F\mid W=w,X=x]$，两种处理在同一层的均值差为 $m_1(x)-m_0(x)$。在上述假设及所需重叠条件下：
+
+$$
+\begin{aligned}
+\operatorname{CATE}(x)&=m_1(x)-m_0(x),\\
+\operatorname{ATE}&=\mathbb E_X[m_1(X)-m_0(X)],\\
+\operatorname{ATT}&=\mathbb E_{X\mid W=1}[m_1(X)-m_0(X)].
+\end{aligned}
+$$
+
+ATE 按整个人群的 $X$ 分布加权，ATT 按实际处理者的 $X$ 分布加权。比如低、高基础组的效应分别为 15、3 分，全体两组各半，ATE 为 9 分；若实际辅导者中 80% 属于低基础组，则 ATT 为 $0.8\times15+0.2\times3=12.6$ 分。这里改变了实际辅导者的基础构成，所以 ATT 与前面四人表中的 12 分不同。
+
+在真实数据里还要估计 $m_w(x)$，例如分层求样本均值或拟合结果模型，并评估不确定性。这些假设能让我们计算平均效应，却不能还原每个人缺失的那一个潜在结果。CATE 是组内平均值，同组每个人的 ITE 仍可能不同。
+
+<span id="reference"></span>
+
+## 参考资料
+
+1. [Yao et al., A Survey on Causal Inference](https://arxiv.org/abs/2002.02770)，定义与假设
+2. [Brady Neal, Introduction to Causal Inference，第 2 章](https://www.bradyneal.com/Introduction_to_Causal_Inference-Dec17_2020-Neal.pdf)，调整公式与识别条件
+

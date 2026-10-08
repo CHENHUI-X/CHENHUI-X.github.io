@@ -1,14 +1,17 @@
 ---
 import { getArticleTopic } from "@constants/article-topics";
+import { getMemorySeriesNavigation } from "@constants/memory-series";
 
 interface Props {
 	slug: string;
 }
 const { slug } = Astro.props;
+const series = getMemorySeriesNavigation(slug);
 const topic = getArticleTopic(slug);
 const article = topic?.articles.find((item) => item.slug === slug);
 ---
 {topic && article && <aside class="mb-6 p-4 rounded-xl bg-black/5 dark:bg-white/5 text-sm" aria-label="文章定位" data-article-context>
     <p class="mb-2 text-black/60 dark:text-white/60">本文位置：<a class="text-[var(--primary)] hover:underline" href={`/topics/#${topic.id}`}>{topic.title}</a> · <a class="text-[var(--primary)] hover:underline" href="/topics/">全站主题目录</a></p>
+    {series && <p class="mb-2 text-black/60 dark:text-white/60" data-series-position>显存系列第 {series.position} / {series.total} 篇 · <a class="text-[var(--primary)] hover:underline" href="/topics/#llm-memory">查看系列顺序</a></p>}
     <p class="text-black/75 dark:text-white/75">{article.purpose}</p>
 </aside>}

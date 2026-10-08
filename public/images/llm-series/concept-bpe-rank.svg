@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="720" height="780" viewBox="0 0 720 780" role="img" aria-labelledby="title desc" lang="zh-CN">
 <title id="title">BPE：先合并 rank 更小的一对</title><desc id="desc">规则 b+c 合并为 bc 的 rank 为 1，a+b 合并为 ab 的 rank 为 2。输入 a b c，先选择 b c，因此得到 a bc；此后没有独立 b token，规则 a+b 不可再用。</desc>
+<metadata>Original diagram for this blog. Visual principles inspired by Jay Alammar’s The Illustrated GPT-2; no source artwork copied. See consolidation/visual-revision/STYLE-GUIDE.md.</metadata>
 <defs>
 <marker id="arrow-muted" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#586779"/></marker>
 <marker id="arrow-blue" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#2864DC"/></marker>

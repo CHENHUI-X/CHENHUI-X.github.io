@@ -3,6 +3,7 @@ import {
 	KNOWLEDGE_MAP_SLUG,
 	type LearningPathNavigation,
 } from "@constants/learning-path";
+import { getMemorySeriesNavigation } from "@constants/memory-series";
 import { getPostUrlBySlug } from "@utils/url-utils";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 
 const { navigation } = Astro.props;
 const { entry, previous, next, returnTo, prerequisites, optional } = navigation;
+const series = entry ? getMemorySeriesNavigation(entry.slug) : undefined;
 const status = navigation.isKnowledgeMap
 	? "从主线开始"
 	: entry?.kind === "mainline"
@@ -19,30 +21,43 @@ const status = navigation.isKnowledgeMap
 			? "选读支线"
 			: "基础选读";
 ---
-<nav class="learning-path card-base p-6 md:px-9 mb-4" aria-label="LLM 学习路径" data-learning-path data-path-kind={entry?.kind ?? "map"}>
+<nav class="learning-path card-base p-6 md:px-9 mb-4" aria-label={series ? "大模型显存系列导航" : "LLM 学习路径"} data-memory-series={series ? "true" : undefined} data-learning-path data-path-kind={entry?.kind ?? "map"}>
     <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <p class="font-bold text-black/75 dark:text-white/75">LLM 学习路径 · {status}</p>
+        <p class="font-bold text-black/75 dark:text-white/75">{series ? `大模型 · 显存子系列 · ${series.position} / ${series.total}` : `LLM 学习路径 · ${status}`}</p>
         <a class="path-link" href={getPostUrlBySlug(KNOWLEDGE_MAP_SLUG)} data-path-map>完整知识地图</a>
     </div>
+
+    {series && <p class="text-sm text-black/60 dark:text-white/60 mb-3" data-series-learning-context>入门路线：{status}。系列篇次表示专题顺序，深入篇可按需跳读；单卡 SFT 不要求先学 ZeRO。</p>}
 
     {entry && <p class="text-sm text-black/60 dark:text-white/60 mb-3">当前：{entry.title}</p>}
 
     {prerequisites.length > 0 && <div class="mb-4">
-        <p class="text-sm text-black/60 dark:text-white/60 mb-2">前置回看（按需）</p>
+        <p class="text-sm text-black/60 dark:text-white/60 mb-2">相关基础知识（按需阅读）</p>
         <ul class="flex flex-wrap gap-x-4 gap-y-2">
             {prerequisites.map((item) => <li><a class="path-link text-sm" href={getPostUrlBySlug(item.slug)} data-path-prerequisite>{item.title}</a></li>)}
         </ul>
     </div>}
 
-    {entry?.kind === "mainline" || navigation.isKnowledgeMap ? <div class="grid gap-3 sm:grid-cols-2" data-path-mainline>
+    {series ? <div data-series-navigation>
+        <a class="path-link inline-block mb-3" href="/topics/#llm-memory" data-series-directory>查看显存系列完整目录（5 篇）</a>
+        <div class="grid gap-3 sm:grid-cols-2">
+            {series.previous ? <a class="path-step" href={getPostUrlBySlug(series.previous.slug)} rel="prev" data-series-previous>
+                <span class="text-sm">← 系列上一篇</span><span class="font-bold">{series.previous.title}</span>
+            </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60">这是显存系列第一篇，从模型运行时的数据开始。</p>}
+            {series.next ? <a class="path-step" href={getPostUrlBySlug(series.next.slug)} rel="next" data-series-next>
+                <span class="text-sm">系列下一篇 →</span><span class="font-bold">{series.next.title}</span>
+            </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60" data-series-complete>显存系列到此结束，可回目录按问题复习。</p>}
+        </div>
+        <p class="mt-4 text-sm text-black/60 dark:text-white/60">相关补充：<a class="path-link" href="/posts/2026-05-16-llm-quantization-guide/">量化专题：INT4、GPTQ 与 AWQ</a>。入门读者可按<a class="path-link" href={getPostUrlBySlug(KNOWLEDGE_MAP_SLUG)}>知识地图的 9 步路线</a>继续。</p>
+    </div> : entry?.kind === "mainline" || navigation.isKnowledgeMap ? <div class="grid gap-3 sm:grid-cols-2" data-path-mainline>
         {previous ? <a class="path-step" href={getPostUrlBySlug(previous.slug)} rel="prev" data-path-previous>
             <span class="text-sm">← 主线上一篇</span>
             <span class="font-bold">{previous.title}</span>
-        </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60">{navigation.isKnowledgeMap ? `先用 ${navigation.total} 篇主线串起概念，再按需走支线` : "这是主线起点，不需要按文章发布日期阅读"}</p>}
+        </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60">{navigation.isKnowledgeMap ? `入门路线共 ${navigation.total} 篇，进阶专题可按需要选读` : "这是入门路线的第一篇"}</p>}
         {next ? <a class="path-step" href={getPostUrlBySlug(next.slug)} rel="next" data-path-next>
             <span class="text-sm">{navigation.isKnowledgeMap ? "开始阅读 →" : "主线下一篇 →"}</span>
             <span class="font-bold">{next.title}</span>
-        </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60" data-path-complete>已到主线终点，可回知识地图或继续下面的选读</p>}
+        </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60" data-path-complete>入门路线到此结束，接下来可以阅读相关专题</p>}
     </div> : returnTo && <a class="path-step" href={getPostUrlBySlug(returnTo.slug)} data-path-return>
         <span class="text-sm">← 返回{returnTo.kind === "mainline" ? "主线" : "相关专题"}</span>
         <span class="font-bold">{returnTo.title}</span>

@@ -1,38 +1,64 @@
 ---
-title: Deep Reinforcement Learning Series
+title: 深度强化学习：策略梯度、PPO 与价值学习
 published: 2024-04-30
-description: 系统学习强化学习中的策略梯度与价值方法两大类参数更新算法，涵盖 PPO、Q-Learning 等核心方法的原理与公式推导。
+description: 介绍强化学习中的策略梯度和价值学习，逐步推导 PPO、Bellman 方程、Q-Learning、TD(λ) 与 GAE，并用数值例子说明各方法的更新过程。
 category: Deep Learning
 tags:
 - reinforcement learning
 - deep learning
 draft: false
 ---
-## 0. 前言
+<span id="0-前言"></span>
 
-强化学习面对的问题是：一次动作可能很久以后才带来收益，怎样知道现在该增加哪个动作的概率？一种思路直接调整策略，另一种先学会给状态和动作估值，再据此选择动作。本篇从这两条路线出发，串起 Policy Gradient、PPO、Q-Learning、TD(λ) 和 GAE。
+<span id="0-强化学习的两类基本方法"></span>
 
-阅读需要期望、条件概率、求导和梯度下降的基础，不要求先学过强化学习。第一次读可以先看策略梯度、价值函数和 TD，再回来看 PPO 中的 advantage 是怎样估计出来的。
+## 0. 怎样学会选择回报更高的动作
 
-这是 [LLM 知识体系导航](/posts/2026-06-03-llm-knowledge-map/) 的**通用强化学习选读支线**，可作为理解对齐方法的前置知识。本篇不等于 RLHF 教程：语言模型的奖励构造、参考模型、token 级 KL 和训练流程还需要另外讨论，也不必为了学习 SFT 先读完所有 DP 和 TD 推导。
+强化学习面对的问题是：一个动作可能很久以后才带来收益，训练时该怎样判断它好不好？一种思路直接调整策略，另一种先学会给状态和动作估值，再据此选择动作。本篇从这两条路线出发，依次介绍 Policy Gradient、PPO、Q-Learning、TD(λ) 和 GAE。
 
-## 1. 总览和相关概念
+阅读需要期望、条件概率、求导和梯度下降的基础，不要求先学过强化学习。第一次读可按“1.2–1.3 → 2.1–2.2.3 → 3.1–3.2 → 3.4–3.5.4”的顺序，先理解回报、策略梯度、价值和一步 TD。想接上 PPO，再读第 2.3 节的直觉与 2.3.1、2.4，并结合 3.5.7 和 3.5.10 理解 GAE；第 4 节有可运行的验算例子。
 
-### 1.1 总览
+第 2.2.4 节的折扣分布、2.3.2 的精确轨迹校正、3.3 的完整 DP 路线，以及 3.5.8–3.5.9 的 trace 等价证明，可以第二遍再读。
+
+这是 [LLM 知识体系导航](/posts/2026-06-03-llm-knowledge-map/) 的通用强化学习专题，可作为理解对齐方法的前置知识。应用到 RLHF 时，语言模型的奖励构造、参考模型、token 级 KL 和训练流程还需另外讨论。学习 SFT 则不必先读完所有 DP 和 TD 推导。
+
+<span id="1-总览和相关概念"></span>
+
+## 1. 策略、价值与回报
+
+<span id="11-总览"></span>
+
+<span id="11-基于策略基于价值与-actorcritic-方法"></span>
+
+### 1.1 直接学策略，还是先学会估值
 
 - **Policy Based**：直接学习策略 $\pi_\theta(a\mid s)$，它给出各个动作的概率。Actor 是这个策略模型，不保证每次都选最优动作，训练时通常还需要探索。
 - **Value Based**：学习状态价值 $V(s)$ 或动作价值 $Q(s,a)$，再根据估值选择动作。它不一定有独立的 Actor 网络。
 - **Actor–Critic**：Actor 学策略，Critic 提供价值估计，帮助判断动作好不好。这两种角色可以使用不同网络，也可以共享部分参数。
 
-<img src="https://s2.loli.net/2024/04/30/4Ihfg5X8FtVEbsS.png" alt="强化学习方法分类示意" width="300" height="200" />
+相关推导参见：[David Silver’s RL Course](https://www.davidsilver.uk/teaching/)。
 
-原配图来源：[David Silver’s RL Course](https://www.davidsilver.uk/teaching/)。
+这里的“深度”通常指用神经网络表示策略或价值函数；强化学习的目标、回报和 Bellman 方程本身不依赖神经网络。小规模问题可以直接用表格记录每个状态的数值。先理解表格如何更新，再理解神经网络如何近似这些数值，会更直观。
 
-### 1.2 状态、动作和一段经历
+<span id="12-状态动作和一段经历"></span>
+
+### 1.2 状态、动作、奖励与轨迹
 
 以游戏为例，observation 是你看到的画面，action 是移动或开火，reward 是行动后得到的即时分数。**一帧画面不一定是完整 state**：例如速度可能要结合前后帧才能判断。下文假设 $s_t$ 已包含预测未来所需的信息，满足 Markov 性；部分可观测问题可能需要历史、堆叠帧或记忆模型。
 
-本文统一从 $t=0$ 开始计数：在 $s_t$ 选择 $a_t$，环境返回奖励 $r_t$ 和下一状态 $s_{t+1}$。有些教材将同一个奖励写成 $R_{t+1}$，阅读原配图时要注意这个下标差异。
+本文统一从 $t=0$ 开始计数：在 $s_t$ 选择 $a_t$，环境返回奖励 $r_t$ 和下一状态 $s_{t+1}$。有些教材将同一个奖励写成 $R_{t+1}$，对照教材时要注意这个下标差异。
+
+把反馈顺序与下图对照：Agent 是选择动作的智能体，Environment 是执行动作并返回反馈的环境。
+
+![OpenAI Spinning Up 原图：Agent 发出动作，Environment 返回状态与奖励](/images/llm-series/sourced/spinningup-agent-environment.png)
+
+*来源：[OpenAI Spinning Up：强化学习入门](https://spinningup.openai.com/en/latest/spinningup/rl_intro.html)；[原图](/images/llm-series/sourced/spinningup-agent-environment.png)，[MIT 许可及版权声明](/images/llm-series/sourced/training-image-license-notices.txt)。此处保留原图，阅读说明见下文。*
+
+- **上方 Agent**：根据当前可用状态选择动作；策略描述怎样选择，图中没有展开策略的参数更新。
+- **右侧 Action**：动作由智能体传给环境，箭头终点是下方 Environment。
+- **下方 Environment 与左侧反馈**：环境执行动作后返回状态和奖励，左侧箭头指回智能体；奖励是本次反馈，不能直接当成未来累计回报。
+
+右侧箭头从上方 Agent 指向下方 Environment，携带动作 $a_t$；左侧箭头返回 Agent，携带状态与奖励。原图把“本轮收到的反馈”写成 $s_t,r_t$，没有展开跨步时间关系；本文则把动作 $a_t$ 之后收到的奖励叫 $r_t$、新状态叫 $s_{t+1}$。因此不能把图左侧的同名 $r_t$ 直接套进下面轨迹：应先对齐“哪次动作之后收到”的含义。
 
 一次真正结束的游戏是一个 episode，其 trajectory 写作：
 
@@ -42,7 +68,13 @@ $$
 
 这里有 $T$ 次动作。采集器也可能只截取其中一段 rollout；**采样片段结束，不代表任务结束**。
 
-### 1.3 先固定目标和符号
+例如一局只有两步：先在路口选择左转，得到 $r_0=-1$，再走到终点，得到 $r_1=10$。第一步即时奖励为负，不代表它是坏动作，因为它可能把我们带向终点。这就是要看后续回报，而不只看当前奖励的原因。
+
+<span id="13-先固定目标和符号"></span>
+
+<span id="13-折扣回报与优化目标"></span>
+
+### 1.3 把后续奖励加起来，得到折扣回报
 
 先考虑有限时域 $T$，逐一说明各个折扣项的来源：
 
@@ -53,6 +85,8 @@ J(\theta)=\mathbb E_{\tau\sim p_\theta}[R_\gamma(\tau)],
 \qquad 0\leq\gamma\leq1.
 $$
 
+$\theta$ 是策略网络的全部可训练参数，$p_\theta(\tau)$ 是当前策略产生轨迹 $\tau$ 的概率。期望 $\mathbb E_{\tau\sim p_\theta}$ 表示对各种可能经历按概率加权平均；一局走得好只是一个样本，$J$ 衡量重复很多局的平均表现。
+
 $R_\gamma$ 是从起点计算的整段折扣回报，$\gamma$ 表示目标对较晚奖励的权重；奖励本身可以为正，也可以为负。有限时域且奖励可积时允许 $\gamma=1$。持续任务常取 $\gamma<1$ 并要求奖励有界，以保证回报有限。
 
 从第 $t$ 步往后计算、把该步当作新的时间原点的回报则是：
@@ -62,21 +96,39 @@ G_t=\sum_{k=t}^{T-1}\gamma^{k-t}r_k
 =r_t+\gamma G_{t+1},\qquad G_T=0.
 $$
 
-因此 $R_\gamma=G_0$，但一般 $G_t\neq R_\gamma$。这两个量不能使用同一个符号后随意互换。
+在上面的两步例子里，若 $\gamma=0.9$，则 $G_1=10$、$G_0=-1+0.9\times10=8$。程序中可以从后往前累加，而不必对每个时间步重新计算整段和。
+
+因此 $R_\gamma=G_0$，但一般 $G_t\neq R_\gamma$。后文分别使用这两个符号，以区分整段回报与从某一步开始的回报。
 
 有限时域中，同一位置在“还剩十步”和“只剩一步”时价值不同。严格写法是 $\pi_\theta(a\mid s,t)$、$V_t^\pi(s)$、$Q_t^\pi(s,a)$。下文策略省略显式的 $t$ 时，可理解为已把时间并入状态；后面的平稳 Bellman 方程也采用这一约定。若不把时间并入状态，有限时域的方程必须保留 $t$ 与 $t+1$。
 
-## 2. Policy Based
+<span id="2-policy-based"></span>
 
-### 2.1 要做什么
+## 2. 基于策略的方法
 
-Actor 的目标是提高 $J(\theta)$，不是把每次采样的动作都变成“正确标签”。直觉上，在相同处境中，带来较好后续结果的动作应该变得更常见；较差的动作应该变得更少见。
+<span id="21-要做什么"></span>
+
+<span id="21-策略优化的目标"></span>
+
+### 2.1 让好动作更常见，坏动作更少见
+
+Actor 的目标是提高 $J(\theta)$。采到的动作是否值得鼓励，要由它带来的回报决定，不能一律视为正确标签。直觉上，在相同处境中，带来较好后续结果的动作应该变得更常见；较差的动作应该变得更少见。
 
 难点是环境通常不可微。我们不对游戏引擎求导，而是对“这段经历由当前策略产生的概率”求导。
 
-### 2.2 理论怎么做
+<span id="22-理论怎么做"></span>
+
+### 2.2 策略梯度的推导
 
 #### 2.2.1 轨迹概率与梯度
+
+先看只有一个状态、一次动作的简化游戏。动作 A 得 2 分，B 得 0 分，策略以 $p=\sigma(\theta)$ 的概率选 A。这里 $\sigma(\theta)=1/(1+\exp(-\theta))$ 是 sigmoid，它把任意实数参数变成 0 到 1 之间的概率，且 $\mathrm dp/\mathrm d\theta=p(1-p)$。期望回报为 $J=2p$，直接求导得 $\mathrm dJ/\mathrm d\theta=2p(1-p)$。在 $p=0.5$ 时梯度为 $0.5$：沿正方向更新 $\theta$，会增加选 A 的概率。
+
+选择 A 时，对数概率的导数为 $\mathrm d\log p/\mathrm d\theta=(1/p)p(1-p)=1-p$；选择 B 时则为 $\mathrm d\log(1-p)/\mathrm d\theta=-p(1-p)/(1-p)=-p$。
+
+如果只能玩游戏采样，而不知道每个动作的奖励表，可以用“本次回报 × 本次动作的对数概率梯度”：采到 A 时为 $2(1-p)=1$，采到 B 时为 $0(-p)=0$。两者各半，平均仍为 $0.5$。这个单步例子体现了下面轨迹推导的基本思路：单次估计会波动，但其平均值可以给出正确的梯度方向。
+
+$\nabla_\theta$ 把单参数导数推广成对所有参数的偏导数组成的向量。我们最大化回报，所以沿梯度方向更新一步；若优化器只支持最小化，则对目标取负号。
 
 设初始分布为 $p_0$，环境转移与奖励分布为 $p(s',r\mid s,a)$。假设它们不随 $\theta$ 改变，则：
 
@@ -84,6 +136,8 @@ $$
 p_\theta(\tau)=p_0(s_0)\prod_{t=0}^{T-1}
 \pi_\theta(a_t\mid s_t,t)\,p(s_{t+1},r_t\mid s_t,a_t).
 $$
+
+这个乘积来自条件概率的链式分解：先抽初始状态，再按策略抽动作，再由环境产生奖励和下一状态，如此重复。$\prod$ 就是连乘符号。例如两步动作概率为 $0.5$、$0.4$，两次所见环境结果的条件概率为 $0.8$、$1$，若初始状态固定，则该轨迹概率为 $0.5\times0.8\times0.4\times1=0.16$。
 
 策略会通过动作改变未来状态的分布；“环境不含参数 $\theta$”不等于“状态与策略无关”。求给定轨迹的对数概率时，先取 log，再求梯度：
 
@@ -96,6 +150,8 @@ $$
 &=\sum_{t=0}^{T-1}\nabla_\theta\log\pi_\theta(a_t\mid s_t,t).
 \end{aligned}
 $$
+
+关键恒等式只用到对数求导：$\nabla\log p=(\nabla p)/p$，两边乘 $p$ 就得到 $\nabla p=p\nabla\log p$。这样能把“概率的导数”改写成“按该概率采样后的平均”，无需枚举所有轨迹。
 
 假设可交换求导与期望、策略可微且在需要的支撑集上概率为正，利用 $\nabla p=p\nabla\log p$ 得到：
 
@@ -121,6 +177,8 @@ $$
 =\sum_a\nabla_\theta\pi_\theta(a\mid s_t,t)=0.
 $$
 
+这里 score 指 $\nabla_\theta\log\pi_\theta$，不是奖励分数。最后等于零是因为 $\sum_a\pi_\theta(a\mid s,t)=1$，所以 $\sum_a\nabla_\theta\pi_\theta(a\mid s,t)=\nabla_\theta1=0$。过去奖励在给定历史后是固定数，可以从这个动作期望中提出。
+
 因此，过去奖励乘以这个 score 后，对所有轨迹取期望为零。保留从 $t$ 开始的奖励即可，且原目标中的折扣仍然是 $\gamma^k$：
 
 $$
@@ -137,7 +195,9 @@ $$
 
 **外面的 $\gamma^t$ 不能无条件丢掉。** 内部 $G_t$ 将折扣原点移到 $t$，所以需要外部系数把它换回整段目标的原点。例如 $\gamma=0.9$、$t=2$，未来两次奖励是 $3,4$，则 $G_2=3+0.9\times4=6.6$；它在上述梯度中的回报权重是 $0.9^2\times6.6=5.346$。
 
-#### 2.2.3 Baseline、advantage 与 batch 估计
+<span id="223-baselineadvantage-与-batch-估计"></span>
+
+#### 2.2.3 减去 baseline，判断动作比平均表现好多少
 
 同一个动作的回报会受环境随机性和后续动作影响。可以减去一个不依赖当前动作的参考值 $b_t(s_t)$，用来降低梯度估计的波动：
 
@@ -146,7 +206,7 @@ $$
 [b_t(s_t)\nabla_\theta\log\pi_\theta(a_t\mid s_t,t)\mid s_t]=0.
 $$
 
-Baseline 不是为了纠正“奖励一定为正”，也不是任取一个 baseline 都能降低方差。证明要求 baseline 在给定状态和时间后不依赖本次动作；严格讨论无偏估计时，可使用采样前固定的 Critic 或独立数据拟合的 baseline。把含本条样本的 batch 平均回报直接作 baseline，不能自动套用这个独立性结论。
+Baseline 不是为了纠正“奖励一定为正”，也不是任取一个 baseline 都能降低方差。证明要求 baseline 在给定状态和时间后不依赖本次动作；严格讨论无偏估计时，可使用采样前固定的 Critic 或独立数据拟合的 baseline。把含本条样本的 batch 平均回报直接作 baseline，就需要另外检查是否满足独立性条件。
 
 对当前策略独立采集 $N$ 条完整轨迹，REINFORCE 的一个 batch 估计是：
 
@@ -172,6 +232,8 @@ $$
 
 $Q$ 对应“现在选这个动作，再按策略继续”，$V$ 对应“现在也按策略随机选动作”。所以 advantage 表示这个动作比策略的平均选择好多少。一条采样得到的 $G_t$ 是 $Q_t^\pi$ 的估计，不能把随机样本与条件期望写成逐样本相等。
 
+例如某状态下策略以 75%、25% 的概率选两个动作，动作价值分别为 4、0，则 $V=0.75\times4+0.25\times0=3$，两个 advantage 分别为 1、−3。它们按当前策略加权后恰为零。价值 0 的动作不是因为“奖励为负”才被抑制，而是因为比当前平均选择差。
+
 使用精确的 advantage 可以将梯度写为：
 
 $$
@@ -182,7 +244,11 @@ $$
 
 Actor–Critic 用网络估计这些值；估计不准确、bootstrap 或截断都可能引入额外偏差。实际用 $-\log\pi_\theta\,\widehat A_t$ 作 actor loss 时，$\widehat A_t$ 在这个策略梯度项中应停止梯度，Critic 通过单独的价值损失学习。
 
-#### 2.2.4 为什么有些公式看不到外层折扣
+<span id="224-为什么有些公式看不到外层折扣"></span>
+
+<span id="224-折扣状态分布与外层折扣因子"></span>
+
+#### 2.2.4 为什么有些策略梯度公式没有外层折扣
 
 一种情况是 $\gamma=1$。另一种是折扣已经放进了采样分布。设：
 
@@ -199,15 +265,21 @@ $$
 [A_t^{\pi_\theta}(s,a)\nabla_\theta\log\pi_\theta(a\mid s,t)].
 $$
 
-这里没有把状态分布对参数的依赖忽略掉；公式来自前面的完整轨迹推导。对无限时域折扣任务，常见归一化因子是 $1-\gamma$。若从 rollout 中均匀抽时间步，就不是按上述 $d_{\theta,T}$ 采样，不能只引用一句“折扣被分布吸收”来删掉权重。
+这条公式来自前面的完整轨迹推导，已经考虑了状态分布对参数的依赖。对无限时域折扣任务，常见归一化因子是 $1-\gamma$。若从 rollout 中均匀抽时间步，就不是按上述 $d_{\theta,T}$ 采样，此时不能用折扣状态分布的写法为省略权重作依据。
 
-一些算法用折扣优势近似未折扣目标的梯度，采用另一种更新口径。例如 [GAE 原论文第 2 节](https://arxiv.org/abs/1506.02438) 明确从未折扣任务出发，把 $\gamma$ 引入为估计参数。它与本篇一开始定义的 $J$ 应加以区分。
+一些算法用折扣优势近似未折扣目标的梯度，采用了不同的目标与估计方式。例如 [GAE 原论文第 2 节](https://arxiv.org/abs/1506.02438) 明确从未折扣任务出发，把 $\gamma$ 引入为估计参数。它与本篇一开始定义的 $J$ 应加以区分。
 
-### 2.3 用旧策略的数据更新
+<span id="23-用旧策略的数据更新"></span>
+
+<span id="23-旧策略样本与重要性采样"></span>
+
+### 2.3 怎样用旧策略采集的数据
 
 **On-policy / off-policy** 比较的是采样行为策略与学习目标策略是否一致；**online / offline** 比较的是学习时是否继续与环境交互。两组概念不能混用。可以在线交互并采用 off-policy 方法，也可以只在固定历史数据上训练。
 
-#### 2.3.1 Importance Sampling
+<span id="231-importance-sampling"></span>
+
+#### 2.3.1 重要性采样的期望与方差
 
 如果只有 $q$ 的样本，却想计算 $p$ 下的期望，可以给样本乘一个概率比：
 
@@ -216,9 +288,11 @@ $$
 =\mathbb E_{x\sim q}\left[\frac{p(x)}{q(x)}f(x)\right].
 $$
 
+例如两种结果的 $f$ 值为 $(1,3)$，目标概率 $p=(0.8,0.2)$，采样概率 $q=(0.5,0.5)$。直接在 $q$ 下平均得到 2；乘比值 $(1.6,0.4)$ 后，平均为 $0.5\times1.6\times1+0.5\times0.4\times3=1.4$，正好等于 $p$ 下的 $0.8\times1+0.2\times3$。比值改变每个样本的贡献，不会改变已经抽到的样本。
+
 前提是目标分布需要的区域在采样分布下也有支持，即 $p(x)>0$ 时 $q(x)>0$（更一般地，$p$ 对 $q$ 绝对连续），且相关期望存在。采不到的事件不能靠加权补回来。
 
-保持期望不等于保持方差。若二阶矩存在：
+重要性采样保持了期望，但会改变方差。若二阶矩存在：
 
 $$
 \operatorname{Var}_{q}\left[\frac pq f\right]
@@ -244,9 +318,17 @@ W_\theta(\tau)R_\gamma(\tau)
 \sum_{t=0}^{T-1}\nabla_\theta\log\pi_\theta(a_t\mid s_t,t)\right].
 $$
 
-整条轨迹比不能直接换成某一步的 $\pi_\theta(a_t\mid s_t,t)/\mu(a_t\mid s_t,t)$。单步比只校正**给定状态下的动作分布**；此前动作已经影响了当前状态，之后动作还会影响回报。精确的 off-policy 推导可能需要轨迹比、逐决策的连乘比或状态分布校正，而不是假定状态分布与策略无关。
+整条轨迹比不能直接换成某一步的 $\pi_\theta(a_t\mid s_t,t)/\mu(a_t\mid s_t,t)$。单步比只校正**给定状态下的动作分布**；此前动作已经影响了当前状态，之后动作还会影响回报。精确的 off-policy 推导可能需要轨迹比、逐决策的连乘比或状态分布校正，因为更换策略也会改变访问各状态的概率。
 
-PPO 使用的则是一个局部 surrogate。固定旧策略 $\pi_{\rm old}$ 及其优势估计，定义：
+<span id="24-ppo"></span>
+
+<span id="24-ppo-的替代目标与裁剪"></span>
+
+### 2.4 PPO 怎样限制一次更新的幅度
+
+一批数据主要反映旧策略附近的改进方向。PPO 因此限制对同一批数据的过度优化，避免策略在一次更新中偏离旧策略太远。[PPO 原论文](https://arxiv.org/abs/1707.06347) 讨论了 KL penalty 与 clipping 两种形式。
+
+PPO 使用局部替代目标（surrogate）：用旧策略采到的一批状态和动作，指导旧策略附近的更新。固定旧策略 $\pi_{\rm old}$ 及其优势估计，定义：
 
 $$
 \rho_t(\theta)=\frac{\pi_\theta(a_t\mid s_t,t)}{\pi_{\rm old}(a_t\mid s_t,t)},
@@ -257,17 +339,13 @@ $$
 
 旧策略采样分布、旧优势保持固定，在 $\theta=\theta_{\rm old}$ 时，$\rho_t=1$，且 $\nabla\rho_t=\nabla\log\pi_\theta$，所以此处的 surrogate 梯度与前述 $J$ 的梯度一致。离开旧策略后，这不再是 $J(\theta)$ 的精确重写，更新幅度也需要控制。
 
-### 2.4 PPO
-
-PPO 的直觉是：一批数据只能告诉我们旧策略附近的大致改进方向，不要反复优化这一批数据后把策略推得太远。[PPO 原论文](https://arxiv.org/abs/1707.06347) 讨论了 KL penalty 与 clipping 两种形式。
-
-先把本文的 batch 加权约定写清楚：
+本文按以下方式对 batch 中的样本加权：
 
 $$
 \widehat{\mathbb E}_w[f_t]=\frac1N\sum_{i=1}^{N}\sum_{t=0}^{T_i-1}\gamma^t f_t^{(i)}.
 $$
 
-它沿用第 2.2 节的轨迹平均。实现中常见均匀 timestep/minibatch 平均，应当说明所用目标和权重，不把两种口径默认为相同。
+它沿用第 2.2 节的轨迹平均。实现中也常见对时间步或小批次直接取平均的写法，这样算出的样本权重可能与这里不同，比较实现时要先对齐目标。
 
 KL penalty 形式可写为：
 
@@ -278,9 +356,11 @@ D_{\rm KL}\bigl(\pi_{\rm old}(\cdot\mid s_t,t)\Vert\pi_\theta(\cdot\mid s_t,t)\b
 \right],\qquad\beta>0.
 $$
 
+$\widehat A_t$ 上的帽子表示从数据估出来的优势，$\beta$ 控制改动策略的代价；$\epsilon$ 则将在下面控制 clip 的宽度。旧策略若给采到的动作概率 $0.2$，新策略给 $0.3$，就有 $\rho_t=1.5$：该动作的概率相对增加 50%，不是增加 0.5 个百分点。
+
 KL 比较的是相同状态下两种动作分布，不是直接比较网络参数。KL 的方向及其与交叉熵的关系可参见 [KL 散度](/posts/2024-04-19-kullback-leibler-divergence/)。
 
-更常见的 PPO-Clip 最大化：
+先定义截断操作 $\operatorname{clip}(x,l,u)$：当 $x<l$ 时取 $l$，当 $x>u$ 时取 $u$，否则仍取 $x$。更常见的 PPO-Clip 最大化：
 
 $$
 L_{\rm clip}(\theta)=\widehat{\mathbb E}_w\left[
@@ -291,21 +371,33 @@ $$
 
 - $\widehat A_t>0$：该动作值得鼓励；当概率比大于 $1+\epsilon$ 时，单个样本的目标不再因继续增加该比值而提高。
 - $\widehat A_t<0$：该动作值得抑制；当概率比小于 $1-\epsilon$ 时，单个样本的目标不再因继续降低该比值而提高。
-- 朝错误方向变化时，$\min$ 仍保留惩罚，不会把两边一律截成平坦区域。
+- 概率比朝降低该样本目标值的方向变化时，$\min$ 仍保留惩罚，不会把两边一律截成平坦区域。
 
 例如 $\epsilon=0.2$、$\widehat A=2$、$\rho=1.4$，该项为 $\min(2.8,2.4)=2.4$；若 $\widehat A=-2$、$\rho=0.6$，该项为 $\min(-1.2,-1.6)=-1.6$。
 
 **Clip 修改的是目标函数，没有把真实概率比硬限制在区间内。** 参数共享、其他样本及价值/熵损失的梯度都可能让某些比值越界；它也不提供严格的 KL 上界。实现可以另外监控 KL、限制训练轮数或使用提前停止。
 
-一次典型更新是：用旧策略采样，固定旧 log-prob 与优势，做有限次 minibatch 更新，然后重新采样。Critic 通过回报目标学习，优势可用后文的 GAE 估计。PPO 并不因此成为可以无限复用任意陈旧 replay buffer 的算法。
+![RLHF Book 原图：正优势在右侧形成平台，负优势在左侧形成平台，反方向仍保留梯度](/images/llm-series/sourced/rlhfbook-ppo-clip.png)
 
-## 3. Value Based
+*来源：Nathan Lambert，[RLHF Book：Policy Gradients](https://rlhfbook.com/c/11-policy-gradients)，PPO objective 图；原图未改动，[CC BY-NC-SA 4.0 许可](/images/llm-series/sourced/rlhfbook-license-chapters.txt)。*
+
+把图中的 $J(\theta)$ 看成**单个样本的裁剪目标项**，不是整批训练的总回报；横轴 $\rho$ 就是上文的新旧概率比。
+
+- **上半图，正优势**：绿色斜线随概率比增加而升高，越过 $1+\epsilon$ 后变成灰色平台；继续鼓励这个动作不再提高该项。
+- **下半图，负优势**：往左降低概率比会提高目标，但低于 $1-\epsilon$ 后进入平台；往右反而使目标更差，红线因此继续下降。
+- **只看两个平台**：右上、左下才是该样本停止贡献策略梯度的区域。图中的 “no update” 指这一项，不代表整个网络停止更新。
+
+一次典型更新是：用旧策略采样，固定旧 log-prob 与优势，做有限次 minibatch 更新，然后重新采样。Critic 通过回报目标学习，优势可用后文的 GAE 估计。Replay buffer（经验回放池）保存先前采到的“状态、动作、奖励、下一状态、是否终止”转移，训练时从中抽取一小批旧经验。PPO 通常复用的是最近采集的一批数据，不能无限制地使用任意陈旧的回放数据。
+
+<span id="3-value-based"></span>
+
+## 3. 基于价值的方法
 
 ### 3.1 价值函数解决什么问题
 
 第 2 节的 $V$、$Q$、$A$ 都以未来回报为单位，是标量。若有 $m$ 个离散动作，网络可以一次输出长度为 $m$ 的 Q 向量，但其中每个分量才是某个动作的标量价值。
 
-在平稳、折扣 MDP 中，省略时间后：
+MDP（Markov Decision Process，马尔可夫决策过程）把状态、动作、转移、奖励与折扣组织成一个决策模型；这里沿用第 1.2 节的 Markov 假设。平稳指这些转移和奖励规律不随时间改变。在平稳、折扣 MDP 中，省略时间后：
 
 $$
 V^\pi(s)=\sum_a\pi(a\mid s)Q^\pi(s,a),
@@ -313,15 +405,17 @@ V^\pi(s)=\sum_a\pi(a\mid s)Q^\pi(s,a),
 Q^\pi(s,a)=\mathbb E[r_t+\gamma V^\pi(S_{t+1})\mid S_t=s,A_t=a].
 $$
 
-这里通过取期望平均掉环境随机性，并不是每一条实际转移都满足同一个等式。最优价值定义为：
+这里对环境的随机结果取了期望，并不是每一条实际转移都满足同一个等式。最优价值定义为：
 
 $$
 V^*(s)=\max_\pi V^\pi(s),\qquad Q^*(s,a)=\max_\pi Q^\pi(s,a).
 $$
 
-以下最优性与收敛讨论采用有限状态/动作、奖励有界、$\gamma<1$ 的标准表格型条件。有限时域则通过 $V_T=0$ 反向计算；不能把持续任务中 $\gamma=1$ 的收敛结论直接沿用。
+以下最优性与收敛讨论采用有限状态/动作、奖励有界、$\gamma<1$ 的标准表格型条件。有限时域则通过 $V_T=0$ 反向计算；持续任务取 $\gamma=1$ 时，需要另行分析收敛条件。
 
-### 3.2 Bellman equation
+<span id="32-bellman-equation"></span>
+
+### 3.2 Bellman 方程
 
 #### 3.2.1 固定策略：对动作取平均
 
@@ -339,6 +433,8 @@ Q^\pi(s,a)
 \end{aligned}
 $$
 
+双重求和有两层随机性：外层按策略概率平均“选哪个动作”，内层按环境概率平均“选完后发生什么”。例如一个状态只有一个动作，以 50% 概率直接终止并获得 2 分，以 50% 概率获得 0 分并进入价值为 4 的状态，$\gamma=0.9$，则当前价值为 $0.5\times2+0.5\times(0+0.9\times4)=2.8$。这也说明“价值等于期望”不代表每次都拿到 2.8 分。
+
 这是任意给定策略的 Bellman expectation equation，不只属于最优策略。终止状态的后续价值设为零。
 
 #### 3.2.2 最优策略：对动作取最大价值
@@ -354,15 +450,21 @@ Q^*(s,a)&=\sum_{s',r}p(s',r\mid s,a)
 \end{aligned}
 $$
 
-第二行的 $\max_{a'}$ 不能省略。还要区分：$\max_a Q(s,a)$ 返回一个**分数**，$\arg\max_a Q(s,a)$ 返回一个**动作**。奖励可以加上折扣后的分数，不能加上动作编号。
+第二行的 $\max_{a'}$ 不能省略。还要区分：$\max_a Q(s,a)$ 返回一个**分数**，$\arg\max_a Q(s,a)$ 返回一个**动作**。Bellman 方程中与奖励相加的是折扣后的价值分数，而非动作编号。
 
 有限时域的对应式是 $V_t^*(s)=\max_a\mathbb E[r_t+\gamma V_{t+1}^*(S_{t+1})\mid s,a]$，以 $V_T^*=0$ 结束。
 
-### 3.3 Dynamic Programming Based
+<span id="33-dynamic-programming-based"></span>
+
+### 3.3 动态规划方法
 
 DP 假设已知环境模型，能对可能的下一状态和奖励求期望。DP 不要求使用神经网络。
 
-#### 3.3.1 Policy Evaluation
+<span id="331-policy-evaluation"></span>
+
+<span id="331-策略评估"></span>
+
+#### 3.3.1 策略评估：计算当前策略能拿到多少回报
 
 固定 $\pi$，使用第 $k$ 轮的估值计算第 $k+1$ 轮：
 
@@ -373,7 +475,11 @@ $$
 
 迭代是在逼近该策略的价值，不是在这一阶段改变策略。在上述折扣表格条件下，该算子是压缩映射，迭代收敛到唯一的 $V^\pi$。
 
-#### 3.3.2 Policy Improvement
+<span id="332-policy-improvement"></span>
+
+<span id="332-策略改进"></span>
+
+#### 3.3.2 策略改进：改选估值更高的动作
 
 已知精确 $Q^\pi$ 后，让新策略在每个状态选择一个价值最大的动作：
 
@@ -383,17 +489,21 @@ $$
 
 由策略改进定理，$V^{\pi'}(s)\geq V^\pi(s)$。这次贪心改进不等于立刻找到了全局最优策略；仍要评估新策略再改进。如果策略已对自身的精确价值贪心，满足 Bellman 最优性条件，才可得到最优性结论。使用近似 Critic 时也不能直接保证每次改进都不退步。
 
-#### 3.3.3 Policy Iteration
+<span id="333-policy-iteration"></span>
+
+<span id="333-策略迭代"></span>
+
+#### 3.3.3 策略迭代：反复评估和改进
 
 反复进行“评估当前策略 → 对当前价值作贪心改进”。固定并列最大值的选择规则，可以避免只在等价动作间来回切换。
 
-<img src="https://s2.loli.net/2024/05/03/9s3hY5weflTpL6d.png" alt="Policy Iteration 原配图" width="400" height="300" />
+相关推导参见：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。评估和改进不必每次都完全收敛，二者交替作用的思路称为 Generalized Policy Iteration。
 
-<img src="https://s2.loli.net/2024/05/04/MlOrPbRqevAgFU1.png" alt="策略评估与改进的交替过程" width="300" height="200" />
+<span id="334-value-iteration"></span>
 
-原配图来源：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。评估和改进不必每次都完全收敛，二者交替作用的思路称为 Generalized Policy Iteration。
+<span id="334-价值迭代"></span>
 
-#### 3.3.4 Value Iteration
+#### 3.3.4 价值迭代：每次更新都取最大价值
 
 Value Iteration 每轮直接使用最优 Bellman 算子：
 
@@ -404,19 +514,21 @@ $$
 
 它把一次价值更新与贪心选择合在一起。在标准折扣表格条件下收敛到 $V^*$，再由该价值提取贪心策略。
 
-<img src="https://s2.loli.net/2024/05/04/Px6KeON8TqJmHVn.png" alt="Value Iteration 原配图" width="400" height="300" />
+相关推导参见：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。
 
-原配图来源：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。
+<span id="335-dp-的边界"></span>
 
-#### 3.3.5 DP 的边界
+<span id="335-动态规划对环境模型的要求"></span>
+
+#### 3.3.5 不知道环境模型时怎么办
 
 DP 使用模型对后继情况求期望；状态很多或模型未知时，这一步可能难以进行。后面的 MC 和 TD 则可以直接用实际采到的经历学习。
 
-<img src="https://s2.loli.net/2024/05/04/arfKpUyeJ692CsY.png" alt="DP 更新示意原配图" width="400" height="300" />
+相关推导参见：[Monte Carlo Methods 课程](https://www.youtube.com/watch?v=P0ZvxeQqv0A)。
 
-原配图来源：[Monte Carlo Methods 课程](https://www.youtube.com/watch?v=P0ZvxeQqv0A)。
+<span id="34-monte-carlo-based"></span>
 
-### 3.4 Monte-Carlo based
+### 3.4 Monte Carlo 方法
 
 #### 3.4.1 从完整回报估计状态价值
 
@@ -430,11 +542,7 @@ $$
 
 或者用固定步长 $\alpha$，得到指数加权的估计。First-visit MC 每局对一个状态只用首次访问；every-visit MC 使用每次访问。无需从每个状态专门启动一局，可以从同一完整 episode 中取出访问该状态后的回报。
 
-<img src="https://s2.loli.net/2024/05/04/5QwhUXIr96KiNSP.png" alt="MC 状态价值估计原配图" width="400" height="300" />
-
-<img src="https://s2.loli.net/2024/05/04/1TUgNV5yYWfdeF3.png" alt="MC 完整回报示意原配图" width="400" height="300" />
-
-原配图来源：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)、[Monte Carlo Methods 课程](https://www.youtube.com/watch?v=P0ZvxeQqv0A)。
+相关推导参见：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)、[Monte Carlo Methods 课程](https://www.youtube.com/watch?v=P0ZvxeQqv0A)。
 
 #### 3.4.2 动作价值与探索
 
@@ -442,13 +550,11 @@ $$
 
 一个简单办法是 $\epsilon$-greedy：以概率 $1-\epsilon$ 选择贪心动作，以概率 $\epsilon$ 在全部动作中均匀采样。若有 $m$ 个动作且唯一贪心动作，它的总概率是 $1-\epsilon+\epsilon/m$，其余动作各为 $\epsilon/m$。$\epsilon$ 控制探索，不是 PPO 的 clip 超参数；两处虽惯用同一字母，含义不同。
 
-<img src="https://s2.loli.net/2024/05/04/qiZp7dsTecbukfw.png" alt="MC 动作价值估计原配图" width="400" height="300" />
+相关推导参见：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。
 
-<img src="https://s2.loli.net/2024/05/04/jf4X5lavU3OVeht.png" alt="带探索的 MC control 原配图" width="400" height="300" />
+<span id="35-temporal-difference-based"></span>
 
-原配图来源：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。
-
-### 3.5 Temporal-difference based
+### 3.5 时序差分方法
 
 #### 3.5.1 从完整回报改成一步目标
 
@@ -456,7 +562,9 @@ MC 要等到结束才能拿到完整回报。TD 先走一步，收到 $r_t$，�
 
 所有这些更新都可以理解为：旧估计向目标移动一小步。MC 的目标是 $G_t$；TD(0) 的目标是 $r_t+\gamma V(s_{t+1})$。
 
-#### 3.5.2 TD Prediction
+<span id="352-td-prediction"></span>
+
+#### 3.5.2 TD 状态价值预测
 
 对于固定策略，Bellman 方程描述的是条件期望：
 
@@ -472,15 +580,17 @@ $$
 V(s_t)\leftarrow V(s_t)+\alpha\delta_t.
 $$
 
-奖励是“本次观察到的数值”，不等于奖励机制没有随机性。与 MC 相比，TD 往往更早更新、方差较小，但引入 bootstrap 依赖；不能仅按谁更快就判定所有任务上谁更好。
+例如当前 $V(s_t)=2$，收到奖励 1，下一状态估值为 4，未终止且 $\gamma=0.9$。TD 目标为 $1+0.9\times4=4.6$，误差为 $4.6-2=2.6$；取步长 $\alpha=0.1$，更新后为 $2+0.1\times2.6=2.26$。它只向目标移动 10%，并没有把一次随机目标当成真值全部覆盖。
+
+奖励是“本次观察到的数值”，不等于奖励机制没有随机性。与 MC 相比，TD 往往更早更新、方差较小，但引入 bootstrap 依赖；选择方法时还需结合任务特点，更新更早并不意味着效果总是更好。
 
 对神经网络 $V_\phi$，可最小化 $\tfrac12(V_\phi(s_t)-y_t)^2$，其中 $y_t=r_t+\gamma(1-d_t)V_{\bar\phi}(s_{t+1})$ 在这次反向传播中停止梯度，$\bar\phi$ 可表示固定快照。若连目标一侧也一同求导，就不是这里的标准 semi-gradient TD 更新。
 
-<img src="https://s2.loli.net/2024/04/30/QveSp4AUZ7ykamt.png" alt="MC 与 TD 估计差异的原配图" width="400" height="300" />
+相关推导参见：[DRL Lecture 3: Q-learning](https://youtu.be/o_g9JUMw1Oc?t=924)。有限数据、不同更新目标和函数近似都可能让二者给出不同估计。
 
-原配图来源：[DRL Lecture 3: Q-learning](https://youtu.be/o_g9JUMw1Oc?t=924)。有限数据、不同更新目标和函数近似都可能让二者给出不同估计。
+<span id="353-sarsa-on-policy-td-control"></span>
 
-#### 3.5.3 SARSA: On-Policy TD Control
+#### 3.5.3 SARSA：同策略 TD 控制
 
 SARSA 用当前行为策略实际选出的下一动作 $a_{t+1}$ 构造目标：
 
@@ -491,9 +601,7 @@ $$
 
 五个量是 State、Action、Reward、下一 State、下一 Action。On-policy 指估值目标与实际采样动作使用同一个策略，例如同一个 $\epsilon$-greedy 策略。真正终止时不需要再采样 $a_{t+1}$，目标只有 $r_t$。
 
-<img src="https://s2.loli.net/2024/05/05/aZwMWOVS2yA1hKQ.png" alt="SARSA 原配图" width="400" height="300" />
-
-原配图来源：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。
+相关推导参见：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。
 
 #### 3.5.4 Q-Learning、DQN 与 Double DQN
 
@@ -506,11 +614,9 @@ $$
 
 这是 off-policy：目标中的贪心策略与采样行为策略可以不同。这里的贪心策略只是相对于**当前估值**，还不能直接称为已知的最优 $\pi^*$。表格型收敛到 $Q^*$ 需要充分访问各状态动作、合适的递减步长等条件；神经网络版本没有同样的一般收敛保证。
 
-<img src="https://s2.loli.net/2024/05/05/xVeEJQyK5LqDYtA.png" alt="Q-Learning 原配图" width="400" height="300" />
+相关推导参见：[DRL Lecture 3: Q-learning](https://youtu.be/o_g9JUMw1Oc?t=924)。
 
-原配图来源：[DRL Lecture 3: Q-learning](https://youtu.be/o_g9JUMw1Oc?t=924)。
-
-DQN 用 online 网络 $Q_\theta$ 学习，用更新较慢的 target 网络 $Q_{\bar\theta}$ 提供目标，并从 replay buffer 取样：
+DQN 用 online 网络 $Q_\theta$ 学习，用更新较慢的 target 网络 $Q_{\bar\theta}$ 提供目标，并从 replay buffer（保存旧转移的经验回放池）抽取一小批“状态、动作、奖励、下一状态、是否终止”样本：
 
 $$
 y_t^{\rm DQN}=r_t+\gamma(1-d_t)\max_{a'}Q_{\bar\theta}(s_{t+1},a'),
@@ -519,7 +625,7 @@ y_t^{\rm DQN}=r_t+\gamma(1-d_t)\max_{a'}Q_{\bar\theta}(s_{t+1},a'),
 \frac12\bigl(Q_\theta(s_i,a_i)-\operatorname{stopgrad}(y_i)\bigr)^2.
 $$
 
-$B$ 是 transition batch 大小；也常用 Huber loss。交互时通常需要 $\epsilon$-greedy 等探索，不能只靠永远取 argmax 获取所有经验。每隔若干步复制 $\bar\theta\leftarrow\theta$，或采用另行指定的缓慢更新方式。
+这里每批包含 $B$ 条状态转移样本；除了均方误差，DQN 也常用 Huber loss。交互时通常需要 $\epsilon$-greedy 等探索，不能只靠永远取 argmax 获取所有经验。每隔若干步复制 $\bar\theta\leftarrow\theta$，或采用另行指定的缓慢更新方式。
 
 当同一组带误差的估值既用于选择价值最大的动作，又用于给该动作打分时，max 会偏向被高估的分量。[Double DQN](https://arxiv.org/abs/1509.06461) 将这两个步骤分开：
 
@@ -534,27 +640,29 @@ $$
 
 这有助于缓解过估计，不表示 target 网络总会高估，也不保证 Double DQN 的每个估计都无偏。两个 Q 网络也不等于必须存在两个独立 Actor。
 
-#### 3.5.5 SARSA 与 Q-Learning 的取舍
+<span id="355-sarsa-与-q-learning-的取舍"></span>
+
+#### 3.5.5 为什么 SARSA 可能选一条更远离悬崖的路
 
 在 cliff-walking 中，如果一直保留随机探索，SARSA 的目标会把未来探索时掉下悬崖的风险计入，往往学到离悬崖更远的路线。Q-Learning 的目标评估未来按贪心动作行动的价值，即使采样时还在探索，也可能偏好贴边的短路线。
 
-<img src="https://s2.loli.net/2024/05/05/Dhf3iG1WpzymvdF.png" alt="Cliff-walking 原配图" width="300" height="200" />
+相关推导参见：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。比较这两种方法时，需要区分持续探索下的实际回报与关闭探索后贪心执行的回报，因此不能仅凭这个例子判定 SARSA 总是次优。
 
-原配图来源：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。这不能简化为“SARSA 天生次优”：要先说清比较的是持续探索时的实际回报，还是关闭探索后贪心执行的回报。
+<span id="356-dpmc-与-td"></span>
 
-#### 3.5.6 DP、MC 与 TD
+#### 3.5.6 DP、MC 和 TD 分别用什么来更新估值
 
 - DP：知道环境模型，对后继情况求期望，也使用后继价值进行 bootstrap。
 - MC：不要求模型，使用完整采样回报，不 bootstrap。
 - TD：不要求模型，使用采样转移与后继估值，进行 bootstrap。
 
-![DP 与 TD 对照原配图一](https://s2.loli.net/2024/05/10/RHEGAv73d5Wru9t.png)
-
-![DP 与 TD 对照原配图二](https://s2.loli.net/2024/05/10/KENkys8WxcmGUVo.png)
-
 关键区别是“采样还是对模型求期望”“是否 bootstrap”，不是有没有神经网络。
 
-#### 3.5.7 Forward View of TD-λ
+<span id="357-forward-view-of-td-λ"></span>
+
+<span id="357-tdλ-的前向视角"></span>
+
+#### 3.5.7 TD(λ) 前向视角：混合不同步数的回报
 
 一步 TD 很依赖下一状态的估值；MC 要等待很久。中间办法是先实际观察 $n$ 步，再用估值补上剩余部分。以下先讨论固定策略的**状态价值预测**，不把 on-policy 的结论直接套到 off-policy Q-Learning。
 
@@ -588,15 +696,15 @@ $$
 - $\lambda=1$：只保留直到真正终止的完整回报，即有限 episodic 情况下的 MC 目标，**不是对所有 n-step 回报等权平均**。
 - $0<\lambda<1$：在不同 bootstrap 长度间折中。
 
-持续任务在级数收敛、$\lambda<1$ 等条件下可以写作 $(1-\lambda)\sum_{n=1}^{\infty}\lambda^{n-1}G_t^{(n)}$；不能把 $\lambda=1$ 生硬代入这个无限级数表达式就宣布得到 MC。
+持续任务在级数收敛、$\lambda<1$ 等条件下可以写作 $(1-\lambda)\sum_{n=1}^{\infty}\lambda^{n-1}G_t^{(n)}$；$\lambda=1$ 不满足这个无限级数表达式的适用条件，应使用前面的有限 episode 定义讨论 MC。
 
-<img src="https://s2.loli.net/2024/05/05/yB2vdxL4s9eqQKD.png" alt="不同 n-step 回报的原配图" width="300" height="200" />
+相关推导参见：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。λ 调整的是不同长度回报的混合方式，不应只解释成“未来越远，影响一定越小”。
 
-<img src="https://s2.loli.net/2024/05/07/XJTtUIEQxjAO2mR.png" alt="TD λ forward view 原配图" width="300" height="200" />
+<span id="358-backward-view-of-td-λ"></span>
 
-原配图来源：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。λ 调整的是不同长度回报的混合方式，不应只解释成“未来越远，影响一定越小”。
+<span id="358-tdλ-的后向视角"></span>
 
-#### 3.5.8 Backward View of TD-λ
+#### 3.5.8 TD(λ) 后向视角：用新误差更新之前的状态
 
 Forward view 在当前位置向未来看；backward view 在新的 TD error 到来时，把它分配给之前访问过的状态。Eligibility trace 就是每个状态还应获得多少更新的记录。
 
@@ -612,17 +720,17 @@ $$
 
 所有状态使用同一个当前 $\delta_t$，但乘各自的 trace。最近访问会增加 trace，久未访问会衰减；同一个状态重复出现可以累积贡献，所以不能简单用“出现次数少”代替“离当前时间远”。完成终止转移的更新后，在新 episode 开始前清零 trace。
 
+例如 $\gamma\lambda=0.72$，连续访问 A、B 两个不同状态。第一步 trace 为 $e(A)=1$；第二步为 $e(A)=0.72,e(B)=1$。若第二步 $\delta=2$、$\alpha=0.1$，本次会给 A 增加 $0.144$，给 B 增加 $0.2$。A 虽不是当前状态，仍因它通向这次结果而得到更新。式中的 $\mathbb1\{s_t=s\}$ 是指示函数：条件成立取 1，否则取 0。
+
 Replacing trace 对当前访问状态将 trace 设为 $1$，其他状态继续衰减。Dutch trace 是另一种带步长/特征修正的 trace，不能仅称为“衰减后加一”，那正是 accumulating trace 的基本形式。
 
-<img src="https://s2.loli.net/2024/05/09/3fkGFpXTNZbI16y.png" alt="Eligibility trace 原配图" width="300" height="200" />
+相关推导参见：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。这里写的是 on-policy 状态价值预测；off-policy trace 往往还需校正或截断，不能原样替换成任意 Q-Learning。
 
-<img src="https://s2.loli.net/2024/05/09/cgxYrhOWDmblPs7.png" alt="TD λ backward view 算法原配图" width="300" height="200" />
+<span id="359-forward-与-backward-何时等价"></span>
 
-<img src="https://s2.loli.net/2024/05/09/ePOLlfxAQijUC42.png" alt="TD error 沿 trace 分配的原配图" width="300" height="200" />
+<span id="359-前向与后向视角的等价条件"></span>
 
-原配图来源：[Sutton 与 Barto 教材](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)。这里写的是 on-policy 状态价值预测；off-policy trace 往往还需校正或截断，不能原样替换成任意 Q-Learning。
-
-#### 3.5.9 Forward 与 Backward 何时等价
+#### 3.5.9 前向和后向更新什么时候相同
 
 先固定整局内用于算目标和 TD error 的价值函数 $V$。在未终止的中间步骤写 $\delta_k=r_k+\gamma V(s_{k+1})-V(s_k)$，终点取 $V(s_T)=0$。连续相加时，中间价值项会抵消：
 
@@ -634,6 +742,8 @@ $$
 &=G_t^{(n)}-V(s_t).
 \end{aligned}
 $$
+
+以 $n=2$ 展开就能看见抵消过程：$\delta_t+\gamma\delta_{t+1}=r_t+\gamma V(s_{t+1})-V(s_t)+\gamma r_{t+1}+\gamma^2V(s_{t+2})-\gamma V(s_{t+1})$。正负的 $\gamma V(s_{t+1})$ 消掉后，留下两步奖励、末尾 bootstrap 和负的起点估值。
 
 将其代入有限 λ-return，$\delta_{t+j}$ 所对应的剩余混合权重为 $\lambda^j$，因而：
 
@@ -654,11 +764,11 @@ $$
 \end{aligned}
 $$
 
-这证明了上述 **offline、固定估值、accumulating trace 的表格型更新**与 forward view 相同。此处 offline 指延迟到 episode 结束应用更新，与“固定历史数据集上的 offline RL”不是同一个分类问题。
+因此，在 **offline、固定估值、accumulating trace 的表格型更新**条件下，两种视角会得到相同的累计更新。此处 offline 指延迟到 episode 结束应用更新，与“固定历史数据集上的 offline RL”不是同一个分类问题。
 
 当 $\lambda=1$，同样的抵消给出 $\sum_{j=0}^{T-t-1}\gamma^j\delta_{t+j}=G_t-V(s_t)$，所以在这些条件下对应 every-visit MC 的累计更新。当 $\lambda=0$，两种视角都退化为一步 TD；但 online 与整局延迟更新使用的数值可能不同，不能据此说两种更新时机结果永远一样。
 
-普通 online TD(λ) 每一步都会改变 $V$，不同时间的 TD error 不再来自同一份快照，上述证明不能直接沿用。[Harm van Seijen 与 Richard S. Sutton 的 True Online TD(λ)，ICML 2014，PMLR 32(1):692–700](https://proceedings.mlr.press/v32/seijen14.html) 给出了包含估值变化的新 online forward view，并用 Dutch traces 和修正更新精确实现它。该结果涵盖表格/线性函数近似；不是说把任意深度网络的普通 TD(λ) 换个名字就获得了等价保证。
+普通 online TD(λ) 每一步都会改变 $V$，不同时间的 TD error 不再来自同一份快照，上述证明不能直接沿用。[Harm van Seijen 与 Richard S. Sutton 的 True Online TD(λ)，ICML 2014，PMLR 32(1):692–700](https://proceedings.mlr.press/v32/seijen14.html) 给出了包含估值变化的新 online forward view，并用 Dutch traces 和修正更新精确实现它。该结果涵盖表格/线性函数近似；这一等价结论不能直接推广到任意深度网络上的普通 TD(λ)。
 
 #### 3.5.10 从 TD error 到 GAE
 
@@ -703,9 +813,11 @@ $$
 
 例如奖励 $(1,2,3)$、价值快照 $(0.5,1,1.5,0)$，第三步真正终止，$\gamma=0.9$、$\lambda=0.8$。TD errors 是 $(1.4,2.35,1.5)$，从后往前得到 advantages $(3.8696,3.43,1.5)$。取 $\lambda=1$ 时变为 $(4.73,3.7,1.5)$，等于折扣 MC 回报减 baseline。
 
-## 4. 一个可以直接验算的例子
+<span id="4-一个可以直接验算的例子"></span>
 
-下面的 Python 只需要标准库，展示单条连续 rollout 的 GAE 和 Double DQN 标量目标。它不是完整训练器；输入使用已经固定、停止梯度后的数值，没有执行环境训练或 GPU 推理。
+## 4. GAE 与 Double DQN 的 Python 算例
+
+下面的 Python 只需要标准库，展示单条连续 rollout 的 GAE 和 Double DQN 标量目标。输入使用已经固定、停止梯度后的数值；若要接入训练器，还需补上环境采样、网络前向和参数更新。
 
 ```python
 import math
@@ -716,7 +828,8 @@ def gae(rewards, values, terminated, gamma=0.9, lam=0.8):
 
     An external cutoff is not termination. If the last transition merely
     truncates collection, pass terminated[-1] = False and bootstrap values[-1].
-    Internal resets are rejected: split them into separate rollouts first.
+    Internal true terminations are rejected. Split at every reset, including
+    external truncation/reset; this function cannot infer such boundaries.
     """
     n = len(rewards)
     if n == 0 or len(values) != n + 1 or len(terminated) != n:
@@ -758,12 +871,14 @@ print([round(x, 4) for x in advantages])  # [3.8696, 3.43, 1.5]
 print(double_dqn_target(1, [5, 4], [3, 6], False))  # 3.7
 ```
 
-GAE 负责构造优势估计，PPO-Clip 负责使用优势改进策略，DQN/Double DQN 则走动作价值学习路线。把“学习什么”“目标从哪来”“数据由谁采样”分开，公式就更容易核对。
+GAE 估计一个动作比平均表现好多少，PPO-Clip 用这个估计调整动作概率；DQN/Double DQN 则先学习动作价值，再据此选动作。写训练代码时，先分清自己在更新策略还是价值，再检查目标怎么算、样本由哪个策略采集。
 
-## Reference
+<span id="reference"></span>
+
+## 参考资料
 
 1. [David Silver — UCL Course on Reinforcement Learning](https://www.davidsilver.uk/teaching/)
-2. [Sutton 与 Barto — Reinforcement Learning: An Introduction，原文引用的教材 PDF](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)
+2. [Sutton 与 Barto — Reinforcement Learning: An Introduction，教材 PDF](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)
 3. [Schulman et al. — Proximal Policy Optimization Algorithms，2017](https://arxiv.org/abs/1707.06347)
 4. [Schulman et al. — High-Dimensional Continuous Control Using Generalized Advantage Estimation，ICLR 2016](https://arxiv.org/abs/1506.02438)
 5. [van Hasselt, Guez 与 Silver — Deep Reinforcement Learning with Double Q-learning，AAAI 2016](https://arxiv.org/abs/1509.06461)

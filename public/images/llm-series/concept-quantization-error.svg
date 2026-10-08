@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="720" height="790" viewBox="0 0 720 790" role="img" aria-labelledby="title desc" lang="zh-CN">
 <title id="title">量化误差：舍入与截断分开看</title><desc id="desc">正半轴使用相同刻度。范围内 0.34 舍入至 0.3，绝对误差 0.04 不超过半步长 0.05；范围外 1.0 截断至 0.7，误差 0.30，半步长界不适用。</desc>
+<metadata>Original diagram for this blog. Visual principles inspired by Jay Alammar’s The Illustrated GPT-2; no source artwork copied. See consolidation/visual-revision/STYLE-GUIDE.md.</metadata>
 <defs>
 <marker id="arrow-muted" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#586779"/></marker>
 <marker id="arrow-blue" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#2864DC"/></marker>

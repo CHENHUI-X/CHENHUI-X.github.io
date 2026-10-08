@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="720" height="852" viewBox="0 0 720 852" role="img" aria-labelledby="title desc" lang="zh-CN">
 <title id="title">ZeRO：逐步拆分三类训练状态</title><desc id="desc">四个GPU，仅画GPU0。DDP参数梯度优化器状态都保留0到3；Stage1仅优化器侧保留分片0；Stage2梯度和优化器侧保留0；Stage3三类均只保留0。框大小不表示字节相同，不含激活与临时all-gather。</desc>
+<metadata>Original diagram for this blog. Visual principles inspired by Jay Alammar’s The Illustrated GPT-2; no source artwork copied. See consolidation/visual-revision/STYLE-GUIDE.md.</metadata>
 <defs>
 <marker id="arrow-muted" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#586779"/></marker>
 <marker id="arrow-blue" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L7 3.5 L0 7 Z" fill="#2864DC"/></marker>
