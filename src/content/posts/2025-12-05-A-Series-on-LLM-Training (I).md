@@ -19,7 +19,7 @@ draft: false
 
 下文依次介绍 **SFT → 奖励模型与 KL → token 级 PPO → DPO**。RLHF（Reinforcement Learning from Human Feedback）是一套利用人类反馈的训练流程；PPO 是其中可以采用的策略优化算法，DPO 则是直接用偏好对训练模型的方法。本文会分别说明它们用什么数据、训练哪个模型，以及怎样计算损失。
 
-第 1 节先用下一 token 的概率解释训练损失，再进入偏好学习；推导涉及条件概率、反向传播与梯度下降。[通用强化学习](/posts/2024-04-30-deep-reinforcement-learning/) 是补充 Policy Gradient、value function 和 GAE 的选读，不是学习 SFT 的必修课。数据整理、LoRA、packing 与训练显存问题见 [SFT 训练实战](/posts/2026-06-16-llm-mem-opt-5-sft/)；整体顺序见 [LLM 知识体系导航](/posts/2026-06-03-llm-knowledge-map/)。
+第 1 节先用下一 token 的概率解释训练损失，再进入偏好学习；推导涉及条件概率、反向传播与梯度下降。本文着重说明 PPO 如何用于语言模型的回答，以及 DPO 如何利用偏好数据；[通用强化学习](/posts/2024-04-30-deep-reinforcement-learning/) 则从一般的状态、动作和奖励出发，推导 Policy Gradient、value function 和 GAE，是选读而不是学习 SFT 的必修课。数据整理、LoRA、packing 与训练显存问题见 [SFT 训练实战](/posts/2026-06-16-llm-mem-opt-5-sft/)；整体顺序见 [LLM 知识体系导航](/posts/2026-06-03-llm-knowledge-map/)。
 
 下面统一用 $x$ 表示 prompt，$y=(y_1,\ldots,y_T)$ 表示回答 token 序列，$\pi_\theta$ 表示参数为 $\theta$ 的语言模型，所有 $\log$ 均为自然对数。回答包含按数据约定计入的结束 token；padding 不是回答的一部分。
 
@@ -146,7 +146,7 @@ $$
 - **④ KL 偏移惩罚**：策略与参考模型的概率用于约束行为偏移；图中的 $\lambda_{\mathrm{KL}}$ 对应本文的 $\beta$。
 - **⑤ 合成信号并更新策略**：奖励和惩罚共同影响更新。图省略了 Critic、old policy 快照和 token 级 advantage，不能把它当作完整 PPO 实现；下面补齐这些分工。
 
-把生成看成一个有限长度的决策过程：状态 $s_t=(x,y_{<t})$，动作 $a_t=y_t$，策略是 $\pi_\theta(y_t\mid s_t)$。
+把生成看成一个有限长度的决策过程：状态 $s_t=(x,y_{<t})$ 是问题和已经生成的前缀，动作 $a_t=y_t$ 是接下来选出的 token，策略 $\pi_\theta(y_t\mid s_t)$ 给出这个 token 的概率。这里的状态、动作与[通用强化学习篇](/posts/2024-04-30-deep-reinforcement-learning/#12-状态动作和一段经历)使用的是同一套概念，只是换成了文本生成场景。
 
 - **Actor / policy**：生成 token，也是最终要改进的语言模型
 - **Reference**：冻结的 $\pi_{\mathrm{ref}}$，用于衡量相对初始行为的偏移
@@ -165,7 +165,7 @@ $$
 
 ### 3.2 回答末尾的奖励怎样影响前面的 token
 
-下面取有限回答、**不折扣**的设定，即 $\gamma=1$。在一次 rollout 中，一种常见的奖励构造是
+下面取有限回答、**不折扣**的设定，即 $\gamma=1$。本篇将回答 token 编为 $t=1,\ldots,T$，终止后的状态记为 $s_{T+1}$；[通用强化学习篇](/posts/2024-04-30-deep-reinforcement-learning/#13-折扣回报与优化目标)从 $t=0$ 开始，因此最后一步是 $T-1$、终止状态是 $s_T$。两者只是编号不同。在一次 rollout 中，一种常见的奖励构造是
 
 $$
 \widetilde r_t
@@ -175,9 +175,9 @@ $$
 +\mathbf 1_{\{t=T\}}r_\phi(x,y).
 $$
 
-每一步有一个采样的 KL 惩罚项，完整回答的奖励在最后一个有效 token 加入一次。这个构造对应 old 策略采样时的正则化回报；PPO 的多次更新优化的是局部替代目标（surrogate）：用这一批已采样前缀、固定 advantage 和新旧概率比，近似指导当前这轮参数更新，而非在每个更新步精确重新计算整个 $J(\theta)$。
+每一步都有一项采样到的策略与参考模型对数概率差；完整回答的奖励在最后一个有效 token 加入一次。单个采样项可以为正或为负，它本身不等于完整分布的 KL。这个奖励构造对应 old 策略采样时的正则化回报；PPO 的多次更新优化的是局部替代目标（surrogate）：用这一批已采样前缀、固定 advantage 和新旧概率比，近似指导当前这轮参数更新，而非在每个更新步精确重新计算整个 $J(\theta)$。
 
-Advantage 衡量的是：**这个动作带来的后续回报，比这个前缀下通常能得到的回报高多少？** Critic 提供这个比较基准。因此，动作是否值得鼓励取决于相对于预期的回报，不能只看状态本身的价值高低。
+Advantage 衡量的是：**这个动作的预期回报，比当前策略在这个前缀下的平均回报高多少？** 对应通用强化学习篇里的 $A^\pi(s,a)=Q^\pi(s,a)-V^\pi(s)$。这里 Critic 估计 $V$，为比较提供基准；具体训练时用的是从采样数据算出的 advantage 估计，而不是已经知道精确的 $Q-V$。
 
 为什么完整回答最后才打分，前面的 token 仍能学习？一次 token 选择改变了后续生成路径，所以前面动作的评价也要考虑后续回报。最简单地把后面奖励全部相加，就得到该位置的实际回报；减去 critic 对这个前缀的预期，得到“本次回报比预期高多少”。GAE 据此混合多步估计，把后续的估计误差逐步传回前面的 token。这样，每个 token 获得的学习信号可以不同，而非共用一个末尾分数。
 
@@ -216,7 +216,7 @@ $$
 =\exp\!\left(\log\pi_\theta(y_t\mid s_t)-\log\pi_{\mathrm{old}}(y_t\mid s_t)\right).
 $$
 
-本篇用所有有效回答 token 的平均定义 actor loss：
+本篇用所有有效回答 token 的平均定义 actor loss，并取负号供优化器最小化。通用强化学习篇则先对轨迹内各步求和，再对轨迹取平均；两者的分母不同。对同一批无折扣数据，若各位置使用相同的裁剪项，两者相差整批平均回答长度的倍数；若先对每条回答取均值再对回答取均值，加权方式又不同。
 
 $$
 \mathcal L_{\mathrm{actor}}
@@ -228,13 +228,13 @@ $$
 \qquad N=\sum_{b,t}m_{b,t}.
 $$
 
-$\epsilon>0$ 控制 surrogate 的 clipping 区间。
+$0<\epsilon<1$ 控制 surrogate 的 clipping 区间，与通用强化学习篇的例子采用相同约定。
 
 先看要最大化的括号内部分，再记住代码取负号作为 loss。设 $\epsilon=0.2$：
 
-- $\widehat A=2$、$\rho=1.5$ 时，原项是 3，裁剪项是 2.4，取最小值 2.4；继续提高这个正优势动作的概率，不再从本样本获得额外奖励
-- $\widehat A=-2$、$\rho=0.5$ 时，原项是 -1，裁剪项是 -1.6，取 -1.6；继续压低这个负优势动作的概率，也不再提高该目标
-- $\widehat A=-2$、$\rho=1.5$ 时，取 $\min(-3,-2.4)=-3$；提高负优势动作的概率仍受惩罚，不会被裁剪掉
+- $\widehat A=2$、$\rho=1.4$ 时，原项是 2.8，裁剪项是 2.4，取最小值 2.4；继续提高这个正优势动作的概率，不再提高该样本的目标值
+- $\widehat A=-2$、$\rho=0.6$ 时，原项是 -1.2，裁剪项是 -1.6，取 -1.6；继续压低这个负优势动作的概率，也不再提高该目标
+- $\widehat A=-2$、$\rho=1.4$ 时，取 $\min(-2.8,-2.4)=-2.8$；提高负优势动作的概率仍受惩罚，不会被裁剪掉
 
 这里的 $m_{b,t}$ 是回答位置的 0/1 mask，$N$ 是有效 token 总数，$\rho$ 比较的始终是同一前缀下同一个 token 的新旧概率。裁剪限制了单个样本对目标函数的贡献，参数共享却仍可能使某些概率比越过区间，所以它不是概率比或 KL 的硬约束。更完整的分段推导见[通用 PPO 推导](/posts/2024-04-30-deep-reinforcement-learning/#24-ppo)。[PPO 原论文 §3](https://arxiv.org/abs/1707.06347)
 
@@ -253,7 +253,7 @@ def ppo_actor_loss(new_logp, old_logp, advantage, response_mask, eps=0.2):
 
 这里的新 log-probability 重新前向计算并保留梯度；old log-probability、advantage 和回报目标不反向传播。Critic 另外拟合固定的回报目标，例如 $\widehat R_t=\widehat A_t+V_{\mathrm{old}}(s_t)$，最小化有效回答位置的均方误差。实际 PPO 还需要处理 value loss 权重、可选的 entropy bonus、梯度裁剪、更新次数和 KL 监控；上面只展示 actor 核心，不是完整训练器。
 
-Reference KL 衡量当前模型偏离固定参考模型有多远；PPO clipping 则比较本轮更新前后的策略，避免在同一批样本上改得太多。两者比较的模型不同。
+Reference KL 衡量当前模型偏离固定参考模型有多远；PPO clipping 则比较本轮更新前后的策略，避免在同一批样本上改得太多。通用强化学习篇还介绍了一种 PPO KL penalty：它比较的是旧策略与新策略，而不是当前策略与固定参考模型。即使两篇都用 $\beta$ 标记系数，也不表示两个惩罚项或系数相同。
 
 ## 4. DPO：直接从偏好对更新语言模型
 
