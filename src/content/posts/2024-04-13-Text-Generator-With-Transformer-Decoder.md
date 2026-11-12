@@ -36,7 +36,7 @@ draft: false
 
 模型内部的隐藏向量和输出的 logits 含义不同：隐藏向量保存一个位置的特征，logits 则为词表中的每个候选提供分数。例如隐藏向量有 64 个数，不表示只有 64 个候选；后面的输出层会把它变成本文 41 个候选的分数。训练要让正确候选获得更高概率，生成才从候选里选一个。
 
-训练时，后面的真实 token 已经在数据里，所以可以并行计算多个位置的预测；causal mask 将可见范围限制在当前位置及其之前，避免模型看到要预测的下一个 token。生成时，后面的 token 还不存在，必须逐个选出并接回输入。
+训练时，后面的真实 token 已经在数据里，因此可以并行计算多个位置的预测。causal mask 会把每个位置能看到的范围限制在当前位置及其之前，避免模型提前看到要预测的下一个 token。生成时，后面的 token 还不存在，只能逐个选出，再接回输入。
 
 <span id="2-数据构造"></span>
 
@@ -260,7 +260,7 @@ $$
 
 <!-- /concept-figure:causal-mask -->
 
-如果使用加性 mask $M$，允许处加 0，禁止处加 $-\infty$，然后再做 softmax。如果把禁止位置的 score 设为 0，由于 $e^0=1$，该位置仍可能获得正的 attention 权重。将 score 设为负无穷，才能使它在 softmax 后的权重为 0。
+使用加性 mask $M$ 时，允许看到的位置加 0，禁止看到的位置加 $-\infty$，再做 softmax。为什么禁止位置不能直接设成 0？因为 $e^0=1$，它仍可能得到正的 attention 权重。将 score 设为负无穷后，softmax 才会给它分配权重 0。
 
 :::warning
 不同 API 对布尔 mask 的约定相反。PyTorch 的 [scaled_dot_product_attention](https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html) 使用 `True = 允许`；[MultiheadAttention](https://docs.pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html) 的布尔 `attn_mask` 和 `key_padding_mask` 使用 `True = 屏蔽`。移植代码时必须检查约定，不能直接照搬同一个布尔矩阵。
@@ -484,7 +484,7 @@ loss 的分母是实际参与训练的目标 token 数，不是 `B × T`。`igno
 | 2 | `BOS c a t s` | `s` | 空格 |
 | 3 | `c a t s 空格` | 空格 | `r` |
 
-一次前向会得到每个位置的 logits，但续写只使用**最后一个有效输入位置**的输出。选中的 token 加到末尾，再次运行模型；窗口满了就丢弃最左边的旧 token。本例使用窗口内的位置编号，所以窗口滑动后会重新编号，不代表实现了无限上下文。
+一次前向计算会得到每个位置的 logits，但续写时只用**最后一个有效输入位置**的输出。选出 token 后，把它加到末尾，再运行一次模型；窗口满了就丢弃最左边的旧 token。这个例子按窗口内的位置编号，所以窗口滑动后会重新编号，并不代表实现了无限上下文。
 
 下面的原动画展示相同的自回归反馈过程：刚选出的输出，会成为下一轮输入的一部分。
 

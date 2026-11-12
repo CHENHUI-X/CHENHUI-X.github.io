@@ -11,11 +11,11 @@ tags:
 draft: false
 ---
 
-这是大模型系列中「显存」子系列的第五篇。上一篇[Prefill、Decode 与 KV Cache](/posts/2026-06-13-llm-mem-opt-2-inference/)解释了执行流程与容量：KV Cache 复用历史位置的 K/V，却没有消除一次 attention 内部的中间矩阵。这篇顺着这个问题，先看大矩阵从哪里来，再看 FlashAttention 如何分块合并。
+这是大模型显存系列的第五篇。上一篇[Prefill、Decode 与 KV Cache](/posts/2026-06-13-llm-mem-opt-2-inference/)讲到，KV Cache 可以复用历史位置的 K/V，但不会消除一次 attention 计算内部的中间矩阵。这一篇先看看这些大矩阵从哪里来，再解释 FlashAttention 怎样通过分块计算和合并结果来处理它们。
 
 只需知道：Query（Q）与 Key（K）比较得到分数，softmax 把分数变成权重，再用这些权重对 Value（V）加权。下面从单头公式开始，逐步手算分块合并，再用 CPU 参考代码核对结果；GPU kernel 的性能仍需在目标设备上实测。
 
-KV Cache 解决“跨生成步骤重复计算旧结果”的问题。**FlashAttention** 解决另一个问题：在一次 attention 计算内部，怎样减少 HBM 与片上存储之间的数据搬运？
+KV Cache 解决的是不同生成步骤之间重复计算旧结果的问题。**FlashAttention** 则关注另一个问题：一次 attention 计算中，怎样减少 HBM 和片上存储之间的数据搬运？
 
 本文先讨论 query 和 key 长度同为 $N$ 的整段 self-attention，$N$ 是 token 数，$d_h$ 是每个 head 的向量维度。公式中的大写 $S$ 表示 **scores 分数矩阵**。复杂度里的 $O(\cdot)$ 描述计算量随规模增长的量级，省略常数因子，别与后面记作 $O$ 的输出矩阵混淆。
 
