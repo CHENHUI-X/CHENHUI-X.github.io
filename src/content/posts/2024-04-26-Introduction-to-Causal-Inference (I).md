@@ -293,6 +293,8 @@ $$
 
 图源：[Brady Neal，Introduction to Causal Inference，Figure 2.5](https://www.bradyneal.com/Introduction_to_Causal_Inference-Dec17_2020-Neal.pdf#page=24)。局部引用原图，文字和箭头未改动；版权归作者，教材未明确标注开放改编许可。
 
+如果关心的不只是整个目标人群，而是「已经接受处理的人」或「某一类背景的人」，可以接着读[因果推断（二）：ITE、ATE、ATT 和 CATE](/posts/2025-02-05-introduction-to-causal-inference-ii/#11-研究对象潜在结果与处理效应)。第二篇沿用潜在结果框架，用课程辅导的例子比较各个指标对应的人群。
+
 <span id="reference"></span>
 
 ## 参考资料

@@ -472,6 +472,8 @@ optimizer.step()
 
 loss 的分母是实际参与训练的目标 token 数，不是 `B × T`。`ignore_index` 忽略的是指定标签位置，不会从其他位置的 softmax 分母中移除 PAD 这个词表类别；有效位置仍在完整 41 类上训练。这一行为见 [PyTorch CrossEntropyLoss](https://docs.pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html)。
 
+训练和评估都可能计算目标 token 的负对数概率，但用途不同：这里用训练数据上的 loss 更新参数；评估时通常固定模型，用未参与训练的数据衡量表现。同一批有效目标的平均负对数损失取指数，可以得到对应的困惑度，具体计算和比较条件见[困惑度](/posts/2024-04-10-perplexity/#3-和交叉熵的关系)。对指令数据，还要决定 prompt 和回答哪些位置参与 loss，见 [SFT 的标签与掩码](/posts/2026-06-16-llm-mem-opt-5-sft/#13-shiftpadding-mask-和-response-mask-各管什么)。
+
 这里要做三件事：用 attention mask 挡住 PAD key，把 PAD query 的输出清零，计算 loss 时跳过无效标签。三者分别控制读哪些位置、保留哪些输出、训练哪些预测，不能互相代替。
 
 ### 4.2 从一次预测到自回归生成
