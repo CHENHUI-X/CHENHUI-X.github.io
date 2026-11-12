@@ -1,6 +1,41 @@
 .custom-md
 
-  blockquote.admonition
+  details.admonition
+    position: relative
+    margin: 1rem 0
+    padding-left: 1rem
+
+    &:before
+      content: ''
+      position: absolute
+      left: -0.25rem
+      top: 0
+      bottom: 0
+      width: 0.25rem
+      background: var(--btn-regular-bg)
+      border-radius: 9999px
+
+    > summary.bdm-title
+      cursor: pointer
+      list-style: none
+      padding: 0.25rem 0
+
+      &::-webkit-details-marker
+        display: none
+      &::marker
+        display: none
+
+      &:after
+        content: '▶'
+        margin-left: auto
+        font-size: 0.75em
+        opacity: 0.6
+        transition: transform 0.2s ease
+
+    &[open] > summary.bdm-title:after
+      transform: rotate(90deg)
+
+  .admonition
     .bdm-title
       display: flex
       align-items: center

@@ -4,6 +4,11 @@ import { h } from "hastscript";
 /**
  * Creates an admonition component.
  *
+ * Supports an optional `fold` attribute to render the admonition as a
+ * collapsible <details> element:
+ *   :::note{name="..." fold}            → <details open> (expanded by default)
+ *   :::note{name="..." fold="closed"}   → <details>      (collapsed by default)
+ *
  * @param {Object} properties - The properties of the component.
  * @param {string} [properties.title] - An optional title.
  * @param {('tip'|'note'|'important'|'caution'|'warning')} type - The admonition type.
@@ -24,6 +29,19 @@ export function AdmonitionComponent(properties, children, type) {
 		// biome-ignore lint/style/noParameterAssign: <check later>
 		children = children.slice(1);
 		label.tagName = "div"; // Change the tag <p> to <div>
+	}
+
+	const foldAttr = properties?.fold;
+	const isFoldable = foldAttr !== undefined;
+
+	if (isFoldable) {
+		const initiallyOpen = foldAttr !== "closed";
+		const detailsProps = { class: `admonition bdm-${type}` };
+		if (initiallyOpen) detailsProps.open = true;
+		return h("details", detailsProps, [
+			h("summary", { class: "bdm-title" }, label ? label : type.toUpperCase()),
+			...children,
+		]);
 	}
 
 	return h("blockquote", { class: `admonition bdm-${type}` }, [
