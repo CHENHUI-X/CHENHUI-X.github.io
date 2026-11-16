@@ -245,6 +245,30 @@ const slug = postEntry.slug;
 	color: #ffffff !important;
 	box-shadow: 0 2px 8px var(--primary) !important;
 }
+:global(#waline-container .wl-reaction-item.active) {
+	border-color: var(--primary) !important;
+	box-shadow: 0 0 0 1.5px var(--primary), 0 4px 14px rgba(0, 0, 0, 0.06) !important;
+}
+:global(#waline-container .wl-reaction-loading) {
+	position: static !important;
+	inset: auto !important;
+	width: 1rem !important;
+	height: 1.15rem !important;
+	min-width: 1.5rem !important;
+	color: var(--primary) !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	animation: wl-reaction-spin 0.8s linear infinite !important;
+}
+@keyframes wl-reaction-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
 
 /* ── 2. 评论主输入框（Panel & Editor）毛玻璃卡片化 ── */
 :global(#waline-container .wl-panel) {
