@@ -3,24 +3,27 @@
 @layer components {
     .card-base {
         @apply rounded-[var(--radius-large)] overflow-hidden bg-[var(--card-bg)];
-        /* 毛玻璃效果：半透明白底让背景图隐约透过来 */
-        background-color: rgba(255, 255, 255, 0.80) !important;
-        /* 滚动性能优化：去掉 backdrop-filter 避免每帧 GPU 高斯模糊采样 */
-        /* 如果你怀念毛玻璃效果，可以改回:
-           backdrop-filter: blur(8px);
-           -webkit-backdrop-filter: blur(8px); */
-        transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                    box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+        /* 毛玻璃与微边框效果：半透明底让渐变背景图隐约透出，辅以极细轮廓线提升质感 */
+        background-color: rgba(255, 255, 255, 0.82) !important;
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1),
+                    border-color 300ms ease !important;
     }
     .card-base:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.10);
+        border-color: rgba(255, 255, 255, 0.95);
     }
     :root.dark .card-base {
-        background-color: rgba(30, 20, 40, 0.72) !important;
+        background-color: rgba(30, 20, 40, 0.75) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     }
     :root.dark .card-base:hover {
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        border-color: rgba(255, 255, 255, 0.22);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
     }
     /* 性能优化：移除通用全元素 transition（切换页面时大量 DOM 无谓触发过渡计算） */
     .card-shadow {
@@ -207,4 +210,26 @@
   #bg-shapes > div {
     background-size: cover !important;
   }
+}
+
+/* ========== 主题模式切换按钮弹性微交互 ========== */
+#scheme-switch,
+#display-settings-switch {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease !important;
+}
+#scheme-switch:hover,
+#display-settings-switch:hover {
+  transform: rotate(25deg) scale(1.15) !important;
+}
+#scheme-switch:active,
+#display-settings-switch:active {
+  transform: rotate(180deg) scale(0.9) !important;
+}
+
+/* ========== 标签胶囊微动效 (Tag Pill) ========== */
+.tag-pill {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.tag-pill:hover {
+  transform: translateY(-2px) scale(1.04);
 }

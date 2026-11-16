@@ -1,9 +1,27 @@
 .expressive-code {
     .frame {
         @apply !shadow-none;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    &:hover .frame {
+        border-color: rgba(128, 128, 128, 0.25);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
     }
 
     .title {
         font-family: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
+}
+
+:root.dark .expressive-code .frame {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:root.dark .expressive-code:hover .frame {
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
 }

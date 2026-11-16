@@ -205,12 +205,28 @@ const bannerOffset =
 			.bg-scroll-active [class*="bg-float-"] {
 				animation-play-state: paused !important;
 			}
+
+			/* 顶部极简渐变阅读进度条 */
+			#reading-progress-bar {
+				position: fixed;
+				top: 0;
+				left: 0;
+				height: 2.5px;
+				width: 0%;
+				background: linear-gradient(90deg, var(--primary), oklch(0.85 0.14 var(--hue)), var(--primary));
+				z-index: 99999;
+				pointer-events: none;
+				transition: width 0.08s ease-out;
+				box-shadow: 0 0 10px var(--primary);
+			}
 		</style>
 
 	</head>
 	<body class=" min-h-screen transition relative" class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  data-overlayscrollbars-initialize
 	>
+		<!-- 顶部流动阅读进度条 -->
+		<div id="reading-progress-bar" aria-hidden="true"></div>
 		<ConfigCarrier></ConfigCarrier>
 
 			<!-- Background: animated gradient + floating shapes -->
@@ -479,6 +495,9 @@ const bannerOffset =
 		window.swup.hooks.on('visit:start', (visit: {to: {url: string}}) => {
 			// 新页面开始加载：标记 is-rendering，让新内容以淡入初始状态渲染
 			document.documentElement.classList.add('is-rendering');
+			if (readingProgressBar) {
+				readingProgressBar.style.width = '0%';
+			}
 			// change banner height immediately when a link is clicked
 			const bodyElement = document.querySelector('body')
 			if (pathsEqual(visit.to.url, url('/'))) {
@@ -505,6 +524,9 @@ const bannerOffset =
 				document.documentElement.classList.remove('is-rendering');
 			});
 
+			readingProgressBar = document.getElementById('reading-progress-bar');
+			updateReadingProgress();
+
 			// 瀑布流卡片错落：每张卡片递增 80ms delay
 			const cards = document.querySelectorAll('#swup-container .card-base');
 			cards.forEach((card, i) => {
@@ -524,6 +546,8 @@ const bannerOffset =
 				goToBottomBtn = document.getElementById('go-to-bottom-btn')
 				toc = document.getElementById('toc-wrapper')
 				navbar = document.getElementById('navbar-wrapper')
+				readingProgressBar = document.getElementById('reading-progress-bar')
+				updateReadingProgress()
 
 				const heightExtend = document.getElementById('page-height-extend')
 				if (heightExtend) {
@@ -547,8 +571,28 @@ const bannerOffset =
 	let backToTopBtn = document.getElementById('back-to-top-btn');
 	let goToBottomBtn = document.getElementById('go-to-bottom-btn');
 	let toc = document.getElementById('toc-wrapper');
-	let navbar = document.getElementById('navbar-wrapper')
+	let navbar = document.getElementById('navbar-wrapper');
+	let readingProgressBar = document.getElementById('reading-progress-bar');
+
+	function updateReadingProgress() {
+		if (!readingProgressBar) {
+			readingProgressBar = document.getElementById('reading-progress-bar');
+		}
+		if (!readingProgressBar) return;
+		const scrollElement = document.scrollingElement || document.documentElement || document.body;
+		if (scrollElement) {
+			const scrollTotal = scrollElement.scrollHeight - window.innerHeight;
+			if (scrollTotal > 0) {
+				const progress = Math.min(100, Math.max(0, (scrollElement.scrollTop / scrollTotal) * 100));
+				readingProgressBar.style.width = `${progress}%`;
+			} else {
+				readingProgressBar.style.width = '0%';
+			}
+		}
+	}
+
 	function scrollFunction() {
+		updateReadingProgress();
 		let bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100)
 
 		if (backToTopBtn) {

@@ -40,7 +40,7 @@ const shareLinks = [
 			<button
 				type="button"
 				id="wechat-share-btn"
-				class="btn-regular rounded-lg h-9 w-9 active:scale-90 cursor-pointer"
+				class="btn-regular rounded-xl h-9 w-9 active:scale-90 cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--primary)] hover:text-white transition-all duration-200"
 				title="WeChat"
 				aria-label="Share to WeChat"
 				onclick="document.getElementById('wechat-overlay').style.display='flex'"
@@ -52,7 +52,7 @@ const shareLinks = [
 				href={link.href}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="btn-regular rounded-lg h-9 w-9 active:scale-90"
+				class="btn-regular rounded-xl h-9 w-9 active:scale-90 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--primary)] hover:text-white transition-all duration-200"
 				title={link.name}
 				aria-label={`Share to ${link.name}`}
 			>
