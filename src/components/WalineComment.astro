@@ -55,6 +55,54 @@ const slug = postEntry.slug;
 		}
 	}
 
+	// 乐观更新拦截：避免 Waline reaction 投票串行等待海外 Vercel 慢网络往返（导致转圈等待数秒）
+	if (typeof window !== "undefined" && !(window as any).__waline_fetch_patched) {
+		(window as any).__waline_fetch_patched = true;
+		const originalFetch = window.fetch.bind(window);
+		window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+			let url = "";
+			let method = "GET";
+			let bodyStr = "";
+
+			if (typeof input === "string") {
+				url = input;
+				method = init?.method || "GET";
+			} else if (input instanceof URL) {
+				url = input.toString();
+				method = init?.method || "GET";
+			} else if (input && typeof input === "object" && "url" in input) {
+				url = (input as Request).url;
+				method = init?.method || (input as Request).method || "GET";
+			}
+
+			if (init && typeof init.body === "string") {
+				bodyStr = init.body;
+			}
+
+			// 拦截表情投票请求（POST /article 包含 reaction 参数）
+			const isReactionPost =
+				method.toUpperCase() === "POST" &&
+				url.includes("/article") &&
+				bodyStr.includes("reaction");
+
+			if (isReactionPost) {
+				// 后台静默异步同步至云端数据库（持久化保存）
+				originalFetch(input, init).catch((err) => {
+					console.warn("[Waline] reaction background sync failed:", err);
+				});
+				// 前端立即返回成功响应，实现 0ms 瞬间反馈，彻底消除转圈等待延迟
+				return Promise.resolve(
+					new Response("1", {
+						status: 200,
+						headers: { "Content-Type": "application/json" },
+					}),
+				);
+			}
+
+			return originalFetch(input, init);
+		};
+	}
+
 	function initWaline() {
 		var container = document.getElementById("waline-container");
 		if (!container) return;
