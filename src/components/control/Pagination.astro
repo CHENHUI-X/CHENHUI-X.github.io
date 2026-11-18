@@ -53,13 +53,13 @@ const getPageUrl = (p: number) => {
 
 <div class:list={[className, "flex flex-row gap-3 justify-center"]} style={style}>
     <a href={page.url.prev || ""} aria-label={page.url.prev ? "Previous Page" : null}
-       class:list={["btn-card overflow-hidden rounded-xl text-[var(--primary)] w-11 h-11 border border-black/[0.05] dark:border-white/[0.08] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200",
+       class:list={["card-base btn-card overflow-hidden rounded-xl text-[var(--primary)] w-11 h-11 hover:-translate-y-0.5 transition-all duration-200",
            {"disabled": page.url.prev == undefined}
        ]}
     >
         <Icon name="material-symbols:chevron-left-rounded" class="text-[1.75rem]"></Icon>
     </a>
-    <div class="bg-[var(--card-bg)] flex flex-row rounded-xl items-center text-neutral-700 dark:text-neutral-300 font-bold border border-black/[0.05] dark:border-white/[0.08] shadow-sm">
+    <div class="card-base flex flex-row rounded-xl items-center text-neutral-700 dark:text-neutral-300 font-bold">
         {pages.map((p) => {
             if (p == HIDDEN)
                 return <Icon name="material-symbols:more-horiz" class="mx-1"/>;
@@ -70,12 +70,12 @@ const getPageUrl = (p: number) => {
                     {p}
                 </div>
             return <a href={url(getPageUrl(p))} aria-label={`Page ${p}`}
-                class="btn-card w-11 h-11 rounded-xl overflow-hidden active:scale-[0.85] hover:text-[var(--primary)] transition-colors"
+                class="flex items-center justify-center w-11 h-11 rounded-xl overflow-hidden hover:bg-[var(--btn-plain-bg-hover)] active:scale-[0.88] hover:text-[var(--primary)] transition-[color,background-color,transform] duration-200"
             >{p}</a>
         })}
     </div>
     <a href={page.url.next || ""} aria-label={page.url.next ? "Next Page" : null}
-       class:list={["btn-card overflow-hidden rounded-xl text-[var(--primary)] w-11 h-11 border border-black/[0.05] dark:border-white/[0.08] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200",
+       class:list={["card-base btn-card overflow-hidden rounded-xl text-[var(--primary)] w-11 h-11 hover:-translate-y-0.5 transition-all duration-200",
            {"disabled": page.url.next == undefined}
        ]}
     >

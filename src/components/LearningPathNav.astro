@@ -5,6 +5,7 @@ import {
 } from "@constants/learning-path";
 import { getMemorySeriesNavigation } from "@constants/memory-series";
 import { getPostUrlBySlug } from "@utils/url-utils";
+import { Icon } from "astro-icon/components";
 
 interface Props {
 	navigation: LearningPathNavigation;
@@ -22,51 +23,63 @@ const status = navigation.isKnowledgeMap
 			: "基础选读";
 ---
 <nav class="learning-path card-base p-6 md:px-9 mb-4" aria-label={series ? "大模型显存系列导航" : "LLM 学习路径"} data-memory-series={series ? "true" : undefined} data-learning-path data-path-kind={entry?.kind ?? "map"}>
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <p class="font-bold text-black/75 dark:text-white/75">{series ? `大模型 · 显存子系列 · ${series.position} / ${series.total}` : `LLM 学习路径 · ${status}`}</p>
-        <a class="path-link" href={getPostUrlBySlug(KNOWLEDGE_MAP_SLUG)} data-path-map>完整知识地图</a>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-black/[0.06] dark:border-white/[0.08]">
+        <div class="flex items-center gap-2">
+            <span class="w-1 h-4 rounded-full bg-[var(--primary)]"></span>
+            <p class="font-bold text-black/85 dark:text-white/85">
+                {series ? `大模型 · 显存子系列 · ${series.position} / ${series.total}` : `LLM 学习路径 · ${status}`}
+            </p>
+        </div>
+        <a class="path-chip" href={getPostUrlBySlug(KNOWLEDGE_MAP_SLUG)} data-path-map>
+            <Icon name="material-symbols:route-outline" class="text-sm" />
+            完整知识地图
+        </a>
     </div>
 
-    {series && <p class="text-sm text-black/60 dark:text-white/60 mb-3" data-series-learning-context>入门路线：{status}。系列篇次表示专题顺序，深入篇可按需跳读；单卡 SFT 不要求先学 ZeRO。</p>}
+    {series && <p class="text-sm text-black/60 dark:text-white/60 mb-2.5 leading-relaxed" data-series-learning-context>入门路线：{status}。系列篇次表示专题顺序，深入篇可按需跳读；单卡 SFT 不要求先学 ZeRO。</p>}
 
-    {entry && <p class="text-sm text-black/60 dark:text-white/60 mb-3">当前：{entry.title}</p>}
+    {entry && <p class="text-xs md:text-sm text-black/55 dark:text-white/55 mb-3.5">当前阅读：<span class="font-medium text-black/80 dark:text-white/80">{entry.title}</span></p>}
 
     {prerequisites.length > 0 && <div class="mb-4">
-        <p class="text-sm text-black/60 dark:text-white/60 mb-2">相关基础知识（按需阅读）</p>
-        <ul class="flex flex-wrap gap-x-4 gap-y-2">
-            {prerequisites.map((item) => <li><a class="path-link text-sm" href={getPostUrlBySlug(item.slug)} data-path-prerequisite>{item.title}</a></li>)}
+        <p class="text-xs font-semibold uppercase tracking-wider text-black/45 dark:text-white/45 mb-2">相关基础知识（按需阅读）</p>
+        <ul class="flex flex-wrap gap-2">
+            {prerequisites.map((item) => <li><a class="path-pill" href={getPostUrlBySlug(item.slug)} data-path-prerequisite>{item.title}</a></li>)}
         </ul>
     </div>}
 
     {series ? <div data-series-navigation>
-        <a class="path-link inline-block mb-3" href="/topics/#llm-memory" data-series-directory>查看显存系列完整目录（5 篇）</a>
+        <a class="path-link inline-flex items-center gap-1 text-sm font-medium mb-3" href="/topics/#llm-memory" data-series-directory>
+            查看显存系列完整目录（5 篇） →
+        </a>
         <div class="grid gap-3 sm:grid-cols-2">
-            {series.previous ? <a class="path-step" href={getPostUrlBySlug(series.previous.slug)} rel="prev" data-series-previous>
-                <span class="text-sm">← 系列上一篇</span><span class="font-bold">{series.previous.title}</span>
-            </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60">这是显存系列第一篇，从模型运行时的数据开始。</p>}
-            {series.next ? <a class="path-step" href={getPostUrlBySlug(series.next.slug)} rel="next" data-series-next>
-                <span class="text-sm">系列下一篇 →</span><span class="font-bold">{series.next.title}</span>
-            </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60" data-series-complete>显存系列到此结束，可回目录按问题复习。</p>}
+            {series.previous ? <a class="path-step path-step--prev group" href={getPostUrlBySlug(series.previous.slug)} rel="prev" data-series-previous>
+                <span class="path-step-label"><span class="path-arrow path-arrow--left">←</span> 系列上一篇</span>
+                <span class="path-step-title">{series.previous.title}</span>
+            </a> : <p class="path-boundary text-sm text-black/55 dark:text-white/55">这是显存系列第一篇，从模型运行时的数据开始。</p>}
+            {series.next ? <a class="path-step path-step--next group" href={getPostUrlBySlug(series.next.slug)} rel="next" data-series-next>
+                <span class="path-step-label">系列下一篇 <span class="path-arrow path-arrow--right">→</span></span>
+                <span class="path-step-title">{series.next.title}</span>
+            </a> : <p class="path-boundary text-sm text-black/55 dark:text-white/55" data-series-complete>显存系列到此结束，可回目录按问题复习。</p>}
         </div>
-        <p class="mt-4 text-sm text-black/60 dark:text-white/60">相关补充：<a class="path-link" href="/posts/2026-05-16-llm-quantization-guide/">量化专题：INT4、GPTQ 与 AWQ</a>。入门读者可按<a class="path-link" href={getPostUrlBySlug(KNOWLEDGE_MAP_SLUG)}>知识地图的 9 步路线</a>继续。</p>
+        <p class="mt-4 text-xs md:text-sm text-black/55 dark:text-white/55 leading-relaxed">相关补充：<a class="path-link font-medium" href="/posts/2026-05-16-llm-quantization-guide/">量化专题：INT4、GPTQ 与 AWQ</a>。入门读者可按<a class="path-link font-medium" href={getPostUrlBySlug(KNOWLEDGE_MAP_SLUG)}>知识地图的 9 步路线</a>继续。</p>
     </div> : entry?.kind === "mainline" || navigation.isKnowledgeMap ? <div class="grid gap-3 sm:grid-cols-2" data-path-mainline>
-        {previous ? <a class="path-step" href={getPostUrlBySlug(previous.slug)} rel="prev" data-path-previous>
-            <span class="text-sm">← 主线上一篇</span>
-            <span class="font-bold">{previous.title}</span>
-        </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60">{navigation.isKnowledgeMap ? `入门路线共 ${navigation.total} 篇，进阶专题可按需要选读` : "这是入门路线的第一篇"}</p>}
-        {next ? <a class="path-step" href={getPostUrlBySlug(next.slug)} rel="next" data-path-next>
-            <span class="text-sm">{navigation.isKnowledgeMap ? "开始阅读 →" : "主线下一篇 →"}</span>
-            <span class="font-bold">{next.title}</span>
-        </a> : <p class="path-boundary text-sm text-black/60 dark:text-white/60" data-path-complete>入门路线到此结束，接下来可以阅读相关专题</p>}
-    </div> : returnTo && <a class="path-step" href={getPostUrlBySlug(returnTo.slug)} data-path-return>
-        <span class="text-sm">← 返回{returnTo.kind === "mainline" ? "主线" : "相关专题"}</span>
-        <span class="font-bold">{returnTo.title}</span>
+        {previous ? <a class="path-step path-step--prev group" href={getPostUrlBySlug(previous.slug)} rel="prev" data-path-previous>
+            <span class="path-step-label"><span class="path-arrow path-arrow--left">←</span> 主线上一篇</span>
+            <span class="path-step-title">{previous.title}</span>
+        </a> : <p class="path-boundary text-sm text-black/55 dark:text-white/55">{navigation.isKnowledgeMap ? `入门路线共 ${navigation.total} 篇，进阶专题可按需要选读` : "这是入门路线的第一篇"}</p>}
+        {next ? <a class="path-step path-step--next group" href={getPostUrlBySlug(next.slug)} rel="next" data-path-next>
+            <span class="path-step-label">{navigation.isKnowledgeMap ? "开始阅读" : "主线下一篇"} <span class="path-arrow path-arrow--right">→</span></span>
+            <span class="path-step-title">{next.title}</span>
+        </a> : <p class="path-boundary text-sm text-black/55 dark:text-white/55" data-path-complete>入门路线到此结束，接下来可以阅读相关专题</p>}
+    </div> : returnTo && <a class="path-step path-step--prev group" href={getPostUrlBySlug(returnTo.slug)} data-path-return>
+        <span class="path-step-label"><span class="path-arrow path-arrow--left">←</span> 返回{returnTo.kind === "mainline" ? "主线" : "相关专题"}</span>
+        <span class="path-step-title">{returnTo.title}</span>
     </a>}
 
-    {optional.length > 0 && <div class="mt-4">
-        <p class="text-sm text-black/60 dark:text-white/60 mb-2">相关选读</p>
-        <ul class="flex flex-wrap gap-x-4 gap-y-2">
-            {optional.map((item) => <li><a class="path-link text-sm" href={getPostUrlBySlug(item.slug)} data-path-optional>{item.title}</a></li>)}
+    {optional.length > 0 && <div class="mt-4 pt-3.5 border-t border-black/[0.05] dark:border-white/[0.06]">
+        <p class="text-xs font-semibold uppercase tracking-wider text-black/45 dark:text-white/45 mb-2">延伸选读</p>
+        <ul class="flex flex-wrap gap-2">
+            {optional.map((item) => <li><a class="path-pill" href={getPostUrlBySlug(item.slug)} data-path-optional>{item.title}</a></li>)}
         </ul>
     </div>}
 </nav>
@@ -74,27 +87,110 @@ const status = navigation.isKnowledgeMap
 <style>
     .path-link {
         color: var(--primary);
-        text-underline-offset: 0.2em;
+        text-underline-offset: 0.22em;
         overflow-wrap: anywhere;
     }
     .path-link:hover { text-decoration: underline; }
+
+    .path-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: var(--btn-regular-bg);
+        color: var(--primary);
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, color 180ms ease;
+    }
+    .path-chip:hover {
+        transform: translateY(-1px);
+        background: var(--primary);
+        color: #fff;
+    }
+
+    .path-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.7rem;
+        border-radius: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--primary);
+        background: rgba(128, 128, 128, 0.05);
+        border: 1px solid rgba(128, 128, 128, 0.1);
+        transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 180ms ease, background-color 180ms ease;
+    }
+    .path-pill:hover {
+        transform: translateY(-1px);
+        border-color: var(--primary);
+        background: var(--btn-regular-bg);
+    }
+
     .path-step {
         display: flex;
         flex-direction: column;
-        gap: 0.4rem;
-        padding: 0.85rem 1rem;
-        border: 1px solid var(--line-divider);
-        border-radius: 0.75rem;
-        color: var(--primary);
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 0.9rem 1.05rem;
+        border: 1px solid rgba(128, 128, 128, 0.12);
+        background: rgba(128, 128, 128, 0.025);
+        border-radius: 0.85rem;
         overflow-wrap: anywhere;
+        transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 200ms ease,
+                    background-color 200ms ease,
+                    box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .path-step:hover { background: var(--btn-regular-bg); }
+    .path-step--next {
+        text-align: right;
+        align-items: flex-end;
+    }
+    .path-step:hover {
+        transform: translateY(-2px);
+        background: var(--btn-plain-bg-hover);
+        border-color: color-mix(in oklab, var(--primary) 45%, transparent);
+        box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.06);
+    }
+    .path-step-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--primary);
+        opacity: 0.85;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .path-step-title {
+        font-weight: 700;
+        font-size: 0.925rem;
+        color: inherit;
+        transition: color 180ms ease;
+    }
+    .path-step:hover .path-step-title {
+        color: var(--primary);
+    }
+    .path-arrow {
+        display: inline-block;
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .path-step:hover .path-arrow--left {
+        transform: translateX(-3px);
+    }
+    .path-step:hover .path-arrow--right {
+        transform: translateX(3px);
+    }
+
     .path-boundary {
-        padding: 0.85rem 1rem;
+        display: flex;
+        align-items: center;
+        padding: 0.9rem 1.05rem;
+        border-radius: 0.85rem;
+        border: 1px dashed rgba(128, 128, 128, 0.16);
     }
     .learning-path a:focus-visible {
         outline: 2px solid var(--primary);
         outline-offset: 3px;
-        border-radius: 0.3rem;
+        border-radius: 0.5rem;
     }
 </style>

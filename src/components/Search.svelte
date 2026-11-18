@@ -139,14 +139,14 @@ $: if (initialized && keywordMobile) {
 </script>
 
 <!-- search bar for desktop view -->
-<div id="search-bar" class="hidden lg:flex transition-all items-center h-11 mr-2 rounded-lg
-      bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06]
-      dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
+<div id="search-bar" class="hidden lg:flex transition-[background-color,box-shadow,border-color] duration-200 items-center h-10 mr-2 rounded-xl border border-transparent
+      bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.05] focus-within:border-[var(--primary)]/35 focus-within:ring-2 focus-within:ring-[var(--primary)]/15
+      dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/[0.08]
 ">
-    <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
+    <Icon icon="material-symbols:search" class="absolute text-[1.15rem] pointer-events-none ml-3 transition-colors my-auto text-black/35 dark:text-white/35"></Icon>
     <input placeholder="{i18n(I18nKey.search)}" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}
-           class="transition-all pl-10 text-sm bg-transparent outline-0
-         h-full w-40 active:w-60 focus:w-60 text-black/50 dark:text-white/50"
+           class="transition-[width] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] pl-9 pr-3 text-sm bg-transparent outline-0
+         h-full w-36 active:w-56 focus:w-56 text-black/70 dark:text-white/70"
     >
 </div>
 

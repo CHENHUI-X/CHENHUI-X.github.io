@@ -32,7 +32,7 @@ let heading1Count = 1;
 const maxLevel = siteConfig.toc.depth;
 ---
 {isPostsRoute &&
-<table-of-contents class:list={[className, "group", "relative"]}>
+<table-of-contents class:list={[className, "block group relative"]}>
     {headings.filter((heading) => heading.depth < minDepth + maxLevel).map((heading) =>
             <a href={`#${heading.slug}`} class="px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl
         hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2
@@ -57,14 +57,16 @@ const maxLevel = siteConfig.toc.depth;
     )}
     <div id="active-indicator" style="opacity: 0"
          class:list={[{'hidden': headings.length == 0},
-             "absolute left-0 w-[3px] rounded-r-sm bg-[var(--primary)] z-0 pointer-events-none transition-all duration-300 ease-out"]}
+             "absolute top-0 left-0 w-[3px] rounded-full bg-[var(--primary)] z-0 pointer-events-none transition-[transform,height,opacity] duration-240 ease-[cubic-bezier(0.22,1,0.36,1)] shadow-[0_0_8px_var(--primary)]"]}
     ></div>
 </table-of-contents>}
 
 <!-- visible class 由 JS 动态添加/移除，标识当前阅读的章节 -->
 <style>
     table-of-contents a {
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                    background-color 180ms ease,
+                    color 180ms ease !important;
     }
     table-of-contents a:hover {
         transform: translateX(2px);
@@ -137,7 +139,7 @@ class TableOfContents extends HTMLElement {
             let tocRect = this.getBoundingClientRect();
             let top = this.tocEntries[min].getBoundingClientRect().top - tocRect.top;
             let bottom = this.tocEntries[max].getBoundingClientRect().bottom - tocRect.top;
-            this.activeIndicator?.setAttribute("style", `top: ${top}px; height: ${bottom - top}px; opacity: 1`);
+            this.activeIndicator?.setAttribute("style", `transform: translateY(${top}px); height: ${bottom - top}px; opacity: 1`);
         }
     };
 
@@ -234,6 +236,8 @@ class TableOfContents extends HTMLElement {
 
 	init() {
 		this.tocEl = document.getElementById(
+			"toc-left-scroll"
+		) || document.getElementById(
 			"toc-left-inner"
 		) || document.getElementById(
 			"toc-inner-wrapper"

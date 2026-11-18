@@ -1,91 +1,98 @@
 /* ── 页面切换动画（Swup） ─────────────────────────────────────────────────── */
 /*
- * Apple 风格动画设计：
- * - 离场（is-animating）：500ms — 缩放 + 淡出，不卡顿
- * - 入场（is-rendering → 移除）：1000ms — easeOutQuart 曲线，丝滑落地
- * - 左栏（sidebar/TOC）比主内容晚 100ms 入场，形成波浪层次感
- * - 博客卡片逐步错落（瀑布流），间隔 80ms
+ * Linear / Apple 级轻快丝滑曲线：
+ * - 离场（is-changing / is-animating）：180ms 干脆微移淡出，无缩放模糊
+ * - 入场（is-rendering → 移除）：380ms cubic-bezier(0.22, 1, 0.36, 1)，快起慢停
+ * - 侧栏比主内容晚 45ms 入场，形成轻盈层次感
+ * - 列表卡片错落入场，间隔 40ms（上限 240ms），完成后释放 hover 零延迟响应
  */
 
-/* ── 过渡基定义：transition 放在基础选择器上，确保移除 is-rendering 后仍生效 ── */
 .transition-swup-fade {
-    transition: opacity 800ms cubic-bezier(0.25, 1, 0.5, 1),
-                transform 800ms cubic-bezier(0.25, 0.55, 0.45, 1);
+	transition:
+		opacity 360ms cubic-bezier(0.22, 1, 0.36, 1),
+		transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ── 离场：当前页面淡出 ── */
+/* ── 离场：干脆微移淡出，不做缩放避免整页文字发虚 ── */
 html.is-changing .transition-swup-fade {
-    transition: opacity 400ms ease-out,
-                transform 400ms ease-out;
+	transition:
+		opacity 180ms cubic-bezier(0.4, 0, 1, 1),
+		transform 180ms cubic-bezier(0.4, 0, 1, 1);
 }
 html.is-animating .transition-swup-fade {
-    opacity: 0;
-    transform: scale(0.97) translateY(-0.5rem);
+	opacity: 0;
+	transform: translateY(-6px);
 }
 
-/* ── 入场：新页面淡入 — 只设初始值，transition 由基础选择器提供 ── */
+/* ── 入场初始帧：无过渡置位，待下一帧移除 is-rendering 后触发丝滑过渡 ── */
 html.is-rendering .transition-swup-fade {
-    opacity: 0;
-    transform: scale(0.97) translateY(0.5rem);
+	opacity: 0;
+	transform: translateY(8px);
+	transition: none !important;
 }
 
-/* 左栏（sidebar / TOC）比主内容晚 100ms 入场，形成波浪层次 */
-#toc-left-wrapper > [class*="transition-swup"],
-#toc-left-wrapper > * > .transition-swup-fade,
-#sidebar.transition-swup-fade {
-    transition-delay: 100ms;
+/* 左栏（sidebar / TOC）微错峰 45ms，保持紧凑呼吸感 */
+html:not(.is-changing):not(.is-rendering) #toc-left-wrapper > [class*="transition-swup"],
+html:not(.is-changing):not(.is-rendering) #toc-left-wrapper > * > .transition-swup-fade,
+html:not(.is-changing):not(.is-rendering) #sidebar.transition-swup-fade {
+	transition-delay: 45ms;
 }
 
-/* ── 博客卡片瀑布流：Swup 导航时逐个错落入场 ──────────────────────────── */
-
-/* 卡片默认不可见：等待 is-rendering 移除后触发过渡 */
+/* ── 博客卡片瀑布流：Swup 导航时轻快错落入场 ──────────────────────────── */
 html.is-rendering #swup-container .card-base {
-    opacity: 0;
-    transform: translateY(0.75rem);
+	opacity: 0;
+	transform: translateY(10px);
+	transition: none !important;
 }
 
-/* is-rendering 移除后，卡片逐个弹入（delay 由 JS 动态设置） */
-html:not(.is-rendering) #swup-container .card-base {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 800ms cubic-bezier(0.25, 1, 0.5, 1),
-                transform 800ms cubic-bezier(0.25, 0.55, 0.45, 1);
-    transition-delay: var(--card-delay, 0ms);
+html:not(.is-rendering) #swup-container .card-base.swup-stagger-in {
+	opacity: 1;
+	transform: translateY(0);
+	transition:
+		opacity 360ms cubic-bezier(0.22, 1, 0.36, 1) var(--card-delay, 0ms),
+		transform 380ms cubic-bezier(0.22, 1, 0.36, 1) var(--card-delay, 0ms);
 }
 
 /* ── 首屏入场动画（onload-animation） — 仅首屏加载时生效 ─────────── */
-
-/* easeOutExpo：快速到位，不拖泥带水，Apple 标志性曲线 */
 @keyframes fade-in-up {
-    0% {
-        transform: translateY(0.75rem);
-        opacity: 0;
-    }
-    100% {
-        transform: translateY(0);
-        opacity: 1;
-    }
+	0% {
+		transform: translateY(10px);
+		opacity: 0;
+	}
+	100% {
+		transform: translateY(0);
+		opacity: 1;
+	}
 }
 
 .onload-animation {
-    opacity: 0;
-    animation: 600ms fade-in-up cubic-bezier(0.16, 1, 0.3, 1);
-    animation-fill-mode: forwards;
+	opacity: 0;
+	animation: 420ms fade-in-up cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* 各区块错落入场，形成节奏感 */
 #navbar {
-    animation-delay: 0ms;
+	animation-delay: 0ms;
 }
 #sidebar {
-    animation-delay: 80ms;
+	animation-delay: 50ms;
 }
 #swup-container {
-    outline: none;
+	outline: none;
 }
 .footer {
-    animation-delay: 200ms;
+	animation-delay: 120ms;
 }
 #banner-credit {
-    animation-delay: 350ms;
+	animation-delay: 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.transition-swup-fade,
+	.onload-animation,
+	#swup-container .card-base.swup-stagger-in {
+		animation: none !important;
+		transition: none !important;
+		opacity: 1 !important;
+		transform: none !important;
+	}
 }

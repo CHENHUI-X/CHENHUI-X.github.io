@@ -37,10 +37,6 @@ function formatDate(date: Date) {
 	return `${month}-${day}`;
 }
 
-function formatTag(tagList: string[]) {
-	return tagList.map((t) => `#${t}`).join(" ");
-}
-
 onMount(async () => {
 	let filteredPosts: Post[] = sortedPosts;
 
@@ -85,63 +81,67 @@ onMount(async () => {
 });
 </script>
 
-<div class="card-base px-8 py-6">
+<div class="card-base px-5 md:px-8 py-6">
     {#each groups as group}
-        <div>
-            <div class="flex flex-row w-full items-center h-[3.75rem]">
-                <div class="w-[15%] md:w-[10%] transition text-2xl font-bold text-right text-75">
+        <div class="mb-4 last:mb-0">
+            <div class="flex flex-row w-full items-center h-14">
+                <div class="w-[16%] md:w-[11%] text-xl md:text-2xl font-extrabold text-right text-90 tabular-nums tracking-tight">
                     {group.year}
                 </div>
-                <div class="w-[15%] md:w-[10%]">
+                <div class="w-[14%] md:w-[9%]">
                     <div
-                            class="h-3 w-3 bg-none rounded-full outline outline-[var(--primary)] mx-auto
-                  -outline-offset-[2px] z-50 outline-3"
+                        class="h-3 w-3 bg-none rounded-full outline outline-[var(--primary)] mx-auto -outline-offset-[2px] z-10 outline-[3px]"
                     ></div>
                 </div>
-                <div class="w-[70%] md:w-[80%] transition text-left text-50">
-                    {group.posts.length} {i18n(group.posts.length === 1 ? I18nKey.postCount : I18nKey.postsCount)}
+                <div class="w-[70%] md:w-[80%] text-left">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--btn-regular-bg)] text-[var(--primary)] tabular-nums">
+                        {group.posts.length} {i18n(group.posts.length === 1 ? I18nKey.postCount : I18nKey.postsCount)}
+                    </span>
                 </div>
             </div>
 
             {#each group.posts as post}
                 <a
-                        href={getPostUrlBySlug(post.slug)}
-                        aria-label={post.data.title}
-                        class="group btn-plain !block h-10 w-full rounded-lg hover:text-[initial]"
+                    href={getPostUrlBySlug(post.slug)}
+                    aria-label={post.data.title}
+                    class="group btn-plain !block h-11 w-full rounded-xl hover:text-[initial]"
                 >
                     <div class="flex flex-row justify-start items-center h-full">
                         <!-- date -->
-                        <div class="w-[15%] md:w-[10%] transition text-sm text-right text-50">
+                        <div class="w-[16%] md:w-[11%] text-xs md:text-sm text-right text-50 font-medium tabular-nums group-hover:text-[var(--primary)] transition-colors duration-200">
                             {formatDate(post.data.published)}
                         </div>
 
                         <!-- dot and line -->
-                        <div class="w-[15%] md:w-[10%] relative dash-line h-full flex items-center">
+                        <div class="w-[14%] md:w-[9%] relative dash-line h-full flex items-center">
                             <div
-                                    class="transition-all mx-auto w-1 h-1 rounded group-hover:h-5
-                       bg-[oklch(0.5_0.05_var(--hue))] group-hover:bg-[var(--primary)]
-                       outline outline-4 z-50
-                       outline-[var(--card-bg)]
-                       group-hover:outline-[var(--btn-plain-bg-hover)]
-                       group-active:outline-[var(--btn-plain-bg-active)]"
+                                class="transition-[height,background-color,box-shadow] duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] mx-auto w-1.5 h-1.5 rounded-full group-hover:h-5
+                                bg-[oklch(0.55_0.06_var(--hue))] group-hover:bg-[var(--primary)]
+                                outline outline-4 z-10
+                                outline-[var(--card-bg)]
+                                group-hover:outline-[var(--btn-plain-bg-hover)]
+                                group-active:outline-[var(--btn-plain-bg-active)]"
                             ></div>
                         </div>
 
                         <!-- post title -->
                         <div
-                                class="w-[70%] md:max-w-[65%] md:w-[65%] text-left font-bold
-                     group-hover:translate-x-1 transition-all group-hover:text-[var(--primary)]
-                     text-75 pr-8 whitespace-nowrap overflow-ellipsis overflow-hidden"
+                            class="w-[70%] md:max-w-[58%] md:w-[58%] text-left font-bold text-sm md:text-[0.95rem]
+                            group-hover:translate-x-1 transition-[transform,color] duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:text-[var(--primary)]
+                            text-75 pr-4 whitespace-nowrap overflow-ellipsis overflow-hidden"
                         >
                             {post.data.title}
                         </div>
 
-                        <!-- tag list -->
+                        <!-- tag pills -->
                         <div
-                                class="hidden md:block md:w-[15%] text-left text-sm transition
-                     whitespace-nowrap overflow-ellipsis overflow-hidden text-30"
+                            class="hidden md:flex md:w-[22%] justify-end items-center gap-1.5 pr-2 overflow-hidden"
                         >
-                            {formatTag(post.data.tags)}
+                            {#each (post.data.tags || []).slice(0, 2) as tag}
+                                <span class="px-2 py-0.5 rounded-md text-[0.7rem] font-medium bg-black/[0.035] dark:bg-white/[0.055] text-black/45 dark:text-white/45 group-hover:text-[var(--primary)] group-hover:bg-[var(--btn-regular-bg)] transition-colors whitespace-nowrap truncate max-w-[6.5rem]">
+                                    #{tag}
+                                </span>
+                            {/each}
                         </div>
                     </div>
                 </a>

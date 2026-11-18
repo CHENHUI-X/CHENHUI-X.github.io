@@ -3,35 +3,46 @@
 @layer components {
     .card-base {
         @apply rounded-[var(--radius-large)] overflow-hidden bg-[var(--card-bg)];
-        /* 毛玻璃与微边框效果：半透明底让渐变背景图隐约透出，辅以极细轮廓线提升质感 */
-        background-color: rgba(255, 255, 255, 0.82) !important;
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-        transition: transform 380ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                    box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1),
-                    border-color 300ms ease !important;
-    }
-    .card-base:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.10);
-        border-color: rgba(255, 255, 255, 0.95);
+        /* 高透感半透明底色与微高光边框：让动态渐变与壁纸更通透地浮现，同时保证文字清晰度 */
+        background-color: rgba(255, 255, 255, 0.66) !important;
+        border: 1px solid rgba(255, 255, 255, 0.58);
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+        transition: background-color 240ms ease,
+                    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 220ms ease;
     }
     :root.dark .card-base {
-        background-color: rgba(30, 20, 40, 0.75) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        background-color: rgba(26, 18, 36, 0.62) !important;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.28);
     }
-    :root.dark .card-base:hover {
-        border-color: rgba(255, 255, 255, 0.22);
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+
+    /* 可交互列表卡片专属悬浮反馈：微抬起 + 底色微提亮，零果冻晃动 */
+    .card-hover {
+        transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+                    background-color 240ms ease,
+                    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 220ms ease;
     }
+    .card-hover:hover {
+        transform: translateY(-2.5px);
+        background-color: rgba(255, 255, 255, 0.78) !important;
+        box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.09), 0 4px 10px rgba(0, 0, 0, 0.03);
+        border-color: color-mix(in oklab, var(--primary) 32%, rgba(255, 255, 255, 0.92));
+    }
+    :root.dark .card-hover:hover {
+        background-color: rgba(34, 24, 48, 0.74) !important;
+        box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.48);
+        border-color: color-mix(in oklab, var(--primary) 38%, rgba(255, 255, 255, 0.16));
+    }
+
     /* 性能优化：移除通用全元素 transition（切换页面时大量 DOM 无谓触发过渡计算） */
     .card-shadow {
         @apply drop-shadow-[0_2px_4px_rgba(0,0,0,0.005)]
     }
     .expand-animation {
-        @apply relative before:ease-out before:transition active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
-        before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10
+        @apply relative before:duration-200 before:ease-[cubic-bezier(0.22,1,0.36,1)] before:transition active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
+        before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.88] hover:before:scale-100 before:-z-10
     }
     .link {
         @apply transition rounded-md p-1 -m-1 expand-animation;
@@ -40,10 +51,10 @@
         @apply transition rounded-md p-1.5 -m-1.5 expand-animation;
     }
     .float-panel {
-        @apply top-[5.25rem] rounded-[var(--radius-large)] overflow-hidden bg-[var(--float-panel-bg)] transition shadow-xl dark:shadow-none
+        @apply top-[5.25rem] rounded-[var(--radius-large)] overflow-hidden bg-[var(--float-panel-bg)] origin-top-right transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] shadow-xl dark:shadow-2xl border border-black/[0.06] dark:border-white/[0.08]
     }
     .float-panel-closed {
-        @apply -translate-y-1 opacity-0 pointer-events-none
+        @apply -translate-y-1.5 scale-[0.97] opacity-0 pointer-events-none
     }
     .search-panel mark {
         @apply bg-transparent text-[var(--primary)]
@@ -113,8 +124,8 @@
     }
 
     .meta-icon {
-        @apply w-8 h-8 transition rounded-md flex items-center justify-center bg-[var(--btn-regular-bg)]
-        text-[var(--btn-content)] mr-2
+        @apply w-6 h-6 transition rounded-md flex items-center justify-center bg-[var(--btn-regular-bg)]
+        text-[var(--btn-content)] mr-1.5 shrink-0
     }
     .with-divider {
         @apply before:content-['/'] before:ml-1.5 before:mr-1.5 before:text-[var(--meta-divider)] before:text-sm
@@ -212,24 +223,27 @@
   }
 }
 
-/* ========== 主题模式切换按钮弹性微交互 ========== */
+/* ========== 主题模式切换按钮微交互 ========== */
 #scheme-switch,
 #display-settings-switch {
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease !important;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease !important;
 }
 #scheme-switch:hover,
 #display-settings-switch:hover {
-  transform: rotate(25deg) scale(1.15) !important;
+  transform: rotate(15deg) scale(1.08) !important;
 }
 #scheme-switch:active,
 #display-settings-switch:active {
-  transform: rotate(180deg) scale(0.9) !important;
+  transform: rotate(45deg) scale(0.92) !important;
 }
 
 /* ========== 标签胶囊微动效 (Tag Pill) ========== */
 .tag-pill {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 180ms ease,
+              color 180ms ease,
+              box-shadow 220ms ease !important;
 }
 .tag-pill:hover {
-  transform: translateY(-2px) scale(1.04);
+  transform: translateY(-1.5px);
 }

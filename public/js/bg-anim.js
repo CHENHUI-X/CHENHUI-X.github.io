@@ -224,10 +224,11 @@ function setBgImage(el, url) {
         'height:' + size + 'px',
         'background:' + color,
         'animation:' + sh[0] + ' ' + duration + 's linear ' + delay + 's infinite',
-        'will-change:transform',
+        'will-change:transform,opacity',
         'transform:translateZ(0)',
-      ].concat(sh[0] ? ['class:' + sh[0]] : []);
+      ];
       if (sh[1]) css.push(sh[1]);
+      if (sh[0]) el.className = sh[0];
       el.style.cssText = css.join(';');
       container.appendChild(el);
     }

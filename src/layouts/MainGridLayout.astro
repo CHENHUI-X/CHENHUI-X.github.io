@@ -1,5 +1,4 @@
 ---
-import BackToTop from "@components/control/BackToTop.astro";
 import Footer from "@components/Footer.astro";
 import Navbar from "@components/Navbar.astro";
 import SideBar from "@components/widget/SideBar.astro";
@@ -47,15 +46,15 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
 
 <!-- Navbar -->
 <slot slot="head" name="head"></slot>
-<div id="top-row" class="z-50 pointer-events-none relative transition-all duration-700 max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
-    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-all">
+<div id="top-row" class="z-50 pointer-events-none relative transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
+    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]">
         <Navbar></Navbar>
     </div>
 </div>
 
 <!-- Banner -->
-{siteConfig.banner.enable && <div id="banner-wrapper" class={`absolute z-10 w-full transition duration-700 overflow-hidden`} style={`top: -${BANNER_HEIGHT_EXTEND}vh`}>
-    <ImageWrapper id="banner" alt="Banner image of the blog" class:list={["object-cover h-full transition duration-700 opacity-0 scale-105"]}
+{siteConfig.banner.enable && <div id="banner-wrapper" class={`absolute z-10 w-full transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] overflow-hidden`} style={`top: -${BANNER_HEIGHT_EXTEND}vh`}>
+    <ImageWrapper id="banner" alt="Banner image of the blog" class:list={["object-cover h-full transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] opacity-0 scale-105"]}
                   src={siteConfig.banner.src} position={siteConfig.banner.position}
     >
     </ImageWrapper>
@@ -65,7 +64,7 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
 <div class="absolute w-full z-30 pointer-events-none" style={`top: ${mainPanelTop}`}>
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
-        <div id="main-grid" class="transition duration-700 w-full left-0 right-0 grid grid-cols-[14rem_auto] grid-rows-[auto_1fr_auto] lg:grid-rows-[auto]
+        <div id="main-grid" class="transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] w-full left-0 right-0 grid grid-cols-[14rem_auto] grid-rows-[auto_1fr_auto] lg:grid-rows-[auto]
     mx-auto gap-4 px-0 md:px-4"
         >
             <!-- Banner image credit -->
@@ -91,7 +90,7 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
                 {isPostsRoute && headings.length > 0 && (
                     <div id="toc-left-inner" class="sticky top-24 transition-swup-fade">
                         <div class="card-base !overflow-visible">
-                            <div class="overflow-y-auto max-h-[calc(100vh-10rem)] hide-scrollbar px-3 md:px-4 py-4">
+                            <div id="toc-left-scroll" class="overflow-y-auto max-h-[calc(100vh-10rem)] hide-scrollbar px-3 md:px-4 py-4 relative">
                                 <TOC headings={headings} />
                             </div>
                         </div>
@@ -114,8 +113,6 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
                 <Footer></Footer>
             </div>
         </div>
-
-        <BackToTop></BackToTop>
     </div>
 </div>
 

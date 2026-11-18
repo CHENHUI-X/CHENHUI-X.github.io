@@ -42,38 +42,42 @@ const coverWidth = "28%";
 
 const { remarkPluginFrontmatter } = await entry.render();
 ---
-<div class:list={["card-base group/card flex flex-col-reverse md:flex-col w-full rounded-[var(--radius-large)] overflow-hidden relative", className]} style={style}>
-    <div class:list={["pl-6 md:pl-9 pr-6 md:pr-2 pt-6 md:pt-7 pb-6 relative", {"w-full md:w-[calc(100%_-_52px_-_12px)]": !hasCover, "w-full md:w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
+<div class:list={["card-base card-hover group/card flex flex-col-reverse md:flex-col w-full rounded-[var(--radius-large)] overflow-hidden relative", className]} style={style}>
+    <div class:list={["pl-6 md:pl-8 pr-6 md:pr-4 pt-5 md:pt-6 pb-5 relative", {"w-full md:w-[calc(100%_-_3.5rem_-_12px)]": !hasCover, "w-full md:w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
         <a href={url}
-           class="transition group w-full block font-bold mb-3 text-3xl text-90
+           class="transition-colors duration-200 group w-full block font-bold mb-2.5 text-xl md:text-[1.4rem] leading-[1.42] tracking-tight text-90
         hover:text-[var(--primary)] dark:hover:text-[var(--primary)]
         active:text-[var(--title-active)] dark:active:text-[var(--title-active)]
-        before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)]
-        before:transition-all before:duration-300 group-hover/card:before:h-7
-        before:absolute before:top-[35px] before:left-[18px] before:hidden md:before:block
+        before:w-1 before:h-4 before:rounded-full before:bg-[var(--primary)]
+        before:transition-[height,transform,opacity] before:duration-250 before:ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/card:before:h-6
+        before:absolute before:top-[1.7rem] before:left-[1.05rem] before:hidden md:before:block
         ">
-            {title}
-            {entry.data.pin && <span class="inline-flex items-center ml-2 px-2 py-0.5 text-xs font-bold rounded-md bg-[var(--primary)] text-white align-middle translate-y-[-2px]">置顶</span>}
-            <Icon class="inline text-[2rem] text-[var(--primary)] md:hidden translate-y-0.5 absolute" name="material-symbols:chevron-right-rounded" ></Icon>
-            <Icon class="text-[var(--primary)] text-[2rem] transition hidden md:inline absolute translate-y-0.5 opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0" name="material-symbols:chevron-right-rounded"></Icon>
+            {entry.data.pin && (
+                <span class="inline-flex items-center gap-0.5 mr-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-[var(--btn-regular-bg)] text-[var(--primary)] border border-[var(--primary)]/20 align-middle -translate-y-[1.5px]">
+                    <Icon name="material-symbols:keep-rounded" class="text-[0.85rem]" />
+                    置顶
+                </span>
+            )}
+            <span>{title}</span>
+            <Icon class="inline text-[1.45rem] text-[var(--primary)] md:hidden translate-y-0.5 ml-0.5" name="material-symbols:chevron-right-rounded"></Icon>
         </a>
 
         <!-- metadata -->
-        <PostMetadata published={published} updated={updated} tags={tags} category={category} hideTagsForMobile={true} hideUpdateDate={true} class="mb-4"></PostMetadata>
+        <PostMetadata published={published} updated={updated} tags={tags} category={category} hideTagsForMobile={true} hideUpdateDate={true} class="mb-3"></PostMetadata>
 
         <!-- description -->
-        <div class:list={["transition text-75 mb-3.5 pr-4", {"line-clamp-2 md:line-clamp-1": !description}]}>
+        <div class="text-sm md:text-[0.925rem] leading-relaxed text-black/60 dark:text-white/60 mb-3.5 pr-2 line-clamp-2">
             { description || remarkPluginFrontmatter.excerpt }
         </div>
 
-        <!-- word count and read time  -->
-        <div class="text-xs text-black/40 dark:text-white/40 flex items-center gap-3 transition">
-            <span class="inline-flex items-center gap-1.5 bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-1 rounded-md">
-                <Icon name="material-symbols:notes-rounded" class="text-sm opacity-70" />
+        <!-- word count and read time -->
+        <div class="text-xs text-black/45 dark:text-white/45 flex items-center gap-2.5">
+            <span class="inline-flex items-center gap-1 bg-black/[0.035] dark:bg-white/[0.055] px-2.5 py-1 rounded-md tabular-nums">
+                <Icon name="material-symbols:notes-rounded" class="text-[0.9rem] opacity-70" />
                 {remarkPluginFrontmatter.words} {" " + i18n(remarkPluginFrontmatter.words === 1 ? I18nKey.wordCount : I18nKey.wordsCount)}
             </span>
-            <span class="inline-flex items-center gap-1.5 bg-black/[0.04] dark:bg-white/[0.06] px-2.5 py-1 rounded-md">
-                <Icon name="material-symbols:schedule-outline-rounded" class="text-sm opacity-70" />
+            <span class="inline-flex items-center gap-1 bg-black/[0.035] dark:bg-white/[0.055] px-2.5 py-1 rounded-md tabular-nums">
+                <Icon name="material-symbols:schedule-outline-rounded" class="text-[0.9rem] opacity-70" />
                 {remarkPluginFrontmatter.minutes} {" " + i18n(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
             </span>
         </div>
@@ -83,32 +87,31 @@ const { remarkPluginFrontmatter } = await entry.render();
     {hasCover && <a href={url} aria-label={title}
                     class:list={["group/cover",
                         "max-h-[20vh] md:max-h-none mx-4 mt-4 -mb-2 md:mb-0 md:mx-0 md:mt-0",
-                        "md:w-[var(--coverWidth)] relative md:absolute md:top-3 md:bottom-3 md:right-3 rounded-xl overflow-hidden active:scale-95"
+                        "md:w-[var(--coverWidth)] relative md:absolute md:top-3 md:bottom-3 md:right-3 rounded-xl overflow-hidden active:scale-[0.98]"
                     ]} >
-        <div class="absolute pointer-events-none z-10 w-full h-full group-hover/cover:bg-black/20 group-active/cover:bg-black/40 transition"></div>
-        <div class="absolute pointer-events-none z-20 w-full h-full flex items-center justify-center ">
+        <div class="absolute pointer-events-none z-10 w-full h-full group-hover/cover:bg-black/20 group-active/cover:bg-black/35 transition-colors duration-250"></div>
+        <div class="absolute pointer-events-none z-20 w-full h-full flex items-center justify-center">
             <Icon name="material-symbols:chevron-right-rounded"
-                  class="transition opacity-0 group-hover/cover:opacity-100 scale-50 group-hover/cover:scale-100 text-white text-5xl">
+                  class="transition-[opacity,transform] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] opacity-0 group-hover/cover:opacity-100 scale-75 group-hover/cover:scale-100 text-white text-4xl">
             </Icon>
         </div>
         <ImageWrapper src={image} basePath={path.join("content/posts/", getDir(entry.id))} alt="Cover Image of the Post"
-                  class="w-full h-full transition-transform duration-500 ease-out group-hover/cover:scale-105 group-hover/card:scale-105">
+                  class="w-full h-full transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/cover:scale-105 group-hover/card:scale-[1.03]">
         </ImageWrapper>
     </a>}
 
     {!hasCover &&
-        <a href={url} aria-label={title} class="!hidden md:!flex btn-regular w-[3.25rem]
+        <a href={url} aria-label={title} class="!hidden md:!flex btn-regular w-11
          absolute right-3 top-3 bottom-3 rounded-xl bg-[var(--enter-btn-bg)]
          hover:bg-[var(--primary)] group-hover/card:bg-[var(--primary)] active:scale-95
-         transition-all duration-300
+         transition-[background-color,transform] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]
         ">
             <Icon name="material-symbols:chevron-right-rounded"
-                  class="transition-all duration-300 text-[var(--primary)] group-hover/card:text-white group-hover/card:translate-x-1 text-4xl mx-auto">
+                  class="transition-[color,transform] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] text-[var(--primary)] group-hover/card:text-white group-hover/card:translate-x-0.5 text-3xl mx-auto">
             </Icon>
         </a>
     }
 </div>
-<div class="transition border-t-[1px] border-dashed mx-6 border-black/10 dark:border-white/[0.15] last:border-t-0 md:hidden"></div>
 
 <style define:vars={{coverWidth}}>
 </style>

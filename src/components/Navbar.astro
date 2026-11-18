@@ -2,7 +2,7 @@
 import { Icon } from "astro-icon/components";
 import { navBarConfig, siteConfig } from "../config";
 import { LinkPresets } from "../constants/link-presets";
-import { LinkPreset, type NavBarLink } from "../types/config";
+import { type LinkPreset, type NavBarLink } from "../types/config";
 import { url } from "../utils/url-utils";
 import LightDarkSwitch from "./LightDarkSwitch.svelte";
 import Search from "./Search.svelte";
@@ -25,26 +25,28 @@ let links: NavBarLink[] = navBarConfig.links.map(
     <div class:list={[
         className,
         "card-base !overflow-visible max-w-[var(--page-width)] h-[4.5rem] !rounded-t-none mx-auto flex items-center justify-between px-4"]}>
-        <a href={url('/')} class="btn-plain scale-animation rounded-lg h-[3.25rem] px-5 font-bold active:scale-95">
-            <div class="flex flex-row text-[var(--primary)] items-center text-md">
-                <Icon name="material-symbols:home-outline-rounded" class="text-[1.75rem] mb-1 mr-2" />
+        <a href={url('/')} class="btn-plain scale-animation rounded-lg h-[3.25rem] px-4 font-bold active:scale-95">
+            <div class="flex flex-row text-[var(--primary)] items-center text-md tracking-tight">
+                <Icon name="material-symbols:home-outline-rounded" class="text-[1.65rem] mb-0.5 mr-2" />
                 {siteConfig.title}
             </div>
         </a>
-        <div class="hidden lg:flex">
+        <div class="hidden lg:flex items-center gap-0.5">
             {links.map((l) => {
-                return <a aria-label={l.name} href={l.external ? l.url : url(l.url)} target={l.external ? "_blank" : null}
-                          class="btn-plain scale-animation rounded-lg h-11 font-bold px-5 active:scale-95"
+                const linkHref = l.external ? l.url : url(l.url);
+                return <a aria-label={l.name} href={linkHref} target={l.external ? "_blank" : null}
+                          data-nav-link={l.external ? undefined : linkHref}
+                          class="nav-item-link btn-plain scale-animation rounded-lg h-10 font-bold px-4 text-[0.925rem] active:scale-95 relative"
                 >
                     <div class="flex items-center">
                         {l.name}
-                        {l.external && <Icon name="fa6-solid:arrow-up-right-from-square" class="text-[0.875rem] transition -translate-y-[1px] ml-1 text-black/[0.2] dark:text-white/[0.2]"></Icon>}
+                        {l.external && <Icon name="fa6-solid:arrow-up-right-from-square" class="text-[0.75rem] transition -translate-y-[1px] ml-1.5 text-black/25 dark:text-white/25"></Icon>}
                     </div>
+                    {!l.external && <span class="nav-active-bar" aria-hidden="true"></span>}
                 </a>;
             })}
         </div>
-        <div class="flex">
-            <!--<SearchPanel client:load>-->
+        <div class="flex items-center">
             <Search client:only="svelte"></Search>
             {!siteConfig.themeColor.fixed && (
                     <button aria-label="Display Settings" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" id="display-settings-switch">
@@ -61,6 +63,28 @@ let links: NavBarLink[] = navBarConfig.links.map(
     </div>
 </div>
 
+<style>
+    .nav-active-bar {
+        position: absolute;
+        bottom: 4px;
+        left: 50%;
+        width: 1.15rem;
+        height: 2.5px;
+        border-radius: 9999px;
+        background: var(--primary);
+        transform: translateX(-50%) scaleX(0);
+        opacity: 0;
+        transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+    }
+    .nav-item-link.is-active {
+        color: var(--primary) !important;
+    }
+    .nav-item-link.is-active .nav-active-bar {
+        transform: translateX(-50%) scaleX(1);
+        opacity: 1;
+    }
+</style>
+
 <script>
 function switchTheme() {
     if (localStorage.theme === 'dark') {
@@ -70,6 +94,29 @@ function switchTheme() {
         document.documentElement.classList.add('dark');
         localStorage.theme = 'dark';
     }
+}
+
+function normalizePath(p: string) {
+    try {
+        const u = new URL(p, window.location.origin);
+        return u.pathname.replace(/\/+$/, '') || '/';
+    } catch {
+        return p.replace(/\/+$/, '') || '/';
+    }
+}
+
+function updateActiveNavLink(targetUrl?: string) {
+    const currentPath = normalizePath(targetUrl || window.location.pathname);
+    const isPaginationHome = /^\/\d+$/.test(currentPath);
+    const navLinks = document.querySelectorAll<HTMLAnchorElement>('#navbar a[data-nav-link]');
+    navLinks.forEach((el) => {
+        const linkPath = normalizePath(el.dataset.navLink || '');
+        const matched =
+            linkPath === '/'
+                ? currentPath === '/' || isPaginationHome
+                : currentPath === linkPath;
+        el.classList.toggle('is-active', matched);
+    });
 }
 
 function loadButtonScript() {
@@ -99,9 +146,26 @@ function loadButtonScript() {
             }
         };
     }
+
+    updateActiveNavLink();
 }
 
 loadButtonScript();
+
+const bindSwupNavSync = () => {
+    window.swup.hooks.on('visit:start', (visit: { to: { url: string } }) => {
+        updateActiveNavLink(visit.to.url);
+    });
+    window.swup.hooks.on('page:view', () => {
+        updateActiveNavLink();
+    });
+};
+
+if (window?.swup?.hooks) {
+    bindSwupNavSync();
+} else {
+    document.addEventListener('swup:enable', bindSwupNavSync);
+}
 </script>
 
 {import.meta.env.PROD && <script is:inline define:vars={{scriptUrl: url('/pagefind/pagefind.js')}}>

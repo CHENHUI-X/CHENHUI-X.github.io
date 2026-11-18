@@ -1,5 +1,6 @@
 ---
 import type { GetStaticPaths } from "astro";
+import { Icon } from "astro-icon/components";
 import Pagination from "../components/control/Pagination.astro";
 import PostPage from "../components/PostPage.astro";
 import { PAGE_SIZE } from "../constants/constants";
@@ -15,19 +16,75 @@ export const getStaticPaths = (async ({ paginate }) => {
 const { page } = Astro.props;
 
 const len = page.data.length;
+
+const quickEntries = [
+	{
+		title: "LLM 9 步入门路线",
+		badge: "主线推荐",
+		desc: "从分词、自回归到量化、单卡微调与推理加速",
+		href: "/posts/2026-06-03-llm-knowledge-map/",
+		icon: "material-symbols:route-outline",
+	},
+	{
+		title: "大模型显存 · 5 篇系列",
+		badge: "深度专题",
+		desc: "显存账本拆解、ZeRO、SFT 与 FlashAttention",
+		href: "/topics/#llm-memory",
+		icon: "material-symbols:memory-rounded",
+	},
+	{
+		title: "应用与工程部署",
+		badge: "实战指南",
+		desc: "Agent 环境配置、量化压缩方案与推荐系统实践",
+		href: "/topics/#applications",
+		icon: "material-symbols:rocket-launch-outline-rounded",
+	},
+	{
+		title: "全部文章主题目录",
+		badge: "全站索引",
+		desc: "按问题检索数学基础、因果推断与全部技术文章",
+		href: "/topics/",
+		icon: "material-symbols:grid-view-outline-rounded",
+	},
+];
 ---
 
 <MainGridLayout>
-    {page.currentPage === 1 && <section class="card-base p-6 md:px-9 mb-4" aria-label="阅读入口">
-        <h1 class="text-xl font-bold text-black/75 dark:text-white/75 mb-2">文章分类与学习路线</h1>
-        <p class="text-black/60 dark:text-white/60 mb-4">可以按主题浏览文章，也可以从 LLM 入门路线开始阅读。下方文章按发布时间排列。</p>
-        <div class="flex flex-wrap gap-4 text-[var(--primary)]">
-            <a class="hover:underline" href="/posts/2026-06-03-llm-knowledge-map/">LLM 9 步入门 →</a>
-            <a class="hover:underline" href="/topics/#llm-memory">大模型显存 · 5 篇系列 →</a>
-            <a class="hover:underline" href="/topics/#applications">应用与部署 →</a>
-            <a class="hover:underline" href="/topics/">全部主题 →</a>
+    {page.currentPage === 1 && <section class="card-base p-5 md:p-7 mb-4" aria-label="阅读入口">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div class="flex items-center gap-2.5">
+                <span class="w-1 h-4 rounded-full bg-[var(--primary)]"></span>
+                <h1 class="text-lg md:text-xl font-bold text-black/85 dark:text-white/85">文章分类与学习路线</h1>
+            </div>
+            <span class="text-xs text-black/45 dark:text-white/45">按专题索引阅读 · 下方按发布时间排列</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {quickEntries.map((item) => (
+                <a
+                    href={item.href}
+                    class="group flex items-start gap-3.5 p-3.5 rounded-xl border border-black/[0.06] dark:border-white/[0.07] bg-black/[0.015] dark:bg-white/[0.025] hover:bg-[var(--btn-plain-bg-hover)] hover:border-[var(--primary)]/35 transition-[transform,background-color,border-color,box-shadow] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 active:scale-[0.99]"
+                >
+                    <div class="w-9 h-9 rounded-lg bg-[var(--btn-regular-bg)] text-[var(--primary)] flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-200 group-hover:bg-[var(--primary)] group-hover:text-white">
+                        <Icon name={item.icon} class="text-lg" />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold text-sm md:text-[0.95rem] text-black/85 dark:text-white/85 group-hover:text-[var(--primary)] transition-colors truncate">
+                                {item.title}
+                            </span>
+                            <span class="text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-[var(--btn-regular-bg)] text-[var(--primary)] shrink-0">
+                                {item.badge}
+                            </span>
+                        </div>
+                        <p class="text-xs text-black/55 dark:text-white/55 mt-1 line-clamp-1 leading-relaxed">
+                            {item.desc}
+                        </p>
+                    </div>
+                    <Icon name="material-symbols:chevron-right-rounded" class="text-lg text-black/25 dark:text-white/25 group-hover:text-[var(--primary)] group-hover:translate-x-0.5 transition-[transform,color] duration-200 self-center shrink-0" />
+                </a>
+            ))}
         </div>
     </section>}
     <PostPage page={page}></PostPage>
-    <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
+    <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${Math.min(len, 6) * 40}ms)`}></Pagination>
 </MainGridLayout>

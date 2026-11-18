@@ -1,6 +1,7 @@
 ---
 import { getArticleTopic } from "@constants/article-topics";
 import { getMemorySeriesNavigation } from "@constants/memory-series";
+import { Icon } from "astro-icon/components";
 
 interface Props {
 	slug: string;
@@ -10,8 +11,29 @@ const series = getMemorySeriesNavigation(slug);
 const topic = getArticleTopic(slug);
 const article = topic?.articles.find((item) => item.slug === slug);
 ---
-{topic && article && <aside class="mb-6 p-4 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.08] border-l-4 !border-l-[var(--primary)] text-sm shadow-sm transition hover:shadow-md" aria-label="文章定位" data-article-context>
-    <p class="mb-2 text-black/60 dark:text-white/60">本文位置：<a class="text-[var(--primary)] font-medium hover:underline" href={`/topics/#${topic.id}`}>{topic.title}</a> · <a class="text-[var(--primary)] font-medium hover:underline" href="/topics/">全站主题目录</a></p>
-    {series && <p class="mb-2 text-black/60 dark:text-white/60" data-series-position>显存系列第 {series.position} / {series.total} 篇 · <a class="text-[var(--primary)] font-medium hover:underline" href="/topics/#llm-memory">查看系列顺序</a></p>}
-    <p class="text-black/80 dark:text-white/80 leading-relaxed">{article.purpose}</p>
-</aside>}
+{topic && article && (
+    <aside
+        class="mb-6 p-4 rounded-xl bg-[var(--btn-regular-bg)]/45 dark:bg-white/[0.035] border border-[var(--primary)]/18 border-l-[3.5px] !border-l-[var(--primary)] text-sm transition-colors duration-200"
+        aria-label="文章定位"
+        data-article-context
+    >
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-2 text-xs text-black/60 dark:text-white/60">
+            <span class="inline-flex items-center gap-1 font-medium">
+                <Icon name="material-symbols:layers-outline-rounded" class="text-[0.95rem] text-[var(--primary)]" />
+                本文位置：
+                <a class="text-[var(--primary)] font-semibold hover:underline underline-offset-4" href={`/topics/#${topic.id}`}>{topic.title}</a>
+            </span>
+            <span class="opacity-35">·</span>
+            <a class="text-[var(--primary)] font-medium hover:underline underline-offset-4" href="/topics/">全站主题目录</a>
+            {series && (
+                <>
+                    <span class="opacity-35">·</span>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--primary)]/12 text-[var(--primary)] font-semibold tabular-nums" data-series-position>
+                        显存系列第 {series.position} / {series.total} 篇 · <a class="underline-offset-2 hover:underline" href="/topics/#llm-memory">查看顺序</a>
+                    </span>
+                </>
+            )}
+        </div>
+        <p class="text-black/80 dark:text-white/80 leading-relaxed text-[0.875rem]">{article.purpose}</p>
+    </aside>
+)}
