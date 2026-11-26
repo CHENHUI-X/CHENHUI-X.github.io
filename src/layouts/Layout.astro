@@ -5,6 +5,7 @@ import "@fontsource/roboto/700.css";
 
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import BackToTop from "@components/control/BackToTop.astro";
+import EntranceGate from "@components/EntranceGate.astro";
 import { profileConfig, siteConfig } from "@/config";
 import {
 	AUTO_MODE,
@@ -149,6 +150,20 @@ const bannerOffset =
 			let offset = Math.floor(window.innerHeight * (BANNER_HEIGHT_EXTEND / 100));
 			offset = offset - offset % 4;
 			document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
+
+			// Entrance gate trigger: show only on first-ever visit to '/', browser reload/hard-refresh on '/', or explicit ?gate=1
+			try {
+				const gatePath = window.location.pathname.replace(/\/+$/, '') || '/';
+				const gateParams = new URLSearchParams(window.location.search);
+				const forceGate = gateParams.get('gate') === '1' || gateParams.get('cover') === '1';
+				const navEntries = performance.getEntriesByType ? performance.getEntriesByType('navigation') : [];
+				const navEntry = navEntries && navEntries[0];
+				const isReload = (navEntry && navEntry.type === 'reload') || (performance.navigation && performance.navigation.type === 1);
+				const isFirstEver = !localStorage.getItem('chenhui_gate_seen');
+				if (forceGate || (gatePath === '/' && (isFirstEver || isReload))) {
+					document.documentElement.classList.add('has-entrance-gate');
+				}
+			} catch (_) {}
 		</script>
 		<style define:vars={{
 			configHue,
@@ -228,8 +243,9 @@ const bannerOffset =
 	<body class=" min-h-screen transition relative" class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  data-overlayscrollbars-initialize
 	>
-		<!-- 顶部流动阅读进度条 & 右下角快捷悬浮按钮（置于 will-change 层之外，确保 fixed 相对于视口定位） -->
+		<!-- 顶部流动阅读进度条、晶体扉页开屏 & 右下角快捷悬浮按钮（置于 will-change 层之外，确保 fixed 相对于视口定位） -->
 		<div id="reading-progress-bar" aria-hidden="true"></div>
+		<EntranceGate></EntranceGate>
 		<BackToTop></BackToTop>
 		<ConfigCarrier></ConfigCarrier>
 

@@ -1,0 +1,1126 @@
+---
+import { getCollection } from "astro:content";
+import { siteConfig } from "@/config";
+import { articleTopics } from "@/constants/article-topics";
+
+const allPosts = await getCollection("posts", ({ data }) => !data.draft);
+const postCount = allPosts.length;
+const topicCount = articleTopics.length;
+const tagCount = new Set(allPosts.flatMap((p) => p.data.tags ?? [])).size;
+const lastUpdatedDate = allPosts.reduce((latest, p) => {
+	const d = p.data.updated ?? p.data.published;
+	return d > latest ? d : latest;
+}, new Date(0));
+const lastUpdated = lastUpdatedDate.toISOString().slice(0, 10);
+
+const gateMeta = {
+	postCount,
+	topicCount,
+	tagCount,
+	lastUpdated,
+	siteTitle: siteConfig.title,
+};
+---
+
+<div
+	id="entrance-gate"
+	role="dialog"
+	aria-modal="true"
+	aria-label={`${siteConfig.title} 扉页`}
+	data-gate-meta={JSON.stringify(gateMeta)}
+>
+	<!-- Atmospheric backdrop veil + architectural guides + subtle film grain -->
+	<div id="eg-backdrop" aria-hidden="true">
+		<div class="eg-backdrop__vignette"></div>
+		<div class="eg-backdrop__guides"></div>
+		<div class="eg-backdrop__grain"></div>
+	</div>
+
+	<!-- Radial sakura-prism burst ring on unseal -->
+	<div id="eg-shockwave" aria-hidden="true"></div>
+
+	<!-- Trailing precision optical reticle cursor (desktop fine pointer only) -->
+	<div id="eg-reticle" aria-hidden="true">
+		<span class="eg-reticle__dot"></span>
+	</div>
+
+	<!-- Full-viewport 3D WebGL iridescent physical crystal shard canvas -->
+	<canvas id="eg-canvas" aria-hidden="true"></canvas>
+
+	<!-- Instant 0ms / reduced-motion / no-WebGL fallback crystal cover (crossfades out when WebGL renders) -->
+	<div id="eg-fallback">
+		<div class="eg-fallback__nav">
+			<div class="eg-fallback__brand">
+				<span class="eg-fallback__mark" aria-hidden="true"></span>
+				<span>{siteConfig.title}</span>
+			</div>
+			<span class="eg-fallback__meta">VOL.01 · {postCount} DOCS</span>
+			<button type="button" class="eg-skip-chip" data-eg-open>
+				<span>跳过</span>
+				<kbd>ESC</kbd>
+			</button>
+		</div>
+		<div class="eg-fallback__card">
+			<div class="eg-fallback__eyebrow">
+				<span class="eg-fallback__bar" aria-hidden="true"></span>
+				ISSUE 01 // MATH · ML · DL · LLM
+			</div>
+			<h2 class="eg-fallback__title">
+				吾生也有涯，<br />而知也无涯<span class="eg-accent">。</span>
+			</h2>
+			<p class="eg-fallback__sub">
+				聚焦数学、机器学习、深度学习与 LLM。<br />
+				沉淀原理推导、模型剖析与工程实践，共收录 {postCount} 篇技术博客。
+			</p>
+			<div class="eg-actions">
+				<button type="button" class="eg-cta-primary" data-eg-open>
+					<span class="eg-cta-primary__label">
+						<span class="eg-cta-primary__roll">
+							<span>启封进入博客</span>
+							<span aria-hidden="true">启封进入博客</span>
+						</span>
+					</span>
+					<span class="eg-cta-primary__chip" aria-hidden="true">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M5 12h14M13 5l7 7-7 7"></path>
+						</svg>
+					</span>
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- 3D-Homography synced interactive nav controls (locks onto tilted 3D nav slab) -->
+	<div id="eg-nav-overlay" class="eg-homography-layer" data-wide="false">
+		<div class="eg-telemetry" aria-live="polite">
+			<span class="eg-telemetry__pulse" aria-hidden="true"></span>
+			<span id="eg-telemetry-text">SYS // CHENHUI · 格物 · CRYSTAL GATE</span>
+		</div>
+		<div class="eg-nav-actions">
+			<button
+				type="button"
+				id="eg-audio-btn"
+				class="eg-audio-chip"
+				data-active="false"
+				aria-label="开启晶体音效"
+				title="开启/关闭实时合成晶体声效"
+			>
+				<span class="eg-audio-bars" aria-hidden="true">
+					<i></i><i></i><i></i>
+				</span>
+			</button>
+			<button type="button" class="eg-skip-chip" data-eg-open aria-label="跳过扉页进入博客">
+				<span>跳过扉页</span>
+				<kbd>ESC</kbd>
+			</button>
+		</div>
+	</div>
+
+	<!-- 3D-Homography synced interactive panel controls (locks onto tilted 3D crystal panel) -->
+	<div id="eg-panel-overlay" class="eg-homography-layer" data-layout="landscape">
+		<div class="eg-cta-slot">
+			<span id="eg-cta-ring" class="eg-cta-ring">
+				<button
+					type="button"
+					id="eg-primary-btn"
+					class="eg-cta-primary"
+					data-eg-open
+				>
+					<span class="eg-cta-primary__label">
+						<span class="eg-cta-primary__roll">
+							<span>启封进入博客</span>
+							<span aria-hidden="true">启封进入博客</span>
+						</span>
+					</span>
+					<span class="eg-cta-primary__chip" aria-hidden="true">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M5 12h14M13 5l7 7-7 7"></path>
+						</svg>
+					</span>
+				</button>
+			</span>
+		</div>
+
+		<!-- Interactive crystal wax-seal hit target aligned over the 3D floating prism sculpture -->
+		<button
+			type="button"
+			id="eg-seal-hit"
+			class="eg-seal-hit"
+			aria-label="点击 3D 晶体棱镜印章启封进入博客"
+		>
+			<span class="eg-seal-hit__ring" aria-hidden="true"></span>
+			<span class="eg-seal-hit__caption">启封</span>
+			<span class="eg-seal-hit__tooltip">CLICK TO UNSEAL</span>
+		</button>
+	</div>
+</div>
+
+<style is:global>
+	@property --eg-angle {
+		syntax: "<angle>";
+		inherits: false;
+		initial-value: 0deg;
+	}
+
+	/* Default hidden when gate is not triggered: zero visual & layout impact */
+	#entrance-gate {
+		display: none;
+		position: fixed;
+		inset: 0;
+		width: 100vw;
+		height: 100vh;
+		height: 100dvh;
+		z-index: 200000;
+		overflow: hidden;
+		overscroll-behavior: contain;
+		user-select: none;
+		-webkit-user-select: none;
+		--eg-accent: oklch(0.66 0.17 var(--hue, 345));
+		--eg-accent-glow: oklch(0.76 0.16 var(--hue, 345));
+	}
+
+	:root.dark #entrance-gate {
+		--eg-accent: oklch(0.76 0.15 var(--hue, 345));
+		--eg-accent-glow: oklch(0.84 0.14 var(--hue, 345));
+	}
+
+	html.has-entrance-gate,
+	html.gate-revealing {
+		overflow: hidden !important;
+	}
+
+	html.has-entrance-gate #entrance-gate,
+	html.gate-revealing #entrance-gate {
+		display: block;
+	}
+
+	html.has-entrance-gate astro-dev-toolbar,
+	html.gate-revealing astro-dev-toolbar {
+		display: none !important;
+	}
+
+	/* Keep underlying wallpaper & floating shape animations paused until shatter fully completes */
+	html.has-entrance-gate #bg-gradient-layer,
+	html.has-entrance-gate [class*="bg-float-"],
+	html.gate-revealing #bg-gradient-layer,
+	html.gate-revealing [class*="bg-float-"] {
+		animation-play-state: paused !important;
+	}
+
+	/* Pre-rasterized at opacity 1 behind opaque backdrop so shatter does zero first-paint work! */
+	html.has-entrance-gate #content-layer {
+		transform: scale(0.982);
+	}
+
+	html.gate-revealing #content-layer {
+		transform: scale(1);
+		transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	html.has-entrance-gate #reading-progress-bar,
+	html.has-entrance-gate .back-to-top-wrapper {
+		opacity: 0 !important;
+		pointer-events: none !important;
+	}
+
+	/* ── Backdrop Veil (opaque until shatter for zero wasted behind-gate compositing) ── */
+	#eg-backdrop {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		transform: translateZ(0);
+		background: radial-gradient(
+			ellipse 80% 70% at 72% 45%,
+			oklch(0.92 0.03 var(--hue, 345)),
+			oklch(0.87 0.025 var(--hue, 345))
+		);
+		transition: opacity 480ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	:root.dark #eg-backdrop {
+		background: radial-gradient(
+			ellipse 80% 70% at 72% 45%,
+			#110c17,
+			#06050a 75%
+		);
+	}
+
+	.eg-backdrop__vignette {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(
+			circle at 50% 50%,
+			transparent 42%,
+			rgba(20, 10, 22, 0.14) 100%
+		);
+	}
+
+	:root.dark .eg-backdrop__vignette {
+		background: radial-gradient(
+			circle at 50% 50%,
+			transparent 35%,
+			rgba(0, 0, 0, 0.65) 100%
+		);
+	}
+
+	.eg-backdrop__guides {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		background-image:
+			linear-gradient(
+				to right,
+				transparent 5.5%,
+				rgba(28, 18, 30, 0.05) 5.5%,
+				rgba(28, 18, 30, 0.05) calc(5.5% + 1px),
+				transparent calc(5.5% + 1px),
+				transparent calc(94.5% - 1px),
+				rgba(28, 18, 30, 0.05) calc(94.5% - 1px),
+				rgba(28, 18, 30, 0.05) 94.5%,
+				transparent 94.5%
+			);
+	}
+
+	:root.dark .eg-backdrop__guides {
+		background-image:
+			linear-gradient(
+				to right,
+				transparent 5.5%,
+				rgba(255, 255, 255, 0.05) 5.5%,
+				rgba(255, 255, 255, 0.05) calc(5.5% + 1px),
+				transparent calc(5.5% + 1px),
+				transparent calc(94.5% - 1px),
+				rgba(255, 255, 255, 0.05) calc(94.5% - 1px),
+				rgba(255, 255, 255, 0.05) 94.5%,
+				transparent 94.5%
+			);
+	}
+
+	.eg-backdrop__grain {
+		position: absolute;
+		inset: 0;
+		opacity: 0.045;
+		pointer-events: none;
+		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+	}
+
+	/* ── Shockwave Burst Ring (lightweight GPU transform only, no huge scaled box-shadow) ── */
+	#eg-shockwave {
+		position: fixed;
+		width: 120px;
+		height: 120px;
+		border-radius: 9999px;
+		border: 1.5px solid var(--eg-accent-glow);
+		transform: translate(-50%, -50%) scale(0.15);
+		opacity: 0;
+		pointer-events: none;
+		will-change: transform, opacity;
+		z-index: 6;
+	}
+
+	#eg-shockwave.is-burst {
+		animation: eg-shockwave-burst 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+	}
+
+	@keyframes eg-shockwave-burst {
+		0% {
+			opacity: 0.85;
+			transform: translate(-50%, -50%) scale(0.2);
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(9.5);
+		}
+	}
+
+	/* ── WebGL Canvas ────────────────────────────────────────────────── */
+	#eg-canvas {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		display: block;
+		z-index: 2;
+		opacity: 0;
+		transition: opacity 280ms ease;
+	}
+
+	#entrance-gate.is-webgl-ready #eg-canvas {
+		opacity: 1;
+	}
+
+	#entrance-gate.is-fallback #eg-canvas,
+	#entrance-gate.is-fallback .eg-homography-layer {
+		display: none !important;
+	}
+
+	/* ── Instant CSS Fallback Cover ──────────────────────────────────── */
+	#eg-fallback {
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		gap: 14px;
+		padding: 8vh 5.5vw;
+		transition: opacity 260ms ease;
+	}
+
+	#entrance-gate.is-webgl-ready #eg-fallback {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.eg-fallback__nav {
+		width: min(100%, 1480px);
+		height: 64px;
+		border-radius: 18px;
+		padding: 0 28px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: rgba(252, 248, 250, 0.88);
+		border: 1px solid rgba(255, 255, 255, 0.85);
+		box-shadow: 0 12px 32px rgba(42, 24, 38, 0.08);
+		color: #1c131d;
+	}
+
+	:root.dark .eg-fallback__nav {
+		background: rgba(22, 17, 29, 0.9);
+		border: 1px solid rgba(255, 255, 255, 0.11);
+		box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
+		color: #f7f2f6;
+	}
+
+	.eg-fallback__brand {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+	}
+
+	.eg-fallback__mark {
+		width: 14px;
+		height: 14px;
+		border: 1.5px solid var(--eg-accent);
+		transform: rotate(45deg);
+		display: inline-block;
+	}
+
+	.eg-fallback__meta {
+		font: 500 11px/1 "JetBrains Mono Variable", ui-monospace, monospace;
+		letter-spacing: 0.14em;
+		opacity: 0.55;
+	}
+
+	.eg-fallback__card {
+		width: min(100%, 1480px);
+		flex: 1;
+		max-height: 740px;
+		border-radius: 22px;
+		padding: clamp(28px, 6vw, 72px);
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		background: rgba(252, 248, 250, 0.92);
+		border: 1px solid rgba(255, 255, 255, 0.9);
+		box-shadow: 0 20px 60px rgba(42, 24, 38, 0.1);
+		color: #1c131d;
+	}
+
+	:root.dark .eg-fallback__card {
+		background: rgba(20, 16, 28, 0.92);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62);
+		color: #f7f2f6;
+	}
+
+	.eg-fallback__eyebrow {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font: 600 11px/1 "JetBrains Mono Variable", ui-monospace, monospace;
+		letter-spacing: 0.2em;
+		color: var(--eg-accent);
+		margin-bottom: 24px;
+	}
+
+	.eg-fallback__bar {
+		width: 22px;
+		height: 2px;
+		background: var(--eg-accent);
+	}
+
+	.eg-fallback__title {
+		font: 600 clamp(34px, 5.5vw, 78px) / 1.15 "Songti SC", "Noto Serif SC", "STSong", Georgia, serif;
+		letter-spacing: -0.02em;
+		margin: 0 0 20px;
+	}
+
+	.eg-accent {
+		color: var(--eg-accent);
+	}
+
+	.eg-fallback__sub {
+		font-size: clamp(14px, 1.3vw, 17px);
+		line-height: 1.75;
+		opacity: 0.68;
+		max-width: 38rem;
+		margin: 0 0 36px;
+	}
+
+	.eg-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 16px;
+	}
+
+	/* ── 3D Homography Interactive Overlays ──────────────────────────── */
+	.eg-homography-layer {
+		position: fixed;
+		top: 0;
+		left: 0;
+		transform-origin: 0 0;
+		z-index: 4;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 320ms ease;
+		will-change: transform, opacity;
+	}
+
+	#entrance-gate.is-webgl-ready .eg-homography-layer {
+		opacity: 1;
+	}
+
+	#entrance-gate.is-shattering .eg-homography-layer {
+		opacity: 0 !important;
+		pointer-events: none !important;
+		transition: opacity 140ms ease;
+	}
+
+	/* ── Precision Optical Reticle Cursor (GPU translate3d only) ─────── */
+	#eg-reticle {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 34px;
+		height: 34px;
+		margin: -17px 0 0 -17px;
+		border-radius: 9999px;
+		border: 1px solid oklch(0.68 0.16 var(--hue, 345) / 0.55);
+		pointer-events: none;
+		z-index: 8;
+		opacity: 0;
+		will-change: transform, opacity;
+		display: grid;
+		place-items: center;
+		transition:
+			opacity 240ms ease,
+			width 240ms cubic-bezier(0.22, 1, 0.36, 1),
+			height 240ms cubic-bezier(0.22, 1, 0.36, 1),
+			margin 240ms cubic-bezier(0.22, 1, 0.36, 1),
+			border-color 220ms ease,
+			background-color 220ms ease;
+	}
+
+	#eg-reticle.is-visible {
+		opacity: 1;
+	}
+
+	#entrance-gate.is-shattering #eg-reticle {
+		opacity: 0 !important;
+	}
+
+	#eg-reticle.is-locked {
+		width: 52px;
+		height: 52px;
+		margin: -26px 0 0 -26px;
+		border-color: var(--eg-accent-glow);
+		background: oklch(0.72 0.16 var(--hue, 345) / 0.08);
+	}
+
+	.eg-reticle__dot {
+		width: 4px;
+		height: 4px;
+		border-radius: 9999px;
+		background: var(--eg-accent);
+		transition: transform 220ms ease;
+	}
+
+	#eg-reticle.is-locked .eg-reticle__dot {
+		transform: scale(0.4);
+	}
+
+	@media (hover: none), (pointer: coarse) {
+		#eg-reticle {
+			display: none !important;
+		}
+	}
+
+	/* ── Nav Overlay Live Telemetry + Audio + Skip Controls ──────────── */
+	.eg-telemetry {
+		position: absolute;
+		left: 48%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		display: none;
+		align-items: center;
+		gap: 8px;
+		font: 500 11px/1 "JetBrains Mono Variable", ui-monospace, monospace;
+		letter-spacing: 0.1em;
+		color: rgba(42, 26, 44, 0.64);
+		white-space: nowrap;
+		pointer-events: none;
+	}
+
+	:root.dark .eg-telemetry {
+		color: rgba(244, 234, 242, 0.72);
+	}
+
+	#eg-nav-overlay[data-wide="true"] .eg-telemetry {
+		display: inline-flex;
+	}
+
+	.eg-telemetry__pulse {
+		width: 6px;
+		height: 6px;
+		border-radius: 9999px;
+		background: var(--eg-accent);
+		box-shadow: 0 0 8px var(--eg-accent);
+		animation: eg-pulse 2.2s ease-in-out infinite;
+	}
+
+	@keyframes eg-pulse {
+		0%,
+		100% {
+			opacity: 0.45;
+			transform: scale(0.85);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1.15);
+		}
+	}
+
+	.eg-nav-actions {
+		position: absolute;
+		right: 3%;
+		top: 50%;
+		transform: translateY(-50%);
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		pointer-events: auto;
+	}
+
+	.eg-audio-chip {
+		width: 32px;
+		height: 32px;
+		border-radius: 9999px;
+		cursor: pointer;
+		display: grid;
+		place-items: center;
+		color: rgba(28, 18, 30, 0.72);
+		background: rgba(255, 255, 255, 0.65);
+		border: 1px solid rgba(28, 18, 30, 0.16);
+		transition:
+			color 200ms ease,
+			border-color 200ms ease,
+			background-color 200ms ease;
+	}
+
+	:root.dark .eg-audio-chip {
+		color: rgba(255, 250, 254, 0.85);
+		background: rgba(16, 12, 24, 0.74);
+		border: 1px solid rgba(255, 255, 255, 0.24);
+	}
+
+	.eg-audio-chip:hover,
+	.eg-audio-chip[data-active="true"] {
+		color: var(--eg-accent);
+		border-color: var(--eg-accent);
+	}
+
+	.eg-audio-bars {
+		display: inline-flex;
+		align-items: flex-end;
+		gap: 2px;
+		height: 11px;
+	}
+
+	.eg-audio-bars i {
+		display: block;
+		width: 2px;
+		height: 4px;
+		border-radius: 999px;
+		background: currentColor;
+		transition: height 200ms ease;
+	}
+
+	.eg-audio-bars i:nth-child(2) {
+		height: 7px;
+	}
+
+	.eg-audio-chip[data-active="true"] .eg-audio-bars i {
+		animation: eg-eq 900ms ease-in-out infinite;
+	}
+
+	.eg-audio-chip[data-active="true"] .eg-audio-bars i:nth-child(2) {
+		animation-delay: 180ms;
+	}
+
+	.eg-audio-chip[data-active="true"] .eg-audio-bars i:nth-child(3) {
+		animation-delay: 360ms;
+	}
+
+	@keyframes eg-eq {
+		0%,
+		100% {
+			height: 4px;
+		}
+		50% {
+			height: 11px;
+		}
+	}
+
+	/* Positioned dynamically right below the canvas-wrapped editorial subtitle */
+	.eg-cta-slot {
+		position: absolute;
+		left: 6.8%;
+		top: var(--eg-cta-top, 61%);
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 12px;
+		pointer-events: auto;
+	}
+
+	#eg-panel-overlay[data-layout="portrait"] .eg-cta-slot {
+		left: 7.2%;
+		right: 7.2%;
+		top: var(--eg-cta-top, 40%);
+		gap: 10px;
+	}
+
+	/* ── Animated Conic Border Ring + Roll-Text Primary CTA ──────────── */
+	.eg-cta-ring {
+		position: relative;
+		display: inline-block;
+		border-radius: 9999px;
+		transform: translate3d(var(--mx, 0px), var(--my, 0px), 0);
+		transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.eg-cta-ring::before {
+		content: "";
+		position: absolute;
+		inset: -2px;
+		padding: 2px;
+		border-radius: inherit;
+		pointer-events: none;
+		background: conic-gradient(
+			from var(--eg-angle),
+			var(--eg-accent),
+			transparent 32%,
+			var(--eg-accent-glow) 52%,
+			transparent 82%,
+			var(--eg-accent)
+		);
+		-webkit-mask:
+			linear-gradient(#fff 0 0) content-box,
+			linear-gradient(#fff 0 0);
+		-webkit-mask-composite: xor;
+		mask:
+			linear-gradient(#fff 0 0) content-box,
+			linear-gradient(#fff 0 0);
+		mask-composite: exclude;
+		animation: eg-ring-spin 3.4s linear infinite;
+	}
+
+	@keyframes eg-ring-spin {
+		to {
+			--eg-angle: 360deg;
+		}
+	}
+
+	.eg-cta-primary {
+		position: relative;
+		isolation: isolate;
+		overflow: hidden;
+		display: inline-flex;
+		align-items: center;
+		gap: 12px;
+		padding: 7px 7px 7px 22px;
+		border-radius: 9999px;
+		border: 0;
+		cursor: pointer;
+		background: #1c131d;
+		color: #fff;
+		font: 600 14px/20px "PingFang SC", "Roboto", system-ui, sans-serif;
+		letter-spacing: 0.02em;
+		box-shadow:
+			0 8px 26px -6px oklch(0.55 0.16 var(--hue, 345) / 0.42),
+			inset 0 1px 0 rgba(255, 255, 255, 0.2);
+		transition:
+			transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+			background-color 260ms ease,
+			box-shadow 280ms ease;
+	}
+
+	:root.dark .eg-cta-primary {
+		background: linear-gradient(180deg, #ffffff 0%, #f5eaf0 100%);
+		color: #161019;
+		box-shadow:
+			0 0 28px oklch(0.76 0.15 var(--hue, 345) / 0.36),
+			0 10px 26px rgba(0, 0, 0, 0.42);
+	}
+
+	.eg-cta-primary::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		pointer-events: none;
+		background: linear-gradient(
+			115deg,
+			transparent 22%,
+			rgba(255, 255, 255, 0.38) 48%,
+			transparent 74%
+		);
+		transform: translateX(-130%);
+		transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.eg-cta-primary:hover::after {
+		transform: translateX(130%);
+	}
+
+	.eg-cta-primary:hover {
+		background: var(--eg-accent);
+		color: #fff;
+		box-shadow:
+			0 0 34px oklch(0.72 0.17 var(--hue, 345) / 0.55),
+			0 10px 28px rgba(0, 0, 0, 0.25);
+	}
+
+	.eg-cta-primary:active {
+		transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(0.97);
+	}
+
+	.eg-cta-primary__label {
+		display: block;
+		height: 20px;
+		overflow: hidden;
+	}
+
+	.eg-cta-primary__roll {
+		display: flex;
+		flex-direction: column;
+		transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.eg-cta-primary__roll > span {
+		display: block;
+		height: 20px;
+		white-space: nowrap;
+	}
+
+	.eg-cta-primary:hover .eg-cta-primary__roll,
+	.eg-cta-primary:focus-visible .eg-cta-primary__roll {
+		transform: translateY(-50%);
+	}
+
+	.eg-cta-primary__chip {
+		width: 30px;
+		height: 30px;
+		border-radius: 9999px;
+		background: var(--eg-accent);
+		color: #fff;
+		display: grid;
+		place-items: center;
+		flex: none;
+		transition:
+			background-color 260ms ease,
+			color 260ms ease;
+	}
+
+	.eg-cta-primary:hover .eg-cta-primary__chip {
+		background: #fff;
+		color: var(--eg-accent);
+	}
+
+	.eg-cta-primary__chip svg {
+		transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.eg-cta-primary:hover .eg-cta-primary__chip svg,
+	.eg-cta-primary:focus-visible .eg-cta-primary__chip svg {
+		transform: rotate(-45deg);
+	}
+
+	/* ── Secondary Ghost Route Button ────────────────────────────────── */
+	.eg-cta-ghost {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 44px;
+		padding: 0 18px;
+		border-radius: 9999px;
+		text-decoration: none;
+		font: 500 13.5px/1 "PingFang SC", "Roboto", system-ui, sans-serif;
+		color: rgba(28, 18, 30, 0.78);
+		background: rgba(28, 18, 30, 0.05);
+		border: 1px solid rgba(28, 18, 30, 0.14);
+		transition:
+			background-color 220ms ease,
+			border-color 220ms ease,
+			color 220ms ease,
+			transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	:root.dark .eg-cta-ghost {
+		color: rgba(255, 250, 254, 0.92);
+		background: rgba(16, 12, 24, 0.68);
+		border: 1px solid rgba(255, 255, 255, 0.24);
+	}
+
+	.eg-cta-ghost:hover {
+		color: var(--eg-accent);
+		border-color: var(--eg-accent);
+		background: oklch(0.7 0.14 var(--hue, 345) / 0.1);
+		transform: translateY(-1px);
+	}
+
+	.eg-cta-ghost__arrow {
+		transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.eg-cta-ghost:hover .eg-cta-ghost__arrow {
+		transform: translateX(3px);
+	}
+
+	/* ── Nav Skip Chip ───────────────────────────────────────────────── */
+	.eg-skip-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 32px;
+		padding: 0 12px;
+		border-radius: 9999px;
+		cursor: pointer;
+		font: 500 12px/1 "PingFang SC", "Roboto", system-ui, sans-serif;
+		color: rgba(28, 18, 30, 0.78);
+		background: rgba(255, 255, 255, 0.65);
+		border: 1px solid rgba(28, 18, 30, 0.16);
+		transition:
+			color 200ms ease,
+			border-color 200ms ease,
+			background-color 200ms ease;
+	}
+
+	:root.dark .eg-skip-chip {
+		color: rgba(255, 250, 254, 0.92);
+		background: rgba(16, 12, 24, 0.74);
+		border: 1px solid rgba(255, 255, 255, 0.26);
+	}
+
+	.eg-skip-chip:hover {
+		color: var(--eg-accent);
+		border-color: var(--eg-accent);
+		background: oklch(0.7 0.14 var(--hue, 345) / 0.12);
+	}
+
+	.eg-skip-chip kbd {
+		font: 600 10px/1 "JetBrains Mono Variable", ui-monospace, monospace;
+		padding: 2px 5px;
+		border-radius: 4px;
+		background: rgba(128, 128, 128, 0.15);
+		opacity: 0.85;
+	}
+
+	/* ── Interactive 3D Crystal Prism Seal Hit Zone ──────────────────── */
+	.eg-seal-hit {
+		position: absolute;
+		left: 80.5%;
+		top: var(--eg-seal-top, 45.5%);
+		width: 190px;
+		height: 190px;
+		transform: translate(-50%, -50%);
+		border-radius: 9999px;
+		border: 0;
+		background: transparent;
+		cursor: pointer;
+		pointer-events: auto;
+		display: grid;
+		place-items: center;
+	}
+
+	#eg-panel-overlay[data-layout="portrait"] .eg-seal-hit {
+		left: 50%;
+		top: var(--eg-seal-top, 76.5%);
+		width: 126px;
+		height: 126px;
+	}
+
+	.eg-seal-hit__ring {
+		position: absolute;
+		inset: 0;
+		border-radius: 9999px;
+		border: 1px solid transparent;
+		transition:
+			transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+			border-color 260ms ease,
+			box-shadow 320ms ease;
+	}
+
+	.eg-seal-hit:hover .eg-seal-hit__ring,
+	.eg-seal-hit:focus-visible .eg-seal-hit__ring {
+		transform: scale(1.08);
+		border-color: var(--eg-accent-glow);
+		box-shadow:
+			0 0 38px oklch(0.74 0.16 var(--hue, 345) / 0.38),
+			inset 0 0 24px oklch(0.74 0.16 var(--hue, 345) / 0.16);
+	}
+
+	.eg-seal-hit__caption {
+		padding: 5px 14px;
+		border-radius: 9999px;
+		font: 600 13px/1 "Songti SC", "Noto Serif SC", "PingFang SC", serif;
+		letter-spacing: 0.22em;
+		padding-left: calc(14px + 0.22em);
+		color: #1c131d;
+		background: rgba(255, 250, 253, 0.78);
+		border: 1px solid oklch(0.66 0.17 var(--hue, 345) / 0.42);
+		box-shadow: 0 6px 20px rgba(28, 18, 30, 0.12);
+		transition:
+			transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+			background-color 220ms ease,
+			color 220ms ease;
+	}
+
+	:root.dark .eg-seal-hit__caption {
+		color: #fff;
+		background: rgba(16, 11, 24, 0.76);
+		border-color: oklch(0.76 0.15 var(--hue, 345) / 0.55);
+		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+	}
+
+	.eg-seal-hit:hover .eg-seal-hit__caption {
+		background: var(--eg-accent);
+		color: #fff;
+		transform: scale(1.06);
+	}
+
+	.eg-seal-hit__tooltip {
+		position: absolute;
+		bottom: -24px;
+		padding: 4px 10px;
+		border-radius: 9999px;
+		font: 600 10px/1 "JetBrains Mono Variable", ui-monospace, monospace;
+		letter-spacing: 0.12em;
+		color: #fff;
+		background: var(--eg-accent);
+		opacity: 0;
+		transform: translateY(-4px);
+		transition:
+			opacity 220ms ease,
+			transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+		white-space: nowrap;
+		pointer-events: none;
+	}
+
+	.eg-seal-hit:hover .eg-seal-hit__tooltip,
+	.eg-seal-hit:focus-visible .eg-seal-hit__tooltip {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	/* Visible keyboard focus rings */
+	#entrance-gate button:focus-visible,
+	#entrance-gate a:focus-visible {
+		outline: 2px solid var(--eg-accent-glow);
+		outline-offset: 3px;
+	}
+
+	@media (max-width: 767px) {
+		.eg-fallback__meta {
+			display: none;
+		}
+		.eg-cta-primary {
+			padding: 6px 6px 6px 18px;
+			font-size: 13px;
+		}
+		.eg-cta-ghost {
+			height: 40px;
+			padding: 0 14px;
+			font-size: 12.5px;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.eg-cta-ring::before {
+			animation: none;
+		}
+		.eg-cta-primary::after,
+		.eg-cta-primary__roll,
+		.eg-cta-primary__chip svg {
+			transition: none;
+		}
+	}
+</style>
+
+<script>
+	async function bootEntranceGate() {
+		const gateEl = document.getElementById("entrance-gate");
+		if (!gateEl) return;
+
+		const mountIfActive = async () => {
+			if (!document.documentElement.classList.contains("has-entrance-gate")) {
+				return;
+			}
+			const rawMeta = gateEl.dataset.gateMeta;
+			const meta = rawMeta
+				? JSON.parse(rawMeta)
+				: {
+						postCount: 28,
+						topicCount: 7,
+						tagCount: 24,
+						lastUpdated: "2026-06-16",
+						siteTitle: "CHENHUI · 格物",
+					};
+			const { initEntranceGate } = await import("../scripts/entrance-gate");
+			initEntranceGate(gateEl, meta);
+		};
+
+		// Expose helper to replay the entrance gate on demand if desired
+		window.__openEntranceGate = () => {
+			gateEl.style.display = "";
+			gateEl.removeAttribute("aria-hidden");
+			gateEl.classList.remove("is-shattering", "is-webgl-ready", "is-fallback");
+			const backdrop = gateEl.querySelector<HTMLElement>("#eg-backdrop");
+			if (backdrop) backdrop.style.opacity = "1";
+			const canvasEl = gateEl.querySelector<HTMLElement>("#eg-canvas");
+			if (canvasEl) {
+				canvasEl.style.transition = "";
+				canvasEl.style.opacity = "";
+			}
+			const shockEl = gateEl.querySelector<HTMLElement>("#eg-shockwave");
+			if (shockEl) shockEl.classList.remove("is-burst");
+			const fallbackEl = gateEl.querySelector<HTMLElement>("#eg-fallback");
+			if (fallbackEl) {
+				fallbackEl.style.display = "";
+				fallbackEl.style.opacity = "";
+			}
+			document.documentElement.classList.add("has-entrance-gate");
+			void mountIfActive();
+		};
+
+		await mountIfActive();
+	}
+
+	void bootEntranceGate();
+</script>

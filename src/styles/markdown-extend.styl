@@ -36,11 +36,23 @@
       transform: rotate(90deg)
 
   .admonition
+    padding: 1.05rem 1.4rem 1.15rem 1.45rem !important
+    margin: 1.25rem 0 !important
+
+    > p
+      margin: 0.55rem 0 !important
+      line-height: 1.75
+
+    > p:last-child
+      margin-bottom: 0 !important
+
     .bdm-title
       display: flex
       align-items: center
-      margin-bottom: -.9rem
+      margin: 0 0 0.7rem 0 !important
       font-weight: bold
+      font-size: 1.02rem
+      line-height: 1.4
 
       &:before
         content: ' '
@@ -56,6 +68,7 @@
         mask-repeat: no-repeat
         transform: translateY(-0.0625rem)
     &.bdm-tip
+      border-left-color: var(--admonitions-color-tip) !important
       .bdm-title
         color: var(--admonitions-color-tip)
 
@@ -66,6 +79,7 @@
       &:before
         background: var(--admonitions-color-tip)
     &.bdm-note
+      border-left-color: var(--admonitions-color-note) !important
       .bdm-title
         color: var(--admonitions-color-note)
 
@@ -76,6 +90,7 @@
       &:before
         background: var(--admonitions-color-note)
     &.bdm-important
+      border-left-color: var(--admonitions-color-important) !important
       .bdm-title
         color: var(--admonitions-color-important)
 
@@ -86,6 +101,7 @@
       &:before
         background: var(--admonitions-color-important)
     &.bdm-warning
+      border-left-color: var(--admonitions-color-warning) !important
       .bdm-title
         color: var(--admonitions-color-warning)
 
@@ -96,6 +112,7 @@
       &:before
         background: var(--admonitions-color-warning)
     &.bdm-caution
+      border-left-color: var(--admonitions-color-caution) !important
       .bdm-title
         color: var(--admonitions-color-caution)
 
