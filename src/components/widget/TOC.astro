@@ -222,10 +222,14 @@ class TableOfContents extends HTMLElement {
         return min < value && value < max;
     };
 
+    initTimer: ReturnType<typeof setTimeout> | undefined;
+
     connectedCallback() {
-        // 等 DOM 就绪后初始化（兼容首次加载和 Swup SPA 导航）
+        // 避开 Swup 首帧替换的同步布局读峰，等淡入启动后顺滑绑定目录观察器
         const doInit = () => {
-            requestAnimationFrame(() => this.init());
+            this.initTimer = setTimeout(() => {
+                requestAnimationFrame(() => this.init());
+            }, 90);
         };
         if (document.readyState === 'complete') {
             doInit();
@@ -280,6 +284,7 @@ class TableOfContents extends HTMLElement {
     };
 
     disconnectedCallback() {
+        clearTimeout(this.initTimer);
         this.sections.forEach((section) =>
             this.observer.unobserve(section)
         );

@@ -40,10 +40,21 @@ const slug = postEntry.slug;
 
 <script>
 (function () {
-	var link = document.createElement("link");
-	link.rel = "stylesheet";
-	link.href = "https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.css";
-	document.head.appendChild(link);
+	var walineCssLoaded = false;
+	var walineObserver: IntersectionObserver | null = null;
+
+	function ensureWalineCss() {
+		if (walineCssLoaded || document.getElementById("waline-css-link")) {
+			walineCssLoaded = true;
+			return;
+		}
+		walineCssLoaded = true;
+		var link = document.createElement("link");
+		link.id = "waline-css-link";
+		link.rel = "stylesheet";
+		link.href = "https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.css";
+		document.head.appendChild(link);
+	}
 
 	function hideLoading() {
 		var el = document.getElementById("waline-loading");
@@ -103,17 +114,20 @@ const slug = postEntry.slug;
 		};
 	}
 
-	function initWaline() {
-		var container = document.getElementById("waline-container");
-		if (!container) return;
+	function mountWalineNow(container: HTMLElement) {
+		if (container.dataset.walineMounted === "1") return;
 		if (container.querySelector(".wl-panel")) {
 			hideLoading();
 			return;
 		}
+		container.dataset.walineMounted = "1";
+		ensureWalineCss();
 
 		var slug = container.getAttribute("data-slug") || "";
 
 		import("@waline/client").then(function (mod) {
+			// 若用户在异步加载完成前已切走页面，直接放弃挂载
+			if (!document.body.contains(container)) return;
 			mod.init({
 				el: "#waline-container",
 				serverURL: "https://waline-comment-smoky.vercel.app",
@@ -131,8 +145,7 @@ const slug = postEntry.slug;
 					clearInterval(checkLoaded);
 					hideLoading();
 				}
-			}, 100);
-			// 10 秒安全兜底
+			}, 120);
 			setTimeout(function () {
 				clearInterval(checkLoaded);
 				hideLoading();
@@ -140,16 +153,50 @@ const slug = postEntry.slug;
 		});
 	}
 
+	// 视口接近懒加载：打开长文章首帧不抢占主线程与网络，滚动到距离评论区 600px 内自动提前挂载
+	function observeWaline() {
+		if (walineObserver) {
+			walineObserver.disconnect();
+			walineObserver = null;
+		}
+		var container = document.getElementById("waline-container");
+		if (!container) return;
+		if (container.querySelector(".wl-panel")) {
+			hideLoading();
+			return;
+		}
+		if ("IntersectionObserver" in window) {
+			walineObserver = new IntersectionObserver(
+				function (entries) {
+					for (var i = 0; i < entries.length; i++) {
+						if (entries[i].isIntersecting) {
+							walineObserver?.disconnect();
+							walineObserver = null;
+							mountWalineNow(container!);
+							break;
+						}
+					}
+				},
+				{ rootMargin: "600px 0px" },
+			);
+			walineObserver.observe(container);
+		} else {
+			setTimeout(function () {
+				mountWalineNow(container!);
+			}, 600);
+		}
+	}
+
 	// Swup 导航
 	if (window.swup) {
-		window.swup.hooks.on("page:view", initWaline);
+		window.swup.hooks.on("page:view", observeWaline);
 	} else {
 		document.addEventListener("swup:enable", function () {
-			window.swup.hooks.on("page:view", initWaline);
+			window.swup.hooks.on("page:view", observeWaline);
 		});
 	}
 
-	initWaline();
+	observeWaline();
 })();
 </script>
 
@@ -172,12 +219,10 @@ const slug = postEntry.slug;
 :global(#waline-container .wl-reaction) {
 	margin: 2rem auto 1.5rem !important;
 	padding: 1.25rem 1.25rem 1.25rem !important;
-	background: rgba(255, 255, 255, 0.80) !important;
+	background: rgba(255, 255, 255, 0.86) !important;
 	border: 1px solid rgba(255, 255, 255, 0.65) !important;
 	border-radius: 1.25rem !important;
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
-	backdrop-filter: blur(12px) !important;
-	-webkit-backdrop-filter: blur(12px) !important;
 	max-width: 38rem !important;
 	text-align: center !important;
 	overflow: visible !important;
@@ -323,10 +368,8 @@ const slug = postEntry.slug;
 	margin: 1.5rem 0 2rem !important;
 	border-radius: 1.25rem !important;
 	border: 1px solid rgba(255, 255, 255, 0.65) !important;
-	background: rgba(255, 255, 255, 0.85) !important;
+	background: rgba(255, 255, 255, 0.88) !important;
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
-	backdrop-filter: blur(14px) !important;
-	-webkit-backdrop-filter: blur(14px) !important;
 	overflow: hidden !important;
 	transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
 }
@@ -512,9 +555,7 @@ const slug = postEntry.slug;
 .wl-skeleton {
 	padding: 1.5rem;
 	border-radius: 1rem;
-	background: var(--card-bg, rgba(255,255,255,0.75));
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
+	background: rgba(255, 255, 255, 0.78);
 }
 :root.dark .wl-skeleton {
 	background: rgba(30, 20, 40, 0.72);

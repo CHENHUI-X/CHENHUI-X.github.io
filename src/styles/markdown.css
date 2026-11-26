@@ -3,9 +3,11 @@
         @apply text-3xl;
     }
 
-    /* 性能优化：视口外的文章内容跳过渲染，大幅减少长页面首屏渲染时间 */
-    content-visibility: auto;
-    contain-intrinsic-size: 800px;
+    /* 性能优化：按 remark-sectionize 切分的每个章节独立跳过视口外布局与绘制（比套在外层容器有效得多） */
+    > section {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 560px;
+    }
 
     h1, h2, h3, h4, h5, h6 {
         .anchor {
@@ -202,18 +204,15 @@
         box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
     }
 
-    .katex-display-container {
+    .katex-display {
         max-width: 100%;
         overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.35rem 0;
         margin: 1em 0;
-        text-align: center;
-    }
-    .katex-display-container .katex-display {
-        display: inline-block;
-        text-align: left;
-    }
-    .custom-md .katex-display {
         text-align: center !important;
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-bg) transparent;
     }
     
 

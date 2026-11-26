@@ -70,6 +70,13 @@ html:not(.is-rendering) #swup-container .card-base.swup-stagger-in {
 	animation: 420ms fade-in-up cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* Swup 站内无刷新切换时，外层 #swup-container 已执行统一淡入，禁止内部大文章块再次叠加 onload 动画避免双层合成卡顿 */
+html.swup-navigated #swup-container .onload-animation {
+	animation: none !important;
+	opacity: 1 !important;
+	transform: none !important;
+}
+
 #navbar {
 	animation-delay: 0ms;
 }
