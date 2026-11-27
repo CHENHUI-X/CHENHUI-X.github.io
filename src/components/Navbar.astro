@@ -1,6 +1,6 @@
 ---
-import { Icon } from "astro-icon/components";
 import { icons } from "@iconify-json/material-symbols";
+import { Icon } from "astro-icon/components";
 import { navBarConfig, siteConfig } from "../config";
 import { LinkPresets } from "../constants/link-presets";
 import type { NavBarLink } from "../types/config";
@@ -11,7 +11,11 @@ import DisplaySettings from "./widget/DisplaySettings.svelte";
 import NavMenuPanel from "./widget/NavMenuPanel.astro";
 
 const className = Astro.props.class;
-const navIcon = (name: string) => ({ width: icons.width, height: icons.height, ...icons.icons[name] });
+const navIcon = (name: string) => ({
+	width: icons.width,
+	height: icons.height,
+	...icons.icons[name],
+});
 
 const links = navBarConfig.links.map((item): NavBarLink => {
 	const link = typeof item === "number" ? LinkPresets[item] : item;

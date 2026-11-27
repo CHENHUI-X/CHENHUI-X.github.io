@@ -2556,7 +2556,12 @@ if (uRippleAge < 1.4) {
 	window.addEventListener("resize", onResize);
 
 	const onVisibilityChange = () => {
-		if (!document.hidden && !disposed && !rafId && !root.classList.contains("is-fallback")) {
+		if (
+			!document.hidden &&
+			!disposed &&
+			!rafId &&
+			!root.classList.contains("is-fallback")
+		) {
 			lastTime = performance.now();
 			rafId = requestAnimationFrame(tick);
 		}
