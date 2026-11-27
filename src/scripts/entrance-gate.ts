@@ -31,6 +31,7 @@ interface ShardMorph {
 	k: number;
 	centroidWeights: Float32Array;
 	bodyWeights: Float32Array;
+	bodySource: Uint32Array;
 	faceWeights: Float32Array;
 	shadowWeights: Float32Array;
 }
@@ -415,15 +416,30 @@ function computeMVC(qx: number, qy: number, poly: Vec2[]): Float32Array {
 }
 
 /** Bake flat MVC weight table once per geometry so runtime morphing does zero allocations. */
-// biome-ignore lint/suspicious/noExplicitAny: three.js BufferGeometry
-function bakeMorphWeights(geo: any, cx: number, cy: number, poly: Vec2[]) {
+function bakeMorphWeights(
+	// biome-ignore lint/suspicious/noExplicitAny: three.js BufferGeometry
+	geo: any,
+	cx: number,
+	cy: number,
+	poly: Vec2[],
+	sources?: Uint32Array,
+) {
 	const posAttr = geo.attributes.position;
 	const count: number = posAttr.count;
 	const k = poly.length;
 	const table = new Float32Array(count * k);
+	// Extruded triangles repeat XY at seams and at different depths. Their cage motion is identical.
+	const firstAt = sources && new Map<string, number>();
 	for (let v = 0; v < count; v++) {
 		const wx = posAttr.getX(v) + cx;
 		const wy = posAttr.getY(v) + cy;
+		if (firstAt && sources) {
+			const key = `${wx},${wy}`;
+			const previous = firstAt.get(key);
+			sources[v] = previous ?? v;
+			if (previous !== undefined) continue;
+			firstAt.set(key, v);
+		}
 		const weights = computeMVC(wx, wy, poly);
 		const offset = v * k;
 		for (let j = 0; j < k; j++) {
@@ -2152,11 +2168,13 @@ if (uRippleAge < 1.4) {
 		const shadowGeo = new THREE.ShapeGeometry(shape, 2);
 
 		const centroidWeights = computeMVC(centroid.x, centroid.y, restCopy);
+		const bodySource = new Uint32Array(bodyGeo.attributes.position.count);
 		const bodyWeights = bakeMorphWeights(
 			bodyGeo,
 			centroid.x,
 			centroid.y,
 			restCopy,
+			bodySource,
 		);
 		const faceWeights = bakeMorphWeights(
 			faceGeo,
@@ -2188,6 +2206,7 @@ if (uRippleAge < 1.4) {
 			k: restCopy.length,
 			centroidWeights,
 			bodyWeights,
+			bodySource,
 			faceWeights,
 			shadowWeights,
 		};
@@ -2213,11 +2232,17 @@ if (uRippleAge < 1.4) {
 		const bArr = bodyPos.array as Float32Array;
 		const bW = m.bodyWeights;
 		const bCount: number = bodyPos.count;
-		for (let v = 0, wi = 0, pi = 0; v < bCount; v++, pi += 3) {
+		for (let v = 0, pi = 0; v < bCount; v++, pi += 3) {
+			const source = m.bodySource[v] * 3;
+			if (source !== pi) {
+				bArr[pi] = bArr[source];
+				bArr[pi + 1] = bArr[source + 1];
+				continue;
+			}
 			let wx = 0;
 			let wy = 0;
-			for (let j = 0; j < k; j++, wi++) {
-				const w = bW[wi];
+			for (let j = 0; j < k; j++) {
+				const w = bW[v * k + j];
 				wx += w * poly[j].x;
 				wy += w * poly[j].y;
 			}
