@@ -150,16 +150,10 @@ const bannerOffset =
 			offset = offset - offset % 4;
 			document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
 
-			// Entrance gate trigger: show only on first-ever visit to '/', browser reload/hard-refresh on '/', or explicit ?gate=1
+			// Entrance gate: only shown on explicit ?gate=1 (footer "重温扉页"); direct visits open the blog plainly
 			try {
-				const gatePath = window.location.pathname.replace(/\/+$/, '') || '/';
 				const gateParams = new URLSearchParams(window.location.search);
-				const forceGate = gateParams.get('gate') === '1' || gateParams.get('cover') === '1';
-				const navEntries = performance.getEntriesByType ? performance.getEntriesByType('navigation') : [];
-				const navEntry = navEntries && navEntries[0];
-				const isReload = (navEntry && navEntry.type === 'reload') || (performance.navigation && performance.navigation.type === 1);
-				const isFirstEver = !localStorage.getItem('chenhui_gate_seen');
-				if (forceGate || (gatePath === '/' && (isFirstEver || isReload))) {
+				if (gateParams.get('gate') === '1' || gateParams.get('cover') === '1') {
 					document.documentElement.classList.add('has-entrance-gate');
 				}
 			} catch (_) {}
