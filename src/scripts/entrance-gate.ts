@@ -451,54 +451,21 @@ function pointInPolygon(px: number, py: number, poly: Vec2[]): boolean {
 
 /** Solve exact 2D projective homography and return CSS matrix3d string. */
 function solveMatrix3d(w: number, h: number, dst: Vec2[]): string | null {
-	const src: Vec2[] = [
-		{ x: 0, y: 0 },
-		{ x: w, y: 0 },
-		{ x: w, y: h },
-		{ x: 0, y: h },
+	// The four source points are always the corners of an axis-aligned rectangle.
+	// Solve the two perspective terms on the unit square, then scale its columns.
+	const [tl, tr, br, bl] = dst;
+	const dx1 = tr.x - br.x, dy1 = tr.y - br.y;
+	const dx2 = bl.x - br.x, dy2 = bl.y - br.y;
+	const sx = tl.x - tr.x + br.x - bl.x, sy = tl.y - tr.y + br.y - bl.y;
+	const det = dx1 * dy2 - dx2 * dy1;
+	if (Math.abs(det) < 1e-10) return null;
+	const g = (sx * dy2 - dx2 * sy) / det;
+	const k = (dx1 * sy - sx * dy1) / det;
+	const m = [
+		(tr.x - tl.x + g * tr.x) / w, (tr.y - tl.y + g * tr.y) / w, 0, g / w,
+		(bl.x - tl.x + k * bl.x) / h, (bl.y - tl.y + k * bl.y) / h, 0, k / h,
+		0, 0, 1, 0, tl.x, tl.y, 0, 1,
 	];
-	const A: number[][] = [];
-	const B: number[] = [];
-	for (let i = 0; i < 4; i++) {
-		const sx = src[i].x;
-		const sy = src[i].y;
-		const dx = dst[i].x;
-		const dy = dst[i].y;
-		A.push([sx, sy, 1, 0, 0, 0, -dx * sx, -dx * sy]);
-		B.push(dx);
-		A.push([0, 0, 0, sx, sy, 1, -dy * sx, -dy * sy]);
-		B.push(dy);
-	}
-
-	const n = 8;
-	for (let col = 0; col < n; col++) {
-		let pivotRow = col;
-		let maxVal = Math.abs(A[col][col]);
-		for (let row = col + 1; row < n; row++) {
-			const val = Math.abs(A[row][col]);
-			if (val > maxVal) {
-				maxVal = val;
-				pivotRow = row;
-			}
-		}
-		if (maxVal < 1e-10) return null;
-		if (pivotRow !== col) {
-			[A[col], A[pivotRow]] = [A[pivotRow], A[col]];
-			[B[col], B[pivotRow]] = [B[pivotRow], B[col]];
-		}
-		const pivot = A[col][col];
-		for (let j = col; j < n; j++) A[col][j] /= pivot;
-		B[col] /= pivot;
-		for (let row = 0; row < n; row++) {
-			if (row === col) continue;
-			const factor = A[row][col];
-			for (let j = col; j < n; j++) A[row][j] -= factor * A[col][j];
-			B[row] -= factor * B[col];
-		}
-	}
-
-	const [h0, h1, h2, h3, h4, h5, h6, h7] = B;
-	const m = [h0, h3, 0, h6, h1, h4, 0, h7, 0, 0, 1, 0, h2, h5, 0, 1];
 	if (m.some((v) => !Number.isFinite(v))) return null;
 	return `matrix3d(${m.map((v) => v.toFixed(7)).join(",")})`;
 }

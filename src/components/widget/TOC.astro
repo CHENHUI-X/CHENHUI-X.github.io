@@ -92,6 +92,8 @@ class TableOfContents extends HTMLElement {
     tocEntries: HTMLAnchorElement[] = [];
     active: boolean[] = [];
     activeIndicator: HTMLElement | null = null;
+    desktop = matchMedia("(min-width: 1024px)");
+    updateFrame = 0;
 
     constructor() {
         super();
@@ -101,6 +103,7 @@ class TableOfContents extends HTMLElement {
     };
 
     markVisibleSection = (entries: IntersectionObserverEntry[]) => {
+        if (!this.tocEl) return;
         entries.forEach((entry) => {
             const id = entry.target.children[0]?.getAttribute("id");
             const idx = id ? this.headingIdxMap.get(id) : undefined;
@@ -174,11 +177,11 @@ class TableOfContents extends HTMLElement {
     };
 
     update = () => {
-        requestAnimationFrame(() => {
+        if (this.updateFrame || !this.tocEl) return;
+        this.updateFrame = requestAnimationFrame(() => {
+            this.updateFrame = 0;
             this.toggleActiveHeading();
-            // requestAnimationFrame(() => {
             this.scrollToActiveHeading();
-            // });
         });
     };
 
@@ -186,8 +189,9 @@ class TableOfContents extends HTMLElement {
         if (!this.sections.length) return;
 
         for (let i = 0; i < this.sections.length; i++) {
-            let offsetTop = this.sections[i].getBoundingClientRect().top;
-            let offsetBottom = this.sections[i].getBoundingClientRect().bottom;
+            const section = this.sections[i];
+            if (!section) continue;
+            const {top: offsetTop, bottom: offsetBottom} = section.getBoundingClientRect();
 
             if (this.isInRange(offsetTop, 0, window.innerHeight)
                 || this.isInRange(offsetBottom, 0, window.innerHeight)
@@ -224,19 +228,25 @@ class TableOfContents extends HTMLElement {
 
     initTimer: ReturnType<typeof setTimeout> | undefined;
 
-    connectedCallback() {
-        // 避开 Swup 首帧替换的同步布局读峰，等淡入启动后顺滑绑定目录观察器
-        const doInit = () => {
-            this.initTimer = setTimeout(() => {
-                requestAnimationFrame(() => this.init());
-            }, 90);
-        };
-        if (document.readyState === 'complete') {
-            doInit();
-        } else {
-            document.addEventListener('DOMContentLoaded', doInit, { once: true });
+    syncViewport = () => {
+        clearTimeout(this.initTimer);
+        if (!this.desktop.matches) {
+            this.stopObserving();
+        } else if (!this.tocEl) {
+            this.initTimer = setTimeout(() => requestAnimationFrame(() => {
+                if (this.isConnected && this.desktop.matches && !this.tocEl) this.init();
+            }), 90);
         }
     };
+
+    connectedCallback() {
+        this.desktop.addEventListener("change", this.syncViewport);
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", this.syncViewport, { once: true });
+        } else {
+            this.syncViewport();
+        }
+    }
 
 	init() {
 		this.tocEl = document.getElementById(
@@ -283,13 +293,21 @@ class TableOfContents extends HTMLElement {
         this.update();
     };
 
-    disconnectedCallback() {
-        clearTimeout(this.initTimer);
-        this.sections.forEach((section) =>
-            this.observer.unobserve(section)
-        );
+    stopObserving() {
+        cancelAnimationFrame(this.updateFrame);
+        this.updateFrame = 0;
         this.observer.disconnect();
-        this.tocEl?.removeEventListener("click", this.handleAnchorClick);
+        this.tocEl?.removeEventListener("click", this.handleAnchorClick, true);
+        this.tocEl = null;
+        this.anchorNavTarget = null;
+        this.headingIdxMap.clear();
+    }
+
+    disconnectedCallback() {
+        this.desktop.removeEventListener("change", this.syncViewport);
+        document.removeEventListener("DOMContentLoaded", this.syncViewport);
+        clearTimeout(this.initTimer);
+        this.stopObserving();
     };
 }
 
