@@ -54,7 +54,7 @@ const gateMeta = {
 				<span class="eg-fallback__mark" aria-hidden="true"></span>
 				<span>{siteConfig.title}</span>
 			</div>
-			<span class="eg-fallback__meta">VOL.01 · {postCount} DOCS</span>
+			<span class="eg-fallback__meta">{postCount} 篇笔记 · {topicCount} 个专题</span>
 			<button type="button" class="eg-skip-chip" data-eg-open>
 				<span>跳过</span>
 				<kbd>ESC</kbd>
@@ -63,21 +63,21 @@ const gateMeta = {
 		<div class="eg-fallback__card">
 			<div class="eg-fallback__eyebrow">
 				<span class="eg-fallback__bar" aria-hidden="true"></span>
-				ISSUE 01 // MATH · ML · DL · LLM
+				MATH · ML · DL · LLM
 			</div>
 			<h2 class="eg-fallback__title">
 				吾生也有涯，<br />而知也无涯<span class="eg-accent">。</span>
 			</h2>
 			<p class="eg-fallback__sub">
 				聚焦数学、机器学习、深度学习与 LLM。<br />
-				沉淀原理推导、模型剖析与工程实践，共收录 {postCount} 篇技术博客。
+				共收录 {postCount} 篇笔记，按专题与时间归档。
 			</p>
 			<div class="eg-actions">
 				<button type="button" class="eg-cta-primary" data-eg-open>
 					<span class="eg-cta-primary__label">
 						<span class="eg-cta-primary__roll">
-							<span>启封进入博客</span>
-							<span aria-hidden="true">启封进入博客</span>
+							<span>进入博客</span>
+							<span aria-hidden="true">进入博客</span>
 						</span>
 					</span>
 					<span class="eg-cta-primary__chip" aria-hidden="true">
@@ -94,7 +94,7 @@ const gateMeta = {
 	<div id="eg-nav-overlay" class="eg-homography-layer" data-wide="false">
 		<div class="eg-telemetry" aria-live="polite">
 			<span class="eg-telemetry__pulse" aria-hidden="true"></span>
-			<span id="eg-telemetry-text">SYS // CHENHUI · 格物 · CRYSTAL GATE</span>
+			<span id="eg-telemetry-text">CHENHUI · 格物 · 技术笔记</span>
 		</div>
 		<div class="eg-nav-actions">
 			<button
@@ -103,14 +103,14 @@ const gateMeta = {
 				class="eg-audio-chip"
 				data-active="false"
 				aria-label="开启晶体音效"
-				title="开启/关闭实时合成晶体声效"
+				title="开启/关闭晶体声效"
 			>
 				<span class="eg-audio-bars" aria-hidden="true">
 					<i></i><i></i><i></i>
 				</span>
 			</button>
-			<button type="button" class="eg-skip-chip" data-eg-open aria-label="跳过扉页进入博客">
-				<span>跳过扉页</span>
+			<button type="button" class="eg-skip-chip" data-eg-open aria-label="跳过进入博客">
+				<span>跳过</span>
 				<kbd>ESC</kbd>
 			</button>
 		</div>
@@ -128,8 +128,8 @@ const gateMeta = {
 				>
 					<span class="eg-cta-primary__label">
 						<span class="eg-cta-primary__roll">
-							<span>启封进入博客</span>
-							<span aria-hidden="true">启封进入博客</span>
+							<span>进入博客</span>
+							<span aria-hidden="true">进入博客</span>
 						</span>
 					</span>
 					<span class="eg-cta-primary__chip" aria-hidden="true">
@@ -141,27 +141,21 @@ const gateMeta = {
 			</span>
 		</div>
 
-		<!-- Interactive crystal wax-seal hit target aligned over the 3D floating prism sculpture -->
+		<!-- Interactive crystal seal hit target aligned over the 3D floating prism sculpture -->
 		<button
 			type="button"
 			id="eg-seal-hit"
 			class="eg-seal-hit"
-			aria-label="点击 3D 晶体棱镜印章启封进入博客"
+			aria-label="点击进入博客"
 		>
 			<span class="eg-seal-hit__ring" aria-hidden="true"></span>
-			<span class="eg-seal-hit__caption">启封</span>
-			<span class="eg-seal-hit__tooltip">CLICK TO UNSEAL</span>
+			<span class="eg-seal-hit__caption">格物</span>
+			<span class="eg-seal-hit__tooltip">点击进入</span>
 		</button>
 	</div>
 </div>
 
 <style is:global>
-	@property --eg-angle {
-		syntax: "<angle>";
-		inherits: false;
-		initial-value: 0deg;
-	}
-
 	/* Default hidden when gate is not triggered: zero visual & layout impact */
 	#entrance-gate {
 		display: none;
@@ -184,14 +178,17 @@ const gateMeta = {
 		--eg-accent-glow: oklch(0.84 0.14 var(--hue, 345));
 	}
 
-	html.has-entrance-gate,
-	html.gate-revealing {
+	html.has-entrance-gate {
 		overflow: hidden !important;
 	}
 
 	html.has-entrance-gate #entrance-gate,
 	html.gate-revealing #entrance-gate {
 		display: block;
+	}
+
+	#entrance-gate.is-shattering {
+		pointer-events: none !important;
 	}
 
 	html.has-entrance-gate astro-dev-toolbar,
@@ -214,11 +211,13 @@ const gateMeta = {
 
 	html.gate-revealing #content-layer {
 		transform: scale(1);
-		transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+		will-change: transform;
+		transition: transform 560ms cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	html.has-entrance-gate #reading-progress-bar,
-	html.has-entrance-gate .back-to-top-wrapper {
+	html.has-entrance-gate .nav-buttons-wrapper,
+	html.has-entrance-gate #mobile-toc-btn {
 		opacity: 0 !important;
 		pointer-events: none !important;
 	}
@@ -299,9 +298,12 @@ const gateMeta = {
 	.eg-backdrop__grain {
 		position: absolute;
 		inset: 0;
-		opacity: 0.045;
 		pointer-events: none;
-		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+		background-image: radial-gradient(rgba(28, 18, 30, 0.08) 1px, transparent 1px);
+		background-size: 24px 24px;
+	}
+	:root.dark .eg-backdrop__grain {
+		background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
 	}
 
 	/* ── Shockwave Burst Ring (lightweight GPU transform only, no huge scaled box-shadow) ── */
@@ -706,10 +708,12 @@ const gateMeta = {
 		gap: 10px;
 	}
 
-	/* ── Animated Conic Border Ring + Roll-Text Primary CTA ──────────── */
+	/* ── Animated Conic Border Ring (pure GPU transform: rotate, zero paint) + Roll-Text CTA ── */
 	.eg-cta-ring {
 		position: relative;
 		display: inline-block;
+		padding: 1.5px;
+		overflow: hidden;
 		border-radius: 9999px;
 		transform: translate3d(var(--mx, 0px), var(--my, 0px), 0);
 		transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -718,32 +722,28 @@ const gateMeta = {
 	.eg-cta-ring::before {
 		content: "";
 		position: absolute;
-		inset: -2px;
-		padding: 2px;
-		border-radius: inherit;
+		left: 50%;
+		top: 50%;
+		width: 240%;
+		aspect-ratio: 1;
+		margin-left: -120%;
+		margin-top: -120%;
 		pointer-events: none;
 		background: conic-gradient(
-			from var(--eg-angle),
+			from 0deg,
 			var(--eg-accent),
 			transparent 32%,
 			var(--eg-accent-glow) 52%,
 			transparent 82%,
 			var(--eg-accent)
 		);
-		-webkit-mask:
-			linear-gradient(#fff 0 0) content-box,
-			linear-gradient(#fff 0 0);
-		-webkit-mask-composite: xor;
-		mask:
-			linear-gradient(#fff 0 0) content-box,
-			linear-gradient(#fff 0 0);
-		mask-composite: exclude;
-		animation: eg-ring-spin 3.4s linear infinite;
+		will-change: transform;
+		animation: eg-ring-spin 3.8s linear infinite;
 	}
 
 	@keyframes eg-ring-spin {
 		to {
-			--eg-angle: 360deg;
+			transform: rotate(360deg);
 		}
 	}
 
@@ -860,47 +860,6 @@ const gateMeta = {
 	.eg-cta-primary:hover .eg-cta-primary__chip svg,
 	.eg-cta-primary:focus-visible .eg-cta-primary__chip svg {
 		transform: rotate(-45deg);
-	}
-
-	/* ── Secondary Ghost Route Button ────────────────────────────────── */
-	.eg-cta-ghost {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		height: 44px;
-		padding: 0 18px;
-		border-radius: 9999px;
-		text-decoration: none;
-		font: 500 13.5px/1 "PingFang SC", "Roboto", system-ui, sans-serif;
-		color: rgba(28, 18, 30, 0.78);
-		background: rgba(28, 18, 30, 0.05);
-		border: 1px solid rgba(28, 18, 30, 0.14);
-		transition:
-			background-color 220ms ease,
-			border-color 220ms ease,
-			color 220ms ease,
-			transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-	}
-
-	:root.dark .eg-cta-ghost {
-		color: rgba(255, 250, 254, 0.92);
-		background: rgba(16, 12, 24, 0.68);
-		border: 1px solid rgba(255, 255, 255, 0.24);
-	}
-
-	.eg-cta-ghost:hover {
-		color: var(--eg-accent);
-		border-color: var(--eg-accent);
-		background: oklch(0.7 0.14 var(--hue, 345) / 0.1);
-		transform: translateY(-1px);
-	}
-
-	.eg-cta-ghost__arrow {
-		transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
-	}
-
-	.eg-cta-ghost:hover .eg-cta-ghost__arrow {
-		transform: translateX(3px);
 	}
 
 	/* ── Nav Skip Chip ───────────────────────────────────────────────── */
@@ -1054,11 +1013,6 @@ const gateMeta = {
 			padding: 6px 6px 6px 18px;
 			font-size: 13px;
 		}
-		.eg-cta-ghost {
-			height: 40px;
-			padding: 0 14px;
-			font-size: 12.5px;
-		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
@@ -1078,6 +1032,24 @@ const gateMeta = {
 		const gateEl = document.getElementById("entrance-gate");
 		if (!gateEl) return;
 
+		let mounted = false;
+		const dismissFailsafe = () => {
+			if (mounted) return;
+			try {
+				localStorage.setItem("chenhui_gate_seen", "1");
+			} catch (_) {}
+			document.documentElement.classList.remove(
+				"has-entrance-gate",
+				"gate-revealing",
+			);
+			gateEl.setAttribute("aria-hidden", "true");
+			gateEl.style.display = "none";
+		};
+
+		for (const btn of gateEl.querySelectorAll("[data-eg-open]")) {
+			btn.addEventListener("click", dismissFailsafe);
+		}
+
 		const mountIfActive = async () => {
 			if (!document.documentElement.classList.contains("has-entrance-gate")) {
 				return;
@@ -1092,8 +1064,13 @@ const gateMeta = {
 						lastUpdated: "2026-06-16",
 						siteTitle: "CHENHUI · 格物",
 					};
-			const { initEntranceGate } = await import("../scripts/entrance-gate");
-			initEntranceGate(gateEl, meta);
+			try {
+				const { initEntranceGate } = await import("../scripts/entrance-gate");
+				mounted = true;
+				initEntranceGate(gateEl, meta);
+			} catch (_) {
+				dismissFailsafe();
+			}
 		};
 
 		// Expose helper to replay the entrance gate on demand if desired
@@ -1119,7 +1096,11 @@ const gateMeta = {
 			void mountIfActive();
 		};
 
-		await mountIfActive();
+		if (document.documentElement.classList.contains("has-entrance-gate")) {
+			requestAnimationFrame(() => {
+				void mountIfActive();
+			});
+		}
 	}
 
 	void bootEntranceGate();

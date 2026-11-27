@@ -13,7 +13,7 @@ const article = topic?.articles.find((item) => item.slug === slug);
 ---
 {topic && article && (
     <aside
-        class="mb-6 p-4 rounded-xl bg-[var(--btn-regular-bg)]/45 dark:bg-white/[0.035] border border-[var(--primary)]/18 border-l-[3.5px] !border-l-[var(--primary)] text-sm transition-colors duration-200"
+        class="mb-6 p-4 rounded-[var(--radius-inner)] bg-[var(--btn-regular-bg)]/45 dark:bg-white/[0.035] border border-[var(--border-subtle)] border-l-[3px] !border-l-[var(--primary)] text-sm transition-colors duration-200"
         aria-label="文章定位"
         data-article-context
     >

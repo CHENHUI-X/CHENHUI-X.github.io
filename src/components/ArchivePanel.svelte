@@ -104,7 +104,7 @@ onMount(async () => {
                 <a
                     href={getPostUrlBySlug(post.slug)}
                     aria-label={post.data.title}
-                    class="group btn-plain !block h-11 w-full rounded-xl hover:text-[initial]"
+                    class="group btn-plain !block h-11 w-full rounded-[var(--radius-btn)] hover:text-[initial]"
                 >
                     <div class="flex flex-row justify-start items-center h-full">
                         <!-- date -->
@@ -138,7 +138,7 @@ onMount(async () => {
                             class="hidden md:flex md:w-[22%] justify-end items-center gap-1.5 pr-2 overflow-hidden"
                         >
                             {#each (post.data.tags || []).slice(0, 2) as tag}
-                                <span class="px-2 py-0.5 rounded-md text-[0.7rem] font-medium bg-black/[0.035] dark:bg-white/[0.055] text-black/45 dark:text-white/45 group-hover:text-[var(--primary)] group-hover:bg-[var(--btn-regular-bg)] transition-colors whitespace-nowrap truncate max-w-[6.5rem]">
+                                <span class="px-2 py-0.5 rounded-md text-[0.7rem] font-medium bg-black/[0.03] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-black/50 dark:text-white/50 group-hover:text-[var(--primary)] group-hover:bg-[var(--btn-regular-bg)] transition-colors whitespace-nowrap truncate max-w-[6.5rem]">
                                     #{tag}
                                 </span>
                             {/each}

@@ -21,11 +21,9 @@ const className = Astro.props.class;
     <div id={id} class:list={["collapse-wrapper px-4 overflow-hidden", {"collapsed": isCollapsed}]}>
         <slot></slot>
     </div>
-    {isCollapsed && <div class="expand-btn px-4 -mb-2">
-        <button class="btn-plain rounded-lg w-full h-9">
-            <div class="text-[var(--primary)] flex items-center justify-center gap-2 -translate-x-2">
-                <Icon name="material-symbols:more-horiz" class="text-[1.75rem]"></Icon> {i18n(I18nKey.more)}
-            </div>
+    {isCollapsed && <div class="expand-btn px-4 pt-1 -mb-1">
+        <button class="btn-tonal w-full h-8 text-xs font-medium gap-1.5">
+            <Icon name="material-symbols:more-horiz" class="text-[1.25rem]"></Icon> {i18n(I18nKey.more)}
         </button>
     </div>}
 </widget-layout>

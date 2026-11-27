@@ -46,7 +46,7 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
 
 <!-- Navbar -->
 <slot slot="head" name="head"></slot>
-<div id="top-row" class="z-50 pointer-events-none relative transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
+<div id="top-row" class="z-50 pointer-events-none relative transition-[height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
     <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]">
         <Navbar></Navbar>
     </div>
@@ -61,7 +61,13 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
 </div>}
 
 <!-- Main content -->
-<div class="absolute w-full z-30 pointer-events-none" style={`top: ${mainPanelTop}`}>
+<div
+    class:list={[
+        "w-full z-30 pointer-events-none",
+        siteConfig.banner.enable ? "absolute" : "relative mt-4",
+    ]}
+    style={siteConfig.banner.enable ? `top: ${mainPanelTop}` : undefined}
+>
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
         <div id="main-grid" class="transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] w-full left-0 right-0 grid grid-cols-[14rem_auto] grid-rows-[auto_1fr_auto] lg:grid-rows-[auto]
@@ -69,7 +75,7 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
         >
             <!-- Banner image credit -->
             {hasBannerCredit && <a href={siteConfig.banner.credit.url} id="banner-credit" target="_blank" rel="noopener" aria-label="Visit image source"
-                                   class:list={["group onload-animation transition-all absolute flex justify-center items-center rounded-full " +
+                                   class:list={["group onload-animation transition-[padding,background-color] absolute flex justify-center items-center rounded-full " +
                                    "px-3 right-4 -top-[3.25rem] bg-black/60 hover:bg-black/70 h-9", {"hover:pr-9 active:bg-black/80": hasBannerLink}]}
             >
                 <Icon class="text-white/75 text-[1.25rem] mr-1" name="material-symbols:copyright-outline-rounded" ></Icon>
@@ -116,63 +122,62 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
     </div>
 </div>
 
-<!-- The things that should be under the banner, only the TOC for now -->
-{!isPostsRoute && <div class="absolute w-full z-10 hidden xl:block">
-    <div class="relative max-w-[var(--page-width)] mx-auto">
-        <!-- TOC component -->
-        {siteConfig.toc.enable && <div id="toc-wrapper" class:list={["hidden lg:block transition absolute top-0 -right-[var(--toc-width)] w-[var(--toc-width)] items-center",
-            {"toc-hide": siteConfig.banner.enable}]}
-        >
-            <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden hide-scrollbar">
-                <div id="toc" class="w-full h-full transition-swup-fade ">
-                    <div class="h-8 w-full"></div>
-                    <TOC headings={headings}></TOC>
-                    <div class="h-8 w-full"></div>
-                </div>
-            </div>
-        </div>}
-
-        <!-- #toc needs to exist for Swup to work normally -->
-        {!siteConfig.toc.enable && <div id="toc"></div>}
-    </div>
-</div>}
 <!-- #toc 空占位：供 Swup SPA 导航使用，必须始终存在 -->
 <div id="toc" style="display:none"></div>
 
 <!-- ===== 移动端 TOC ===== -->
 {isPostsRoute && headings.length > 0 && (
   <>
-  <!-- 悬浮按钮 -->
+  <!-- 悬浮按钮（无 backdrop-filter，完美适配暗黑模式） -->
   <button id="mobile-toc-btn"
-    class="fixed bottom-6 right-5 z-[45] lg:hidden flex items-center justify-center w-11 h-11 rounded-full cursor-pointer
-      border-none select-none -webkit-tap-highlight-color-transparent text-[1.3rem]"
-    style="background:rgba(255,255,255,0.70);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-      border:1px solid rgba(255,255,255,0.35);box-shadow:0 2px 8px rgba(0,0,0,0.06),0 6px 20px rgba(0,0,0,0.08);
-      color:var(--primary);
-      transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1),opacity 0.35s ease,box-shadow 0.3s ease"
-    aria-label="目录"
-  >📖</button>
+    type="button"
+    class="mobile-toc-fab fixed bottom-6 right-5 z-[45] lg:hidden flex items-center justify-center w-11 h-11 rounded-full cursor-pointer select-none active:scale-95"
+    aria-label="文章目录"
+  >
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  </button>
 
   <!-- 抽屉遮罩 -->
   <div id="mobile-toc-overlay"
     class="fixed inset-0 z-[48] lg:hidden"
-    style="background:rgba(0,0,0,0.4);opacity:0;pointer-events:none;transition:opacity 0.3s ease"
+    style="background:rgba(15, 23, 42, 0.42);opacity:0;pointer-events:none;transition:opacity 0.25s ease"
   >
     <!-- 抽屉面板 -->
     <div id="mobile-toc-panel"
       class="absolute right-0 top-0 h-full shadow-2xl"
-      style="width:85vw;max-width:320px;background:var(--card-bg);transform:translateX(100%);transition:transform 0.35s cubic-bezier(0.25,1,0.5,1)"
+      style="width:85vw;max-width:320px;background:var(--surface-elevated);border-left:1px solid var(--border-subtle);transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.22,1,0.36,1)"
     >
       <!-- 头部 -->
       <div class="flex items-center justify-between px-5 py-4"
-        style="border-bottom:1px solid var(--line-color)"
+        style="border-bottom:1px solid var(--border-subtle)"
       >
-        <span class="font-bold text-base" style="color:var(--primary)">📖 目录</span>
+        <span class="inline-flex items-center gap-2 font-bold text-base" style="color:var(--primary)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6" />
+            <line x1="8" y1="12" x2="21" y2="12" />
+            <line x1="8" y1="18" x2="21" y2="18" />
+            <line x1="3" y1="6" x2="3.01" y2="6" />
+            <line x1="3" y1="12" x2="3.01" y2="12" />
+            <line x1="3" y1="18" x2="3.01" y2="18" />
+          </svg>
+          <span>目录</span>
+        </span>
         <button id="mobile-toc-close"
-          class="w-8 h-8 flex items-center justify-center rounded-full cursor-pointer border-none text-sm select-none"
-          style="background:transparent;color:var(--text-50);transition:background 0.2s ease"
+          type="button"
+          class="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer select-none text-[var(--text-50)] hover:bg-[var(--btn-plain-bg-hover)] hover:text-[var(--primary)] transition-colors duration-150"
           aria-label="关闭目录"
-        >✕</button>
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
       </div>
       <!-- 列表 -->
       <div id="mobile-toc-list"
@@ -184,64 +189,122 @@ const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
   </>
 )}
 
+<style>
+.mobile-toc-fab {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--card-highlight), 0 4px 16px -2px rgba(15, 23, 42, 0.14);
+  color: var(--primary);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease, border-color 180ms ease;
+}
+:global(:root.dark) .mobile-toc-fab {
+  box-shadow: var(--card-highlight), 0 6px 20px rgba(0, 0, 0, 0.44);
+}
+</style>
+
 <script is:inline>
 (function(){'use strict';
-// 先把按钮和遮罩移到 body 下，避免 will-change:transform 破坏 fixed 定位
-var b=document.getElementById('mobile-toc-btn');
-var o=document.getElementById('mobile-toc-overlay');
-var l=document.getElementById('mobile-toc-list');
-var cb=document.getElementById('mobile-toc-close');
-if(!b||!o||!l||!cb)return;
-document.body.appendChild(b);
-document.body.appendChild(o);
-// 重新获取（DOM 移动后 ID 不变）
-b=document.getElementById('mobile-toc-btn');
-o=document.getElementById('mobile-toc-overlay');
+  if (window.__mobileTocInited) return;
+  window.__mobileTocInited = true;
 
-function build(){
-    var all=document.querySelectorAll('h2:not(#mobile-toc-list h2),h3:not(#mobile-toc-list h3)');
-  var hs=[];
-  all.forEach(function(h){
-    if(h.closest('#navbar-wrapper')||h.closest('#toc-left-wrapper')||h.closest('#toc-wrapper')||h.closest('#mobile-toc-overlay'))return;
-    hs.push(h);
-  });
-  if(hs.length<2){b.style.display='none';return;}
-  // PC端(>=1024px)不显示移动端TOC按钮，左侧已有侧栏目录
-  if(window.innerWidth>=1024){b.style.display='none';return;}
-  b.style.display='flex';
-  l.innerHTML='';
-  hs.forEach(function(h){
-    var id=h.id||h.textContent.trim().toLowerCase().replace(/[^\w\u4e00-\u9fff]+/g,'-');
-    if(!h.id)h.id=id;
-    var a=document.createElement('a');
-    a.href='#'+id;
-    a.className='block py-2.5 px-3 rounded-lg text-sm transition-colors';
-    a.style.cssText='color:var(--text-50);text-decoration:none;'+(h.tagName==='H3'?'padding-left:1.5rem;':'');
-    a.textContent=h.textContent;
-    a.addEventListener('click',function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      closeDrawer();
-      setTimeout(function(){
-        var el=document.getElementById(id);
-        if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
-      },320);
+  var activeBtn = null;
+  var activeOverlay = null;
+
+  function closeDrawer() {
+    if (!activeOverlay) return;
+    activeOverlay.style.opacity = '0';
+    activeOverlay.style.pointerEvents = 'none';
+    var panel = activeOverlay.querySelector('#mobile-toc-panel');
+    if (panel) panel.style.transform = 'translateX(100%)';
+  }
+
+  function openDrawer() {
+    if (!activeOverlay) return;
+    activeOverlay.style.opacity = '1';
+    activeOverlay.style.pointerEvents = 'auto';
+    var panel = activeOverlay.querySelector('#mobile-toc-panel');
+    if (panel) panel.style.transform = 'translateX(0)';
+  }
+
+  function syncMobileToc() {
+    // 清理上一页残留到 body 下的旧实例
+    if (activeBtn && document.body.contains(activeBtn) && !document.querySelector('#content-layer #mobile-toc-btn')) {
+      activeBtn.remove();
+    }
+    if (activeOverlay && document.body.contains(activeOverlay) && !document.querySelector('#content-layer #mobile-toc-overlay')) {
+      activeOverlay.remove();
+    }
+
+    var newBtn = document.querySelector('#content-layer #mobile-toc-btn');
+    var newOverlay = document.querySelector('#content-layer #mobile-toc-overlay');
+    if (newBtn && newOverlay) {
+      if (activeBtn && activeBtn !== newBtn) activeBtn.remove();
+      if (activeOverlay && activeOverlay !== newOverlay) activeOverlay.remove();
+      document.body.appendChild(newBtn);
+      document.body.appendChild(newOverlay);
+      activeBtn = newBtn;
+      activeOverlay = newOverlay;
+
+      var cb = activeOverlay.querySelector('#mobile-toc-close');
+      activeBtn.onclick = openDrawer;
+      if (cb) cb.onclick = closeDrawer;
+      activeOverlay.onclick = function (e) { if (e.target === activeOverlay) closeDrawer(); };
+    } else {
+      if (activeBtn) { activeBtn.remove(); activeBtn = null; }
+      if (activeOverlay) { activeOverlay.remove(); activeOverlay = null; }
+      return;
+    }
+
+    var list = activeOverlay.querySelector('#mobile-toc-list');
+    if (!list) return;
+
+    var all = document.querySelectorAll('#post-container h2, #post-container h3');
+    if (all.length < 2 || window.innerWidth >= 1024) {
+      activeBtn.style.display = 'none';
+      return;
+    }
+    activeBtn.style.display = 'flex';
+    list.innerHTML = '';
+
+    all.forEach(function (h) {
+      var id = h.id || h.textContent.trim().toLowerCase().replace(/[^\w\u4e00-\u9fff]+/g, '-');
+      if (!h.id) h.id = id;
+      var a = document.createElement('a');
+      a.href = '#' + id;
+      a.className = 'block py-2.5 px-3 rounded-lg text-sm transition-colors hover:bg-[var(--toc-btn-hover)]';
+      a.style.cssText = 'color:var(--text-75);text-decoration:none;' + (h.tagName === 'H3' ? 'padding-left:1.5rem;' : '');
+      a.textContent = (h.textContent || '').replace(/#$/, '').trim();
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeDrawer();
+        setTimeout(function () {
+          var el = document.getElementById(id);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 280);
+      });
+      list.appendChild(a);
     });
-    a.addEventListener('mouseenter',function(){this.style.background='var(--toc-btn-hover)';});
-    a.addEventListener('mouseleave',function(){this.style.background='transparent';});
-    l.appendChild(a);
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeDrawer();
   });
-}
 
-function openDrawer(){o.style.opacity='1';o.style.pointerEvents='auto';o.querySelector('#mobile-toc-panel').style.transform='translateX(0)';}
-function closeDrawer(){o.style.opacity='0';o.style.pointerEvents='none';o.querySelector('#mobile-toc-panel').style.transform='translateX(100%)';}
+  function bindSwup() {
+    if (window.swup && window.swup.hooks) {
+      window.swup.hooks.on('content:replace', closeDrawer);
+      window.swup.hooks.on('page:view', syncMobileToc);
+    }
+  }
 
-b.addEventListener('click',openDrawer);
-cb.addEventListener('click',closeDrawer);
-o.addEventListener('click',function(e){if(e.target===o)closeDrawer();});
-
-build();
-document.addEventListener('page:view',build);
+  if (window.swup) {
+    bindSwup();
+  } else {
+    document.addEventListener('swup:enable', bindSwup);
+  }
+  syncMobileToc();
 })();
 </script>
 

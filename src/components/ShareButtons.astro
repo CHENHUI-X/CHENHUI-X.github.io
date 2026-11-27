@@ -33,47 +33,59 @@ const shareLinks = [
 ];
 ---
 
-<div class="share-buttons flex items-center gap-2 mt-6 pt-5 border-t border-dashed border-[var(--line-divider)]">
+<div class="share-buttons flex flex-wrap items-center gap-2 mt-6 pt-5 border-t border-dashed border-[var(--line-divider)]">
 	<span class="text-sm text-[var(--secondary)] mr-1">分享</span>
+	<button
+		type="button"
+		id="copy-link-btn"
+		class="btn-tonal h-9 px-3 gap-1.5 text-xs font-semibold cursor-pointer hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:text-white hover:border-transparent"
+		title="复制文章链接"
+		aria-label="复制文章链接"
+	>
+		<Icon name="material-symbols:link-rounded" class="text-[1.05rem] copy-link-icon" />
+		<Icon name="material-symbols:check-rounded" class="text-[1.05rem] hidden copy-link-ok" />
+		<span data-copy-label>复制链接</span>
+	</button>
 	{shareLinks.map((link) =>
 		link.wechat ? (
 			<button
 				type="button"
 				id="wechat-share-btn"
-				class="btn-regular rounded-xl h-9 w-9 active:scale-90 cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--primary)] hover:text-white transition-all duration-200"
+				class="btn-tonal h-9 w-9 cursor-pointer hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:text-white hover:border-transparent"
 				title="WeChat"
 				aria-label="Share to WeChat"
 				onclick="document.getElementById('wechat-overlay').style.display='flex'"
 			>
-				<Icon name={link.icon} class="text-[1.2rem]" />
+				<Icon name={link.icon} class="text-[1.15rem]" />
 			</button>
 		) : (
 			<a
 				href={link.href}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="btn-regular rounded-xl h-9 w-9 active:scale-90 hover:-translate-y-0.5 hover:shadow-md hover:bg-[var(--primary)] hover:text-white transition-all duration-200"
+				class="btn-tonal h-9 w-9 hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:text-white hover:border-transparent"
 				title={link.name}
 				aria-label={`Share to ${link.name}`}
 			>
-				<Icon name={link.icon} class="text-[1.2rem]" />
+				<Icon name={link.icon} class="text-[1.15rem]" />
 			</a>
 		)
 	)}
 </div>
 
 <div id="wechat-overlay"
-	style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center"
+	style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,0.52);align-items:center;justify-content:center"
 	onclick="this.style.display='none'"
 >
 	<div
-		style="background:white;border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;align-items:center;min-width:260px"
+		class="rounded-2xl p-6 shadow-2xl flex flex-col items-center min-w-[260px]"
+		style="background:var(--surface-elevated);border:1px solid var(--border-subtle);color:var(--text-90)"
 		onclick="event.stopPropagation()"
 	>
-		<div style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.75)">
+		<div class="text-sm font-semibold mb-3">
 			微信扫码分享
 		</div>
-		<div style="background:white;padding:12px;border-radius:12px">
+		<div class="bg-white p-3 rounded-xl border border-black/5">
 			<img
 				src={qrSrc}
 				alt="QR Code"
@@ -83,14 +95,13 @@ const shareLinks = [
 				loading="lazy"
 			/>
 		</div>
-		<p style="margin-top:8px;font-size:12px;color:var(--secondary);word-break:break-all;max-width:240px;text-align:center;-webkit-user-select:all;user-select:all">
+		<p class="mt-2.5 text-xs text-[var(--secondary)] break-all max-w-[240px] text-center select-all">
 			{urlStr}
 		</p>
 		<button
-			style="margin-top:12px;padding:4px 16px;height:32px;border-radius:8px;border:none;font-size:12px;font-weight:500;cursor:pointer;background:var(--btn-regular-bg);color:var(--btn-content);transition:all 0.15s"
+			type="button"
+			class="btn-tonal mt-3.5 px-4 h-8 text-xs font-medium cursor-pointer"
 			onclick="document.getElementById('wechat-overlay').style.display='none'"
-			onmouseover="this.style.background='var(--btn-regular-bg-hover)'"
-			onmouseout="this.style.background='var(--btn-regular-bg)'"
 		>
 			关闭
 		</button>
@@ -98,24 +109,72 @@ const shareLinks = [
 </div>
 
 <script>
-function mountOverlay() {
-	let overlay = document.getElementById('wechat-overlay');
+let copyTimer: ReturnType<typeof setTimeout> | undefined;
+
+function bindShareControls() {
+	const overlay = document.getElementById("wechat-overlay");
 	// Remove stale overlay from previous Swup navigation
-	const old = document.body.querySelector('#wechat-overlay');
-	if (old && old !== overlay) old.remove();
+	const stale = document.body.querySelectorAll("#wechat-overlay");
+	stale.forEach((el) => {
+		if (el !== overlay) el.remove();
+	});
 	if (overlay && overlay.parentElement !== document.body) {
 		document.body.appendChild(overlay);
 	}
+
+	const copyBtn = document.getElementById("copy-link-btn");
+	if (copyBtn && !copyBtn.dataset.bound) {
+		copyBtn.dataset.bound = "1";
+		copyBtn.addEventListener("click", async () => {
+			try {
+				await navigator.clipboard.writeText(window.location.href);
+			} catch {
+				// fallback for restricted contexts
+				const ta = document.createElement("textarea");
+				ta.value = window.location.href;
+				ta.style.position = "fixed";
+				ta.style.opacity = "0";
+				document.body.appendChild(ta);
+				ta.select();
+				document.execCommand("copy");
+				ta.remove();
+			}
+			const label = copyBtn.querySelector<HTMLElement>("[data-copy-label]");
+			const iconLink = copyBtn.querySelector<HTMLElement>(".copy-link-icon");
+			const iconOk = copyBtn.querySelector<HTMLElement>(".copy-link-ok");
+			if (label) label.textContent = "已复制";
+			iconLink?.classList.add("hidden");
+			iconOk?.classList.remove("hidden");
+			copyBtn.classList.add("!bg-[var(--primary)]", "!text-white", "!border-transparent");
+			clearTimeout(copyTimer);
+			copyTimer = setTimeout(() => {
+				if (label) label.textContent = "复制链接";
+				iconLink?.classList.remove("hidden");
+				iconOk?.classList.add("hidden");
+				copyBtn.classList.remove("!bg-[var(--primary)]", "!text-white", "!border-transparent");
+			}, 1800);
+		});
+	}
 }
-mountOverlay();
+
+bindShareControls();
+if (!(window as any).__shareEscBound) {
+	(window as any).__shareEscBound = true;
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") {
+			const overlay = document.getElementById("wechat-overlay");
+			if (overlay) overlay.style.display = "none";
+		}
+	});
+}
 const setup = () => {
 	if (window.swup) {
-		window.swup.hooks.on('page:view', mountOverlay);
+		window.swup.hooks.on("page:view", bindShareControls);
 	}
 };
 if (window.swup) {
 	setup();
 } else {
-	document.addEventListener('swup:enable', setup);
+	document.addEventListener("swup:enable", setup);
 }
 </script>

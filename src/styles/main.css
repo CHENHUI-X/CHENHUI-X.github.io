@@ -1,39 +1,43 @@
+html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
 @tailwind components;
 
 @layer components {
     .card-base {
         @apply rounded-[var(--radius-large)] overflow-hidden bg-[var(--card-bg)];
-        /* 高透感半透明底色与微高光边框：让动态渐变与壁纸更通透地浮现，同时保证文字清晰度 */
-        background-color: rgba(255, 255, 255, 0.66) !important;
-        border: 1px solid rgba(255, 255, 255, 0.58);
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-        transition: background-color 240ms ease,
-                    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
-                    border-color 220ms ease;
+        background-color: var(--surface-card) !important;
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--card-highlight), 0 4px 20px -4px rgba(15, 23, 42, 0.05);
+        transition: background-color 220ms ease,
+                    box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 200ms ease;
     }
     :root.dark .card-base {
-        background-color: rgba(26, 18, 36, 0.62) !important;
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.28);
+        background-color: var(--surface-card) !important;
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--card-highlight), 0 6px 24px -4px rgba(0, 0, 0, 0.34);
     }
 
-    /* 可交互列表卡片专属悬浮反馈：微抬起 + 底色微提亮，零果冻晃动 */
+    /* 可交互列表卡片专属悬浮反馈：微抬起 + 细高光边框 */
     .card-hover {
-        transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-                    background-color 240ms ease,
-                    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
-                    border-color 220ms ease;
+        transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+                    background-color 220ms ease,
+                    box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1),
+                    border-color 200ms ease;
     }
     .card-hover:hover {
-        transform: translateY(-2.5px);
-        background-color: rgba(255, 255, 255, 0.78) !important;
-        box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.09), 0 4px 10px rgba(0, 0, 0, 0.03);
-        border-color: color-mix(in oklab, var(--primary) 32%, rgba(255, 255, 255, 0.92));
+        transform: translateY(-2px);
+        background-color: var(--surface-card-hover) !important;
+        box-shadow: var(--card-highlight), 0 12px 28px -8px rgba(15, 23, 42, 0.10);
+        border-color: color-mix(in oklab, var(--primary) 36%, var(--border-subtle));
     }
     :root.dark .card-hover:hover {
-        background-color: rgba(34, 24, 48, 0.74) !important;
-        box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.48);
-        border-color: color-mix(in oklab, var(--primary) 38%, rgba(255, 255, 255, 0.16));
+        background-color: var(--surface-card-hover) !important;
+        box-shadow: var(--card-highlight), 0 14px 32px -6px rgba(0, 0, 0, 0.46);
+        border-color: color-mix(in oklab, var(--primary) 38%, var(--border-subtle));
     }
 
     /* 性能优化：移除通用全元素 transition（切换页面时大量 DOM 无谓触发过渡计算） */
@@ -41,17 +45,19 @@
         @apply drop-shadow-[0_2px_4px_rgba(0,0,0,0.005)]
     }
     .expand-animation {
-        @apply relative before:duration-200 before:ease-[cubic-bezier(0.22,1,0.36,1)] before:transition active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
+        @apply relative before:duration-200 before:ease-[cubic-bezier(0.22,1,0.36,1)] before:transition-[transform,background-color,opacity] active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
         before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.88] hover:before:scale-100 before:-z-10
     }
     .link {
-        @apply transition rounded-md p-1 -m-1 expand-animation;
+        @apply rounded-md p-1 -m-1 expand-animation;
+        transition: color 180ms ease;
     }
     .link-lg {
-        @apply transition rounded-md p-1.5 -m-1.5 expand-animation;
+        @apply rounded-md p-1.5 -m-1.5 expand-animation;
+        transition: color 180ms ease;
     }
     .float-panel {
-        @apply top-[5.25rem] rounded-[var(--radius-large)] overflow-hidden bg-[var(--float-panel-bg)] origin-top-right transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] shadow-xl dark:shadow-2xl border border-black/[0.06] dark:border-white/[0.08]
+        @apply top-[5.25rem] rounded-[var(--radius-large)] overflow-hidden bg-[var(--float-panel-bg)] origin-top-right transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] shadow-xl dark:shadow-2xl border border-[var(--border-subtle)]
     }
     .float-panel-closed {
         @apply -translate-y-1.5 scale-[0.97] opacity-0 pointer-events-none
@@ -60,16 +66,38 @@
         @apply bg-transparent text-[var(--primary)]
     }
 
+    .btn-primary {
+        @apply inline-flex items-center justify-center rounded-[var(--radius-btn)] bg-[var(--primary)] text-white font-semibold active:scale-[0.97] select-none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 4px 12px -4px color-mix(in oklab, var(--primary) 45%, transparent);
+        transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), filter 180ms ease, box-shadow 200ms ease;
+    }
+    .btn-primary:hover {
+        filter: brightness(1.06);
+        transform: translateY(-1px);
+    }
+
+    .btn-tonal {
+        @apply inline-flex items-center justify-center rounded-[var(--radius-btn)] bg-[var(--btn-regular-bg)] text-[var(--btn-content)] dark:text-white/80 active:scale-[0.96] select-none;
+        border: 1px solid var(--border-subtle);
+        transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 200ms ease;
+    }
+    .btn-tonal:hover {
+        background-color: var(--btn-regular-bg-hover);
+        border-color: color-mix(in oklab, var(--primary) 32%, var(--border-subtle));
+    }
+
     .btn-card {
-        @apply transition flex items-center justify-center bg-[var(--card-bg)] hover:bg-[var(--btn-card-bg-hover)]
-        active:bg-[var(--btn-card-bg-active)]
+        @apply flex items-center justify-center bg-[var(--card-bg)] hover:bg-[var(--btn-card-bg-hover)]
+        active:bg-[var(--btn-card-bg-active)];
+        transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 200ms ease;
     }
     .btn-card.disabled {
-        @apply pointer-events-none text-black/10 dark:text-white/10
+        @apply pointer-events-none text-black/15 dark:text-white/15
     }
     .btn-plain {
-        @apply transition relative flex items-center justify-center bg-none
+        @apply relative flex items-center justify-center bg-none
         text-black/75 hover:text-[var(--primary)] dark:text-white/75 dark:hover:text-[var(--primary)];
+        transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 200ms ease;
         &:not(.scale-animation) {
             @apply hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)]
         }
@@ -81,13 +109,15 @@
         }
     }
     .btn-regular {
-        @apply transition flex items-center justify-center bg-[var(--btn-regular-bg)] hover:bg-[var(--btn-regular-bg-hover)] active:bg-[var(--btn-regular-bg-active)]
-        text-[var(--btn-content)] dark:text-white/75
+        @apply flex items-center justify-center bg-[var(--btn-regular-bg)] hover:bg-[var(--btn-regular-bg-hover)] active:bg-[var(--btn-regular-bg-active)]
+        text-[var(--btn-content)] dark:text-white/75;
+        transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 200ms ease;
     }
 
     .link-underline {
-        @apply transition underline decoration-2 decoration-dashed decoration-[var(--link-underline)]
-        hover:decoration-[var(--link-hover)] active:decoration-[var(--link-active)] underline-offset-[0.25rem]
+        @apply underline decoration-2 decoration-dashed decoration-[var(--link-underline)]
+        hover:decoration-[var(--link-hover)] active:decoration-[var(--link-active)] underline-offset-[0.25rem];
+        transition: color 180ms ease, text-decoration-color 180ms ease;
     }
 
     .toc-hide,
@@ -162,7 +192,7 @@
     left: calc(50% - 1px);
     border-left: 2px dashed var(--line-color);
     pointer-events: none;
-    transition: all 0.3s;
+    transition: border-color 220ms ease;
     transform: translateY(-50%);
 }
 
@@ -171,7 +201,7 @@
 }
 
 .custom-md spoiler {
-  @apply bg-[var(--codeblock-bg)] hover:bg-transparent px-1 py-0.5 overflow-hidden rounded-md transition-all duration-150;
+  @apply bg-[var(--codeblock-bg)] hover:bg-transparent px-1 py-0.5 overflow-hidden rounded-md transition-colors duration-150;
 
   &:not(:hover) {
     color: var(--codeblock-bg);
@@ -179,33 +209,6 @@
         color: var(--codeblock-bg);
     }
   }
-}
-
-/* Animated gradient background */
-@keyframes bg-drift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-#bg-animation {
-  background: linear-gradient(-45deg,
-    oklch(0.95 0.03 var(--hue)),
-    oklch(0.92 0.05 var(--hue)),
-    oklch(0.90 0.06 var(--hue)),
-    oklch(0.93 0.04 var(--hue))
-  );
-  background-size: 400% 400%;
-  animation: bg-drift 20s ease infinite;
-}
-:root.dark #bg-animation {
-  background: linear-gradient(-45deg,
-    oklch(0.18 0.02 var(--hue)),
-    oklch(0.20 0.04 var(--hue)),
-    oklch(0.14 0.03 var(--hue)),
-    oklch(0.22 0.05 var(--hue))
-  );
-  background-size: 400% 400%;
-  animation: bg-drift 20s ease infinite;
 }
 
 /* PC端隐藏移动端TOC按钮（左侧已有侧栏目录） */
@@ -216,25 +219,24 @@
   }
 }
 
-/* 移动端 Wallpaper 确保 cover 生效 */
-@media (max-width: 1023px) {
-  #bg-shapes > div {
-    background-size: cover !important;
-  }
-}
-
-/* ========== 主题模式切换按钮微交互 ========== */
+/* ========== 顶部工具按钮精细按压反馈 ========== */
 #scheme-switch,
 #display-settings-switch {
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease !important;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, color 180ms ease !important;
 }
 #scheme-switch:hover,
 #display-settings-switch:hover {
-  transform: rotate(15deg) scale(1.08) !important;
+  transform: scale(1.06) !important;
 }
 #scheme-switch:active,
 #display-settings-switch:active {
-  transform: rotate(45deg) scale(0.92) !important;
+  transform: scale(0.93) !important;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary) 75%, transparent);
+  outline-offset: 2px;
 }
 
 /* ========== 标签胶囊微动效 (Tag Pill) ========== */
@@ -242,6 +244,7 @@
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
               background-color 180ms ease,
               color 180ms ease,
+              border-color 180ms ease,
               box-shadow 220ms ease !important;
 }
 .tag-pill:hover {

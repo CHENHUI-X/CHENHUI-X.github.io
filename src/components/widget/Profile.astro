@@ -22,16 +22,16 @@ const config = profileConfig;
         <div class="font-bold text-xl text-center mb-1 dark:text-neutral-50 transition">{config.name}</div>
         <div class="h-1 w-5 bg-[var(--primary)] mx-auto rounded-full mb-2 transition"></div>
         <div class="text-center text-neutral-400 mb-2.5 transition">{config.bio}</div>
-        <div class="flex flex-wrap gap-2.5 justify-center mb-1">
+        <div class="flex flex-wrap gap-2 justify-center mb-1">
             {config.links.length > 1 && config.links.map(item =>
                     <a rel="me" aria-label={item.name} title={item.name} href={item.url} target="_blank"
-                       class="btn-regular rounded-xl h-10 w-10 active:scale-90 hover:-translate-y-1 hover:shadow-md hover:bg-[var(--primary)] hover:text-white transition-all duration-200">
-                        <Icon name={item.icon} class="text-[1.35rem]"></Icon>
+                       class="btn-tonal h-9 w-9 hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:text-white hover:border-transparent">
+                        <Icon name={item.icon} class="text-[1.2rem]"></Icon>
                     </a>
             )}
             {config.links.length == 1 && <a rel="me" aria-label={config.links[0].name} title={config.links[0].name} href={config.links[0].url} target="_blank"
-                                            class="btn-regular rounded-xl h-10 gap-2 px-3 font-bold active:scale-95 hover:-translate-y-1 hover:shadow-md hover:bg-[var(--primary)] hover:text-white transition-all duration-200">
-                <Icon name={config.links[0].icon} class="text-[1.35rem]"></Icon>
+                                            class="btn-tonal h-9 gap-2 px-3 font-semibold hover:-translate-y-0.5 hover:bg-[var(--primary)] hover:text-white hover:border-transparent">
+                <Icon name={config.links[0].icon} class="text-[1.2rem]"></Icon>
                 {config.links[0].name}
             </a>}
         </div>

@@ -20,28 +20,28 @@ const len = page.data.length;
 const quickEntries = [
 	{
 		title: "LLM 9 步入门路线",
-		badge: "主线推荐",
+		badge: "9 步主线",
 		desc: "从分词、自回归到量化、单卡微调与推理加速",
 		href: "/posts/2026-06-03-llm-knowledge-map/",
 		icon: "material-symbols:route-outline",
 	},
 	{
 		title: "大模型显存 · 5 篇系列",
-		badge: "深度专题",
+		badge: "5 篇系列",
 		desc: "显存账本拆解、ZeRO、SFT 与 FlashAttention",
 		href: "/topics/#llm-memory",
 		icon: "material-symbols:memory-rounded",
 	},
 	{
 		title: "应用与工程部署",
-		badge: "实战指南",
+		badge: "工程实践",
 		desc: "Agent 环境配置、量化压缩方案与推荐系统实践",
 		href: "/topics/#applications",
 		icon: "material-symbols:rocket-launch-outline-rounded",
 	},
 	{
 		title: "全部文章主题目录",
-		badge: "全站索引",
+		badge: "全部专题",
 		desc: "按问题检索数学基础、因果推断与全部技术文章",
 		href: "/topics/",
 		icon: "material-symbols:grid-view-outline-rounded",
@@ -50,19 +50,19 @@ const quickEntries = [
 ---
 
 <MainGridLayout>
-    {page.currentPage === 1 && <section class="card-base p-5 md:p-7 mb-4" aria-label="阅读入口">
+    {page.currentPage === 1 && <section class="card-base p-5 md:p-7 mb-4" aria-label="专题入口">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div class="flex items-center gap-2.5">
                 <span class="w-1 h-4 rounded-full bg-[var(--primary)]"></span>
-                <h1 class="text-lg md:text-xl font-bold text-black/85 dark:text-white/85">文章分类与学习路线</h1>
+                <h1 class="text-lg md:text-xl font-bold text-black/85 dark:text-white/85">专题入口</h1>
             </div>
-            <span class="text-xs text-black/45 dark:text-white/45">按专题索引阅读 · 下方按发布时间排列</span>
+            <span class="text-xs text-black/45 dark:text-white/45">按主题检索，下方按时间排列</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {quickEntries.map((item) => (
                 <a
                     href={item.href}
-                    class="group flex items-start gap-3.5 p-3.5 rounded-xl border border-black/[0.06] dark:border-white/[0.07] bg-black/[0.015] dark:bg-white/[0.025] hover:bg-[var(--btn-plain-bg-hover)] hover:border-[var(--primary)]/35 transition-[transform,background-color,border-color,box-shadow] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 active:scale-[0.99]"
+                    class="group flex items-start gap-3.5 p-3.5 rounded-[var(--radius-inner)] border border-[var(--border-subtle)] bg-black/[0.015] dark:bg-white/[0.025] hover:bg-[var(--btn-plain-bg-hover)] hover:border-[var(--primary)]/35 transition-[transform,background-color,border-color,box-shadow] duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 active:scale-[0.99]"
                 >
                     <div class="w-9 h-9 rounded-lg bg-[var(--btn-regular-bg)] text-[var(--primary)] flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-200 group-hover:bg-[var(--primary)] group-hover:text-white">
                         <Icon name={item.icon} class="text-lg" />
@@ -72,7 +72,7 @@ const quickEntries = [
                             <span class="font-bold text-sm md:text-[0.95rem] text-black/85 dark:text-white/85 group-hover:text-[var(--primary)] transition-colors truncate">
                                 {item.title}
                             </span>
-                            <span class="text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-[var(--btn-regular-bg)] text-[var(--primary)] shrink-0">
+                            <span class="text-[0.68rem] font-semibold px-2 py-0.5 rounded-full bg-[var(--btn-regular-bg)] border border-[var(--border-subtle)] text-[var(--primary)] shrink-0">
                                 {item.badge}
                             </span>
                         </div>

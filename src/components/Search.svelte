@@ -13,21 +13,23 @@ let isSearching = false;
 let pagefindLoaded = false;
 let initialized = false;
 
+let desktopInputEl: HTMLInputElement | null = null;
+let mobileInputEl: HTMLInputElement | null = null;
+
 const fakeResult: SearchResult[] = [
 	{
 		url: url("/"),
 		meta: {
-			title: "This Is a Fake Search Result",
+			title: "开发环境示例结果",
 		},
-		excerpt:
-			"Because the search cannot work in the <mark>dev</mark> environment.",
+		excerpt: "全文搜索索引仅在生产构建时生成（使用 <mark>pnpm build</mark>）。",
 	},
 	{
-		url: url("/"),
+		url: url("/topics/"),
 		meta: {
-			title: "If You Want to Test the Search",
+			title: "按专题浏览全部文章",
 		},
-		excerpt: "Try running <mark>npm build && npm preview</mark> instead.",
+		excerpt: "可在开发阶段直接通过主题目录或时间归档浏览内容。",
 	},
 ];
 
@@ -93,36 +95,62 @@ onMount(() => {
 			typeof window !== "undefined" &&
 			!!window.pagefind &&
 			typeof window.pagefind.search === "function";
-		console.log("Pagefind status on init:", pagefindLoaded);
 		if (keywordDesktop) search(keywordDesktop, true);
 		if (keywordMobile) search(keywordMobile, false);
 	};
 
+	const onKeydown = (e: KeyboardEvent) => {
+		const target = e.target as HTMLElement | null;
+		const inInput =
+			!!target &&
+			(target.tagName === "INPUT" ||
+				target.tagName === "TEXTAREA" ||
+				target.isContentEditable);
+
+		if (
+			((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) ||
+			(e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !inInput)
+		) {
+			if (desktopInputEl && window.innerWidth >= 1024) {
+				e.preventDefault();
+				desktopInputEl.focus();
+				desktopInputEl.select();
+			}
+			return;
+		}
+
+		if (e.key === "Escape") {
+			const panel = document.getElementById("search-panel");
+			if (panel && !panel.classList.contains("float-panel-closed")) {
+				panel.classList.add("float-panel-closed");
+				desktopInputEl?.blur();
+				mobileInputEl?.blur();
+			}
+		}
+	};
+	window.addEventListener("keydown", onKeydown);
+
 	if (import.meta.env.DEV) {
-		console.log(
-			"Pagefind is not available in development mode. Using mock data.",
-		);
 		initializeSearch();
 	} else {
 		document.addEventListener("pagefindready", () => {
-			console.log("Pagefind ready event received.");
 			initializeSearch();
 		});
 		document.addEventListener("pagefindloaderror", () => {
-			console.warn(
-				"Pagefind load error event received. Search functionality will be limited.",
-			);
 			initializeSearch(); // Initialize with pagefindLoaded as false
 		});
 
 		// Fallback in case events are not caught or pagefind is already loaded by the time this script runs
 		setTimeout(() => {
 			if (!initialized) {
-				console.log("Fallback: Initializing search after timeout.");
 				initializeSearch();
 			}
-		}, 2000); // Adjust timeout as needed
+		}, 2000);
 	}
+
+	return () => {
+		window.removeEventListener("keydown", onKeydown);
+	};
 });
 
 $: if (initialized && keywordDesktop) {
@@ -139,20 +167,21 @@ $: if (initialized && keywordMobile) {
 </script>
 
 <!-- search bar for desktop view -->
-<div id="search-bar" class="hidden lg:flex transition-[background-color,box-shadow,border-color] duration-200 items-center h-10 mr-2 rounded-xl border border-transparent
-      bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.05] focus-within:border-[var(--primary)]/35 focus-within:ring-2 focus-within:ring-[var(--primary)]/15
-      dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/[0.08]
+<div id="search-bar" class="group hidden lg:flex relative transition-[background-color,box-shadow,border-color] duration-200 items-center h-10 mr-1.5 rounded-[var(--radius-btn)] border border-[var(--border-subtle)]
+      bg-black/[0.035] hover:bg-black/[0.055] focus-within:bg-black/[0.045] focus-within:border-[var(--primary)]/40 focus-within:ring-2 focus-within:ring-[var(--primary)]/15
+      dark:bg-white/[0.045] dark:hover:bg-white/[0.08] dark:focus-within:bg-white/[0.07]
 ">
-    <Icon icon="material-symbols:search" class="absolute text-[1.15rem] pointer-events-none ml-3 transition-colors my-auto text-black/35 dark:text-white/35"></Icon>
-    <input placeholder="{i18n(I18nKey.search)}" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}
-           class="transition-[width] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] pl-9 pr-3 text-sm bg-transparent outline-0
-         h-full w-36 active:w-56 focus:w-56 text-black/70 dark:text-white/70"
+    <Icon icon="material-symbols:search" class="absolute text-[1.15rem] pointer-events-none ml-3 transition-colors my-auto text-black/40 dark:text-white/40"></Icon>
+    <input bind:this={desktopInputEl} placeholder="{i18n(I18nKey.search)}" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}
+           class="transition-[width] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] pl-9 pr-8 text-sm bg-transparent outline-0
+         h-full w-36 active:w-56 focus:w-56 text-black/75 dark:text-white/80"
     >
+    <kbd class="pointer-events-none absolute right-2.5 text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border-subtle)] text-black/40 dark:text-white/40 group-focus-within:opacity-0 transition-opacity">/</kbd>
 </div>
 
 <!-- toggle btn for phone/tablet view -->
 <button on:click={togglePanel} aria-label="Search Panel" id="search-switch"
-        class="btn-plain scale-animation lg:!hidden rounded-lg w-11 h-11 active:scale-90">
+        class="btn-plain scale-animation lg:!hidden rounded-[var(--radius-btn)] w-10 h-10 active:scale-90">
     <Icon icon="material-symbols:search" class="text-[1.25rem]"></Icon>
 </button>
 
@@ -161,14 +190,14 @@ $: if (initialized && keywordMobile) {
 top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
 
     <!-- search bar inside panel for phone/tablet -->
-    <div id="search-bar-inside" class="flex relative lg:hidden transition-all items-center h-11 rounded-xl
+    <div id="search-bar-inside" class="flex relative lg:hidden transition-colors items-center h-11 rounded-[var(--radius-btn)]
+      border border-[var(--border-subtle)]
       bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06]
       dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
   ">
-        <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
-        <input placeholder="Search" bind:value={keywordMobile}
-               class="pl-10 absolute inset-0 text-sm bg-transparent outline-0
-               focus:w-60 text-black/50 dark:text-white/50"
+        <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition-colors my-auto text-black/35 dark:text-white/35"></Icon>
+        <input bind:this={mobileInputEl} placeholder="{i18n(I18nKey.search)}" bind:value={keywordMobile}
+               class="pl-10 pr-3 w-full h-full text-sm bg-transparent outline-0 text-black/75 dark:text-white/80"
         >
     </div>
 

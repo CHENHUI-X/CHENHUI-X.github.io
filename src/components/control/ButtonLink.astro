@@ -6,39 +6,23 @@ interface Props {
 }
 const { badge, url, label } = Astro.props;
 ---
-<a href={url} aria-label={label} class="group block">
-    <button
-        class:list={`
-            w-full
-            h-10
-            rounded-xl
-            bg-none
-            hover:bg-[var(--btn-plain-bg-hover)]
-            active:bg-[var(--btn-plain-bg-active)]
-            transition-all duration-200
-            px-2.5
-            group-hover:translate-x-1
-            
-            text-neutral-700
-            hover:text-[var(--primary)]
-            dark:text-neutral-300
-            dark:hover:text-[var(--primary)]
-        `
-        }
-    >
-        <div class="flex items-center justify-between relative">
-            <div class="overflow-hidden text-left whitespace-nowrap overflow-ellipsis font-medium text-sm">
-                <slot></slot>
-            </div>
-            { badge !== undefined && badge !== null && badge !== '' &&
-                <div class="transition-all duration-200 px-2.5 h-6 ml-3 min-w-[1.75rem] rounded-full text-xs font-bold
-                    text-[var(--btn-content)] dark:text-[var(--deep-text)]
-                    bg-[var(--btn-regular-bg)] dark:bg-[var(--primary)]
-                    group-hover:scale-105 group-hover:bg-[var(--primary)] group-hover:text-white
-                    flex items-center justify-center shadow-sm">
-                    { badge }
-                </div>
-            }
-        </div>
-    </button>
+<a href={url} aria-label={label}
+   class="group flex items-center justify-between w-full h-9 rounded-[var(--radius-btn)]
+          px-2.5 text-neutral-700 dark:text-neutral-300
+          hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)]
+          hover:text-[var(--primary)] dark:hover:text-[var(--primary)]
+          transition-[transform,background-color,color] duration-180 ease-[cubic-bezier(0.22,1,0.36,1)]">
+    <span class="overflow-hidden text-left whitespace-nowrap text-ellipsis font-medium text-sm group-hover:translate-x-0.5 transition-transform duration-180">
+        <slot></slot>
+    </span>
+    { badge !== undefined && badge !== null && badge !== '' &&
+        <span class="px-2 h-5 ml-3 min-w-[1.5rem] rounded-full text-xs font-bold tabular-nums
+            text-[var(--btn-content)] dark:text-white/90
+            bg-[var(--btn-regular-bg)] border border-[var(--border-subtle)]
+            group-hover:bg-[var(--primary)] group-hover:text-white group-hover:border-transparent
+            transition-[background-color,color,border-color] duration-180
+            flex items-center justify-center shrink-0">
+            { badge }
+        </span>
+    }
 </a>

@@ -74,12 +74,12 @@ interface ShardPiece {
 const STORAGE_KEY = "chenhui_gate_seen";
 
 const SHARD_TELEMETRY = [
-	"SYS // CHENHUI · 格物 · CRYSTAL GATE",
-	"01 // MATHEMATICS · ANALYSIS · LINEAR ALGEBRA",
-	"02 // MACHINE LEARNING · STATISTICAL INFERENCE",
-	"03 // DEEP LEARNING · OPTIMIZATION · MANIFOLDS",
-	"04 // LARGE LANGUAGE MODELS · ATTENTION · SYSTEMS",
-	"05 // PRISM SEAL ARMED · CLICK TO UNSEAL",
+	"CHENHUI · 格物 · 技术笔记",
+	"01 / 数学基础 · 概率、信息论与线性代数",
+	"02 / 机器学习 · 统计推断与优化方法",
+	"03 / 深度学习 · 网络结构与训练原理",
+	"04 / 大语言模型 · 注意力、显存与对齐",
+	"点击棱镜进入博客",
 ];
 
 const SCRAMBLE_GLYPHS = "0123456789ABCDEF∇∑∫∂λθΩπ/·";
@@ -618,7 +618,7 @@ function renderNavCanvas(
 
 	// Right divider before DOM audio + skip controls
 	if (!isPortrait && w >= 720) {
-		const rightInfoX = w - padX - 178;
+		const rightInfoX = w - padX - 152;
 		ctx.strokeStyle = line;
 		ctx.lineWidth = 1;
 		ctx.beginPath();
@@ -627,10 +627,14 @@ function renderNavCanvas(
 		ctx.stroke();
 
 		const badgeSize = clamp(h * 0.165, 10, 12);
-		ctx.font = `500 ${badgeSize}px "JetBrains Mono Variable", ui-monospace, monospace`;
+		ctx.font = `500 ${badgeSize}px "JetBrains Mono Variable", "PingFang SC", ui-monospace, monospace`;
 		ctx.fillStyle = muted;
 		ctx.textAlign = "right";
-		ctx.fillText(`VOL.01 · ${meta.postCount} DOCS`, rightInfoX, cy + 0.5);
+		ctx.fillText(
+			`${meta.postCount} 篇笔记 · ${meta.topicCount} 个专题`,
+			rightInfoX,
+			cy + 0.5,
+		);
 	}
 
 	return canvas;
@@ -765,7 +769,7 @@ function renderPanelCanvas(
 	ctx.fillStyle = accent;
 	ctx.textAlign = "left";
 	ctx.textBaseline = "middle";
-	ctx.fillText("ISSUE 01  //  MATH · ML · DL · LLM", padX + 28, eyebrowY);
+	ctx.fillText("MATH · ML · DL · LLM", padX + 28, eyebrowY);
 
 	const h1Size = isPortrait
 		? clamp(w * 0.104, 30, 48)
@@ -806,7 +810,7 @@ function renderPanelCanvas(
 	ctx.fillStyle = inkMuted;
 	const epigraphEndY = drawWrappedText(
 		ctx,
-		"Finite life, boundless inquiry — notes on mathematics, learning, and intelligence.",
+		"Notes on mathematics, machine learning, deep learning, and LLMs.",
 		padX,
 		epigraphY,
 		maxTextW,
@@ -830,7 +834,7 @@ function renderPanelCanvas(
 	);
 	const sub2EndY = drawWrappedText(
 		ctx,
-		`沉淀原理推导、模型剖析与工程实践，共收录 ${meta.postCount} 篇技术博客。`,
+		`共收录 ${meta.postCount} 篇笔记，按专题与时间归档。`,
 		padX,
 		sub1EndY + subLineH,
 		maxTextW,
@@ -848,9 +852,9 @@ function renderPanelCanvas(
 		const metricsY = Math.max(h * 0.785, (ctaTopPct / 100) * h + 74);
 		const pad2 = (n: number) => String(n).padStart(2, "0");
 		const stats = [
-			{ val: pad2(meta.postCount), lbl: "ARTICLES" },
-			{ val: pad2(meta.topicCount), lbl: "TOPICS" },
-			{ val: pad2(meta.tagCount), lbl: "TAGS" },
+			{ val: pad2(meta.postCount), lbl: "文章" },
+			{ val: pad2(meta.topicCount), lbl: "专题" },
+			{ val: pad2(meta.tagCount), lbl: "标签" },
 		];
 		const colStep = clamp(w * 0.142, 108, 172);
 		for (let i = 0; i < stats.length; i++) {
@@ -859,7 +863,7 @@ function renderPanelCanvas(
 			ctx.fillStyle = ink;
 			ctx.fillText(stats[i].val, sx, metricsY);
 
-			ctx.font = `500 ${clamp(w * 0.0075, 9, 10.5)}px "JetBrains Mono Variable", ui-monospace, monospace`;
+			ctx.font = `500 ${clamp(w * 0.0085, 10, 11.5)}px "PingFang SC", "Roboto", sans-serif`;
 			ctx.fillStyle = inkMuted;
 			ctx.fillText(stats[i].lbl, sx, metricsY + 22);
 		}
@@ -910,17 +914,17 @@ function renderPanelCanvas(
 	ctx.stroke();
 
 	if (!isPortrait) {
-		ctx.font = `500 ${clamp(w * 0.0072, 9, 10.5)}px "JetBrains Mono Variable", ui-monospace, monospace`;
+		ctx.font = `500 ${clamp(w * 0.0078, 9.5, 11)}px "PingFang SC", "JetBrains Mono Variable", sans-serif`;
 		ctx.fillStyle = inkMuted;
 		ctx.textAlign = "center";
-		ctx.fillText(`HUE ${hue}° · OPTICS`, 0, -sealR - 18);
-		ctx.fillText("CLICK 3D PRISM TO UNSEAL", 0, sealR + 22);
+		ctx.fillText(meta.siteTitle, 0, -sealR - 18);
+		ctx.fillText("点击进入", 0, sealR + 22);
 	}
 
 	ctx.restore();
 
 	const footSize = clamp(isPortrait ? w * 0.025 : w * 0.0082, 9.5, 12);
-	ctx.font = `500 ${footSize}px "JetBrains Mono Variable", ui-monospace, monospace`;
+	ctx.font = `500 ${footSize}px "JetBrains Mono Variable", "PingFang SC", ui-monospace, monospace`;
 	ctx.fillStyle = inkMuted;
 	ctx.textBaseline = "middle";
 
@@ -929,11 +933,11 @@ function renderPanelCanvas(
 
 	if (!isPortrait && w >= 920) {
 		ctx.textAlign = "center";
-		ctx.fillText("CLICK TO UNSEAL  ·  SCROLL OR PRESS ENTER", w * 0.5, footerY);
+		ctx.fillText("下滑或按 Enter 进入", w * 0.5, footerY);
 	}
 
 	ctx.textAlign = "right";
-	ctx.fillText(`UPDATED ${meta.lastUpdated}`, w - padX, footerY);
+	ctx.fillText(`更新于 ${meta.lastUpdated}`, w - padX, footerY);
 
 	return {
 		canvas,
@@ -1102,7 +1106,6 @@ export function initEntranceGate(
 	const navOverlay = root.querySelector<HTMLElement>("#eg-nav-overlay");
 	const shockwaveEl = root.querySelector<HTMLElement>("#eg-shockwave");
 	const openBtns = root.querySelectorAll<HTMLElement>("[data-eg-open]");
-	const routeBtns = root.querySelectorAll<HTMLElement>("[data-eg-route]");
 	const sealHitBtn = root.querySelector<HTMLElement>("#eg-seal-hit");
 	const magneticBtn = root.querySelector<HTMLElement>("#eg-cta-ring");
 	const telemetryEl = root.querySelector<HTMLElement>("#eg-telemetry-text");
@@ -1240,10 +1243,10 @@ export function initEntranceGate(
 		audioSynth.playUnsealChord();
 
 		root.classList.add("is-shattering");
+		document.documentElement.classList.add("gate-revealing");
+		document.documentElement.classList.remove("has-entrance-gate");
 
 		if (!webglReady || reduceMotion) {
-			document.documentElement.classList.add("gate-revealing");
-			document.documentElement.classList.remove("has-entrance-gate");
 			if (backdrop) backdrop.style.opacity = "0";
 			if (fallbackEl) fallbackEl.style.opacity = "0";
 			setTimeout(finishAndCleanup, reduceMotion ? 160 : 480);
@@ -1273,8 +1276,6 @@ export function initEntranceGate(
 
 		setTimeout(() => {
 			if (disposed) return;
-			document.documentElement.classList.add("gate-revealing");
-			document.documentElement.classList.remove("has-entrance-gate");
 			if (backdrop) backdrop.style.opacity = "0";
 		}, 110);
 
@@ -1297,22 +1298,6 @@ export function initEntranceGate(
 	};
 	for (const btn of openBtns) {
 		btn.addEventListener("click", onOpenClick);
-	}
-
-	const onRouteClick = (e: Event) => {
-		e.preventDefault();
-		const btn = e.currentTarget as HTMLElement | null;
-		const me = e as MouseEvent;
-		const href =
-			btn?.getAttribute("data-eg-route") || btn?.getAttribute("href");
-		triggerUnseal(
-			me.clientX || window.innerWidth * 0.5,
-			me.clientY || window.innerHeight * 0.5,
-			href || undefined,
-		);
-	};
-	for (const btn of routeBtns) {
-		btn.addEventListener("click", onRouteClick);
 	}
 
 	let isSealHovered = false;
@@ -1362,8 +1347,8 @@ export function initEntranceGate(
 			clearTimeout(wheelTimer);
 			wheelTimer = setTimeout(() => {
 				wheelAccum = 0;
-			}, 300);
-			if (wheelAccum > 110) {
+			}, 500);
+			if (wheelAccum >= 36) {
 				triggerUnseal(window.innerWidth * 0.5, window.innerHeight * 0.5);
 			}
 		}
@@ -1507,9 +1492,6 @@ export function initEntranceGate(
 		for (const btn of openBtns) {
 			btn.removeEventListener("click", onOpenClick);
 		}
-		for (const btn of routeBtns) {
-			btn.removeEventListener("click", onRouteClick);
-		}
 		if (sealHitBtn) {
 			sealHitBtn.removeEventListener("click", onSealClick);
 			sealHitBtn.removeEventListener("pointerenter", onSealEnter);
@@ -1576,7 +1558,7 @@ export function initEntranceGate(
 		return () => finishAndCleanup();
 	}
 
-	renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+	renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
 	renderer.setClearColor(0x000000, 0);
 	renderer.outputColorSpace = THREE.SRGBColorSpace;
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -2167,11 +2149,11 @@ if (uRippleAge < 1.4) {
 			bevelEnabled: true,
 			bevelThickness: bevelSize,
 			bevelSize,
-			bevelSegments: 2,
-			curveSegments: 5,
+			bevelSegments: 1,
+			curveSegments: 3,
 		});
 
-		const faceGeo = new THREE.ShapeGeometry(shape, 5);
+		const faceGeo = new THREE.ShapeGeometry(shape, 3);
 		const facePosAttr = faceGeo.attributes.position;
 		const uvs = new Float32Array(facePosAttr.count * 2);
 		for (let i = 0; i < facePosAttr.count; i++) {
@@ -2184,7 +2166,7 @@ if (uRippleAge < 1.4) {
 		uvAttr.setUsage(THREE.DynamicDrawUsage);
 		faceGeo.setAttribute("uv", uvAttr);
 
-		const shadowGeo = new THREE.ShapeGeometry(shape, 4);
+		const shadowGeo = new THREE.ShapeGeometry(shape, 2);
 
 		const centroidWeights = computeMVC(centroid.x, centroid.y, restCopy);
 		const bodyWeights = bakeMorphWeights(
@@ -2311,11 +2293,11 @@ if (uRippleAge < 1.4) {
 			bevelEnabled: true,
 			bevelThickness: bevelSize * 0.9,
 			bevelSize: bevelSize * 0.9,
-			bevelSegments: 2,
-			curveSegments: 5,
+			bevelSegments: 1,
+			curveSegments: 3,
 		});
 
-		const faceGeo = new THREE.ShapeGeometry(shape, 5);
+		const faceGeo = new THREE.ShapeGeometry(shape, 3);
 		const posAttr = faceGeo.attributes.position;
 		const uvs = new Float32Array(posAttr.count * 2);
 		for (let i = 0; i < posAttr.count; i++) {
@@ -2324,7 +2306,7 @@ if (uRippleAge < 1.4) {
 		}
 		faceGeo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
 
-		const shadowGeo = new THREE.ShapeGeometry(shape, 4);
+		const shadowGeo = new THREE.ShapeGeometry(shape, 2);
 
 		piece.bodyMesh.geometry?.dispose?.();
 		piece.faceMesh.geometry?.dispose?.();
@@ -2416,7 +2398,7 @@ if (uRippleAge < 1.4) {
 		H = window.innerHeight;
 		isPortrait = W < 768 || H > W * 1.15;
 
-		const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+		const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
 		renderer.setPixelRatio(dpr);
 		renderer.setSize(W, H, false);
 		if (vortexUniforms) vortexUniforms.uDpr.value = dpr;
@@ -2460,7 +2442,7 @@ if (uRippleAge < 1.4) {
 		sharedGlassUniforms.uGlowRadius.value = 310 * scaleS;
 		planeZ.constant = -(extrudeDepth + bevelSize);
 
-		const texDpr = clamp(window.devicePixelRatio || 1.5, 1.5, 2);
+		const texDpr = clamp(window.devicePixelRatio || 1.25, 1.25, 1.5);
 		const navCanvas = renderNavCanvas(
 			blockW,
 			navH,
@@ -2674,6 +2656,7 @@ if (uRippleAge < 1.4) {
 
 	// ── Main 60/120fps Zero-Allocation Render Loop ───────────────────
 	let lastTime = performance.now();
+	let lastMorphTs = 0;
 	const startTime = lastTime;
 
 	renderer.compile(scene, camera);
@@ -2759,8 +2742,13 @@ if (uRippleAge < 1.4) {
 		smoothTiltY += (targetRotY - smoothTiltY) * tiltLerp;
 		slabGroup.rotation.set(smoothTiltX, smoothTiltY, 0);
 
-		// Silky 60/120fps breathing Voronoi seams via zero-alloc MVC morphing
-		if (phase === "idle") {
+		if (phase === "shattering" && burstProgress > 0.4 && causticMesh.visible) {
+			causticMesh.visible = false;
+		}
+
+		// Throttled 30Hz breathing Voronoi seams via zero-alloc MVC morphing (cuts CPU vertex loop in half)
+		if (phase === "idle" && now - lastMorphTs >= 32) {
+			lastMorphTs = now;
 			evaluatePolygonsInPlace(elapsed, ptrPanelU, ptrPanelV, ptrActive);
 			for (let i = 0; i < 5; i++) {
 				morphShardInPlace(pieces[i + 1], curPolys[i]);

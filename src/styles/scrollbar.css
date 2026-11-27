@@ -1,5 +1,5 @@
 .scrollbar-base.os-scrollbar {
-    @apply transition-all;
+    transition: opacity 200ms ease, background-color 200ms ease;
     pointer-events: unset;
 
     &.os-scrollbar-horizontal {

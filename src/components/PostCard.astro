@@ -43,7 +43,7 @@ const coverWidth = "28%";
 const { remarkPluginFrontmatter } = await entry.render();
 ---
 <div class:list={["card-base card-hover group/card flex flex-col-reverse md:flex-col w-full rounded-[var(--radius-large)] overflow-hidden relative", className]} style={style}>
-    <div class:list={["pl-6 md:pl-8 pr-6 md:pr-4 pt-5 md:pt-6 pb-5 relative", {"w-full md:w-[calc(100%_-_3.5rem_-_12px)]": !hasCover, "w-full md:w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
+    <div class:list={["pl-6 md:pl-8 pr-6 md:pr-4 pt-5 md:pt-6 pb-5 relative", {"w-full md:w-[calc(100%_-_4.25rem)]": !hasCover, "w-full md:w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
         <a href={url}
            class="transition-colors duration-200 group w-full block font-bold mb-2.5 text-xl md:text-[1.4rem] leading-[1.42] tracking-tight text-90
         hover:text-[var(--primary)] dark:hover:text-[var(--primary)]
@@ -71,13 +71,13 @@ const { remarkPluginFrontmatter } = await entry.render();
         </div>
 
         <!-- word count and read time -->
-        <div class="text-xs text-black/45 dark:text-white/45 flex items-center gap-2.5">
-            <span class="inline-flex items-center gap-1 bg-black/[0.035] dark:bg-white/[0.055] px-2.5 py-1 rounded-md tabular-nums">
-                <Icon name="material-symbols:notes-rounded" class="text-[0.9rem] opacity-70" />
+        <div class="text-xs text-black/50 dark:text-white/50 flex items-center gap-2">
+            <span class="inline-flex items-center gap-1 bg-black/[0.03] dark:bg-white/[0.045] border border-[var(--border-subtle)] px-2.5 py-0.5 rounded-md tabular-nums">
+                <Icon name="material-symbols:notes-rounded" class="text-[0.9rem] opacity-75" />
                 {remarkPluginFrontmatter.words} {" " + i18n(remarkPluginFrontmatter.words === 1 ? I18nKey.wordCount : I18nKey.wordsCount)}
             </span>
-            <span class="inline-flex items-center gap-1 bg-black/[0.035] dark:bg-white/[0.055] px-2.5 py-1 rounded-md tabular-nums">
-                <Icon name="material-symbols:schedule-outline-rounded" class="text-[0.9rem] opacity-70" />
+            <span class="inline-flex items-center gap-1 bg-black/[0.03] dark:bg-white/[0.045] border border-[var(--border-subtle)] px-2.5 py-0.5 rounded-md tabular-nums">
+                <Icon name="material-symbols:schedule-outline-rounded" class="text-[0.9rem] opacity-75" />
                 {remarkPluginFrontmatter.minutes} {" " + i18n(remarkPluginFrontmatter.minutes === 1 ? I18nKey.minuteCount : I18nKey.minutesCount)}
             </span>
         </div>
@@ -101,13 +101,12 @@ const { remarkPluginFrontmatter } = await entry.render();
     </a>}
 
     {!hasCover &&
-        <a href={url} aria-label={title} class="!hidden md:!flex btn-regular w-11
-         absolute right-3 top-3 bottom-3 rounded-xl bg-[var(--enter-btn-bg)]
-         hover:bg-[var(--primary)] group-hover/card:bg-[var(--primary)] active:scale-95
-         transition-[background-color,transform] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]
+        <a href={url} aria-label={title} class="!hidden md:!flex btn-tonal w-10 h-10
+         absolute right-5 top-1/2 -translate-y-1/2 rounded-[var(--radius-btn)]
+         group-hover/card:bg-[var(--primary)] group-hover/card:border-transparent
         ">
             <Icon name="material-symbols:chevron-right-rounded"
-                  class="transition-[color,transform] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] text-[var(--primary)] group-hover/card:text-white group-hover/card:translate-x-0.5 text-3xl mx-auto">
+                  class="transition-[color,transform] duration-220 ease-[cubic-bezier(0.22,1,0.36,1)] text-[var(--primary)] group-hover/card:text-white group-hover/card:translate-x-0.5 text-2xl">
             </Icon>
         </a>
     }

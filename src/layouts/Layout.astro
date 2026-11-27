@@ -75,15 +75,14 @@ const bannerOffset =
 ---
 
 <!DOCTYPE html>
-<html lang={siteLang} class="bg-transparent transition text-[14px] md:text-[16px]"
-	  data-overlayscrollbars-initialize
+<html lang={siteLang} class="bg-transparent text-[14px] md:text-[16px]"
 >
 	<head>
 
 		<title>{pageTitle}</title>
 
 		<!-- Google tag (gtag.js) -->
-		<script is:inline src="https://www.googletagmanager.com/gtag/js?id=G-P9JSV1JJEK"></script>
+		<script is:inline async src="https://www.googletagmanager.com/gtag/js?id=G-P9JSV1JJEK"></script>
 		<script is:inline>
 			window.dataLayer = window.dataLayer || [];
 			function gtag(){dataLayer.push(arguments);}
@@ -181,45 +180,29 @@ const bannerOffset =
 		<link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
 		<link rel="dns-prefetch" href="https://waline-comment-smoky.vercel.app" />
 
-		<!-- ═══ 背景渐变动画：内联 CSS，首帧即生效，零 JS 延迟 ═══ -->
+		<!-- ═══ 静态零重绘技术感背景层（随 --hue 与明暗模式响应） ═══ -->
 		<style>
-			@keyframes bg-grad-light {
-				0%   { background-color: rgb(255,150,170); }
-				20%  { background-color: rgb(255,195,130); }
-				40%  { background-color: rgb(185,145,255); }
-				60%  { background-color: rgb(130,200,255); }
-				80%  { background-color: rgb(140,235,200); }
-				100% { background-color: rgb(255,150,170); }
-			}
-			@keyframes bg-grad-dark {
-				0%   { background-color: rgb(90,20,45); }
-				20%  { background-color: rgb(85,48,12); }
-				40%  { background-color: rgb(38,12,88); }
-				60%  { background-color: rgb(12,38,88); }
-				80%  { background-color: rgb(12,65,52); }
-				100% { background-color: rgb(90,20,45); }
-			}
-			@keyframes bg-float-square {
-				0%   { transform:translateY(0) rotate(0deg); opacity:1; }
-				100% { transform:translateY(-1200px) rotate(720deg); opacity:0; }
-			}
-			@keyframes bg-float-shape {
-				0%   { transform:translateY(0) rotate(0deg); opacity:1; }
-				100% { transform:translateY(-1200px) rotate(720deg); opacity:0; }
-			}
-			@keyframes bg-float-circle {
-				0%   { transform:translateY(0) rotate(0deg); opacity:1; }
-				100% { transform:translateY(-1200px) rotate(720deg); opacity:0; }
-			}
 			#bg-gradient-layer {
-				animation: bg-grad-light 25s ease-in-out infinite;
+				background:
+					radial-gradient(ellipse 90% 70% at 14% 12%, oklch(0.92 0.045 var(--hue) / 0.55), transparent 62%),
+					radial-gradient(ellipse 80% 65% at 88% 82%, oklch(0.91 0.04 calc(var(--hue) + 38) / 0.45), transparent 60%),
+					var(--page-bg);
 			}
 			.dark #bg-gradient-layer {
-				animation: bg-grad-dark 25s ease-in-out infinite;
+				background:
+					radial-gradient(ellipse 90% 70% at 16% 12%, oklch(0.24 0.055 var(--hue) / 0.55), transparent 60%),
+					radial-gradient(ellipse 80% 65% at 86% 84%, oklch(0.20 0.05 calc(var(--hue) + 42) / 0.45), transparent 60%),
+					var(--page-bg);
 			}
-			.bg-scroll-active #bg-gradient-layer,
-			.bg-scroll-active [class*="bg-float-"] {
-				animation-play-state: paused !important;
+			#bg-dot-grid {
+				position: absolute;
+				inset: 0;
+				pointer-events: none;
+				background-image: radial-gradient(rgba(15, 23, 42, 0.055) 1px, transparent 1px);
+				background-size: 24px 24px;
+			}
+			.dark #bg-dot-grid {
+				background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
 			}
 
 			/* 顶部极简渐变阅读进度条：纯 GPU scaleX 合成，零 Layout 重排，1:1 紧贴滚动 */
@@ -240,25 +223,22 @@ const bannerOffset =
 		</style>
 
 	</head>
-	<body class=" min-h-screen transition relative" class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
-		  data-overlayscrollbars-initialize
+	<body class="min-h-screen relative" class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 	>
-		<!-- 顶部流动阅读进度条、晶体扉页开屏 & 右下角快捷悬浮按钮（置于 will-change 层之外，确保 fixed 相对于视口定位） -->
+		<!-- 顶部流动阅读进度条、晶体扉页开屏 & 右下角快捷悬浮按钮 -->
 		<div id="reading-progress-bar" aria-hidden="true"></div>
 		<EntranceGate></EntranceGate>
 		<BackToTop></BackToTop>
 		<ConfigCarrier></ConfigCarrier>
 
-			<!-- Background: animated gradient + floating shapes -->
-			<div id="bg-shapes" style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;">
-				<div id="bg-gradient-layer" style="position:absolute;inset:0;pointer-events:none;"></div>
-			</div>
-		<div id="content-layer" class="relative" style="z-index:1;will-change:transform">
+		<!-- Background: static hue ambient + engineering dot grid + wallpaper -->
+		<div id="bg-shapes" style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;">
+			<div id="bg-gradient-layer" style="position:absolute;inset:0;pointer-events:none;"></div>
+			<div id="bg-dot-grid" aria-hidden="true"></div>
+		</div>
+		<div id="content-layer" class="relative" style="z-index:1;">
 			<slot />
 		</div>
-
-		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
-		<div id="page-height-extend" class="hidden h-[300vh]"></div>
 
 		<script is:inline src="/js/bg-anim.js"></script>
 		</body>
@@ -302,13 +282,6 @@ const bannerOffset =
 
 
 	<script>
-	import 'overlayscrollbars/overlayscrollbars.css';
-	import {
-		OverlayScrollbars,
-		// ScrollbarsHidingPlugin,
-		// SizeObserverPlugin,
-		// ClickScrollPlugin
-	} from 'overlayscrollbars';
 	import {getHue, getStoredTheme, setHue, setTheme} from "../utils/setting-utils";
 	import {pathsEqual, url} from "../utils/url-utils";
 	import {
@@ -393,28 +366,6 @@ const bannerOffset =
 		setHue(getHue())
 	}
 
-	let bodyScrollbarInited = false;
-	function initCustomScrollbar() {
-		if (bodyScrollbarInited) return;
-		const bodyElement = document.querySelector('body');
-		if (!bodyElement) return;
-		bodyScrollbarInited = true;
-		OverlayScrollbars(
-			{
-				target: bodyElement,
-				cancel: {
-					nativeScrollbarsOverlaid: true,    // don't initialize the overlay scrollbar if there is a native one
-				}
-			}, {
-			scrollbars: {
-				theme: 'scrollbar-base scrollbar-auto py-1',
-				autoHide: 'move',
-				autoHideDelay: 500,
-				autoHideSuspend: false,
-			},
-		});
-	}
-
 	function showBanner() {
 		if (!siteConfig.banner.enable) return;
 
@@ -428,10 +379,8 @@ const bannerOffset =
 	}
 
 	function init() {
-		// disableAnimation()()		// TODO
 		loadTheme();
 		loadHue();
-		initCustomScrollbar();
 		showBanner();
 	}
 
@@ -469,9 +418,8 @@ const bannerOffset =
 			}
 		})
 		window.swup.hooks.on('visit:start', (visit: {to: {url: string}}) => {
-			// 标记已进入 Swup SPA 导航，并暂停背景动画把 100% 帧预算留给切页过渡
+			// 标记已进入 Swup SPA 导航
 			document.documentElement.classList.add('swup-navigated', 'is-rendering');
-			document.getElementById('bg-shapes')?.classList.add('bg-scroll-active');
 			if (readingProgressBar) {
 				readingProgressBar.style.transform = 'scaleX(0)';
 			}
@@ -481,12 +429,6 @@ const bannerOffset =
 				bodyElement!.classList.add('lg:is-home');
 			} else {
 				bodyElement!.classList.remove('lg:is-home');
-			}
-
-			// increase the page height during page transition to prevent the scrolling animation from jumping
-			const heightExtend = document.getElementById('page-height-extend')
-			if (heightExtend) {
-				heightExtend.classList.remove('hidden')
 			}
 
 			// Hide the TOC while scrolling back to top
@@ -525,17 +467,9 @@ const bannerOffset =
 			readingProgressBar = document.getElementById('reading-progress-bar');
 			fabProgressRing = document.getElementById('fab-progress-ring') as SVGCircleElement | null;
 			updateReadingProgress();
-
-			// hide the temp high element when the transition is done
-			const heightExtend = document.getElementById('page-height-extend')
-			if (heightExtend) {
-				heightExtend.classList.add('hidden')
-			}
 		});
 		window.swup.hooks.on('visit:end', (_visit: {to: {url: string}}) => {
 			setTimeout(() => {
-				// 恢复背景动画
-				document.getElementById('bg-shapes')?.classList.remove('bg-scroll-active');
 				// 页面 DOM 已更新，重新获取按钮/目录/导航栏引用
 				backToTopBtn = document.getElementById('back-to-top-btn')
 				goToBottomBtn = document.getElementById('go-to-bottom-btn')
@@ -544,11 +478,6 @@ const bannerOffset =
 				readingProgressBar = document.getElementById('reading-progress-bar')
 				fabProgressRing = document.getElementById('fab-progress-ring') as SVGCircleElement | null
 				updateReadingProgress()
-
-				const heightExtend = document.getElementById('page-height-extend')
-				if (heightExtend) {
-					heightExtend.classList.add('hidden')
-				}
 
 	            // Just make the transition looks better
 	            /* toc already updated above */
@@ -592,32 +521,19 @@ const bannerOffset =
 		}
 	}
 
+	let lastFloatingHidden = true;
 	function scrollFunction() {
 		updateReadingProgress();
-		let bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100)
+		let bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
+		const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
+		const shouldHideFloating = scrollTop <= bannerHeight;
 
-		if (backToTopBtn) {
-			if (document.body.scrollTop > bannerHeight || document.documentElement.scrollTop > bannerHeight) {
-				backToTopBtn.classList.remove('hide')
-			} else {
-				backToTopBtn.classList.add('hide')
-			}
-		}
-
-		// 跳底部按钮：与回顶部按钮同步出现/隐藏
-		if (goToBottomBtn) {
-			if (document.body.scrollTop > bannerHeight || document.documentElement.scrollTop > bannerHeight) {
-				goToBottomBtn.classList.remove('hide')
-			} else {
-				goToBottomBtn.classList.add('hide')
-			}
-		}
-
-		if (bannerEnabled && toc) {
-			if (document.body.scrollTop > bannerHeight || document.documentElement.scrollTop > bannerHeight) {
-				toc.classList.remove('toc-hide')
-			} else {
-				toc.classList.add('toc-hide')
+		if (shouldHideFloating !== lastFloatingHidden) {
+			lastFloatingHidden = shouldHideFloating;
+			backToTopBtn?.classList.toggle('hide', shouldHideFloating);
+			goToBottomBtn?.classList.toggle('hide', shouldHideFloating);
+			if (bannerEnabled && toc) {
+				toc.classList.toggle('toc-hide', shouldHideFloating);
 			}
 		}
 
@@ -631,14 +547,10 @@ const bannerOffset =
 				bannerHeight = BANNER_HEIGHT_HOME
 			}
 			let threshold = window.innerHeight * (bannerHeight / 100) - NAVBAR_HEIGHT - MAIN_PANEL_EXCESS_HEIGHT - 16
-			if (document.body.scrollTop >= threshold || document.documentElement.scrollTop >= threshold) {
-				navbar.classList.add('navbar-hidden')
-			} else {
-				navbar.classList.remove('navbar-hidden')
-			}
+			navbar.classList.toggle('navbar-hidden', scrollTop >= threshold);
 		}
 	}
-	// 性能优化：使用 rAF 节流，避免每帧多次 DOM 操作
+	// 性能优化：使用 rAF 节流 + passive 监听，避免滚动阻塞主线程
 	let ticking = false;
 	window.addEventListener('scroll', () => {
 		if (!ticking) {
@@ -648,7 +560,7 @@ const bannerOffset =
 			});
 			ticking = true;
 		}
-	});
+	}, { passive: true });
 
 	function resizeHandler() {
 		// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text

@@ -215,45 +215,39 @@ const slug = postEntry.slug;
 	--waline-avatar-radius: 50% !important;
 }
 
-/* ── 1. 表情投票卡片（Reaction Widget）独立小按钮胶囊重构 ── */
+/* ── 1. 表情投票卡片（Reaction Widget）统一卡片容器与胶囊按钮 ── */
 :global(#waline-container .wl-reaction) {
 	margin: 2rem auto 1.5rem !important;
-	padding: 1.25rem 1.25rem 1.25rem !important;
-	background: rgba(255, 255, 255, 0.86) !important;
-	border: 1px solid rgba(255, 255, 255, 0.65) !important;
-	border-radius: 1.25rem !important;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+	padding: 1.25rem !important;
+	background: var(--surface-card) !important;
+	border: 1px solid var(--border-subtle) !important;
+	border-radius: var(--radius-large) !important;
+	box-shadow: var(--card-highlight), 0 4px 16px -4px rgba(15, 23, 42, 0.05) !important;
 	max-width: 38rem !important;
 	text-align: center !important;
 	overflow: visible !important;
 }
 :global(:root.dark #waline-container .wl-reaction) {
-	background: rgba(30, 20, 40, 0.65) !important;
-	border: 1px solid rgba(255, 255, 255, 0.08) !important;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+	background: var(--surface-card) !important;
+	border: 1px solid var(--border-subtle) !important;
+	box-shadow: var(--card-highlight), 0 6px 20px rgba(0, 0, 0, 0.28) !important;
 }
 :global(#waline-container .wl-reaction-title) {
-	font-size: 0.95rem !important;
-	font-weight: 700 !important;
+	font-size: 0.92rem !important;
+	font-weight: 600 !important;
 	margin: 0 0 1rem !important;
-	color: var(--text-90, #333) !important;
+	color: var(--text-90) !important;
 	letter-spacing: 0.02em !important;
 	display: flex !important;
 	align-items: center !important;
 	justify-content: center !important;
 	gap: 0.5rem !important;
 }
-:global(#waline-container .wl-reaction-title::before),
-:global(#waline-container .wl-reaction-title::after) {
-	content: "✨";
-	font-size: 0.9rem;
-	opacity: 0.85;
-}
 :global(#waline-container .wl-reaction-list) {
 	display: flex !important;
 	flex-wrap: wrap !important;
 	justify-content: center !important;
-	gap: 0.65rem !important;
+	gap: 0.6rem !important;
 	padding: 0 !important;
 	margin: 0 !important;
 	overflow: visible !important;
@@ -265,29 +259,29 @@ const slug = postEntry.slug;
 	justify-content: center !important;
 	padding: 0.6rem 0.75rem 0.5rem !important;
 	min-width: 4rem !important;
-	border-radius: 0.875rem !important;
+	border-radius: var(--radius-inner) !important;
 	background: rgba(128, 128, 128, 0.04) !important;
-	border: 1px solid rgba(128, 128, 128, 0.08) !important;
+	border: 1px solid var(--border-subtle) !important;
 	cursor: pointer !important;
-	transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+	transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, border-color 180ms ease, box-shadow 220ms ease !important;
 }
 :global(:root.dark #waline-container .wl-reaction-item) {
 	background: rgba(255, 255, 255, 0.03) !important;
-	border: 1px solid rgba(255, 255, 255, 0.06) !important;
+	border: 1px solid var(--border-subtle) !important;
 }
 :global(#waline-container .wl-reaction-item:hover) {
-	transform: translateY(-4px) !important;
-	background: rgba(255, 255, 255, 0.95) !important;
+	transform: translateY(-2px) !important;
+	background: var(--surface-card-hover) !important;
 	border-color: var(--primary) !important;
-	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--primary) !important;
+	box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06) !important;
 }
 :global(:root.dark #waline-container .wl-reaction-item:hover) {
-	background: rgba(45, 30, 60, 0.8) !important;
+	background: var(--surface-card-hover) !important;
 	border-color: var(--primary) !important;
-	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--primary) !important;
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.34) !important;
 }
 :global(#waline-container .wl-reaction-item:active) {
-	transform: translateY(0) scale(0.95) !important;
+	transform: translateY(0) scale(0.96) !important;
 }
 :global(#waline-container .wl-reaction-img) {
 	display: flex !important;
@@ -303,10 +297,10 @@ const slug = postEntry.slug;
 	height: 36px !important;
 	margin-bottom: 0.35rem !important;
 	object-fit: contain !important;
-	transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+	transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 :global(#waline-container .wl-reaction-item:hover .wl-reaction-img img) {
-	transform: scale(1.15) !important;
+	transform: scale(1.08) !important;
 }
 :global(#waline-container .wl-reaction-votes) {
 	position: static !important;
@@ -316,31 +310,31 @@ const slug = postEntry.slug;
 	padding: 0 6px !important;
 	font-size: 0.72rem !important;
 	font-weight: 700 !important;
+	font-variant-numeric: tabular-nums !important;
 	border-radius: 9999px !important;
 	display: inline-flex !important;
 	align-items: center !important;
 	justify-content: center !important;
 	background: rgba(128, 128, 128, 0.08) !important;
-	border: 1px solid rgba(128, 128, 128, 0.12) !important;
-	color: var(--text-75, #666) !important;
+	border: 1px solid var(--border-subtle) !important;
+	color: var(--text-75) !important;
 	box-shadow: none !important;
-	transition: all 0.25s ease !important;
+	transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease !important;
 }
 :global(:root.dark #waline-container .wl-reaction-votes) {
 	background: rgba(255, 255, 255, 0.06) !important;
-	border-color: rgba(255, 255, 255, 0.1) !important;
-	color: var(--text-75, #ccc) !important;
+	border-color: var(--border-subtle) !important;
+	color: var(--text-75) !important;
 }
 :global(#waline-container .wl-reaction-item:hover .wl-reaction-votes),
 :global(#waline-container .wl-reaction-item.active .wl-reaction-votes) {
 	background: var(--primary) !important;
 	border-color: var(--primary) !important;
 	color: #ffffff !important;
-	box-shadow: 0 2px 8px var(--primary) !important;
 }
 :global(#waline-container .wl-reaction-item.active) {
 	border-color: var(--primary) !important;
-	box-shadow: 0 0 0 1.5px var(--primary), 0 4px 14px rgba(0, 0, 0, 0.06) !important;
+	box-shadow: 0 0 0 1px var(--primary), 0 4px 12px rgba(15, 23, 42, 0.06) !important;
 }
 :global(#waline-container .wl-reaction-loading) {
 	position: static !important;
@@ -363,35 +357,35 @@ const slug = postEntry.slug;
 	}
 }
 
-/* ── 2. 评论主输入框（Panel & Editor）毛玻璃卡片化 ── */
+/* ── 2. 评论主输入框（Panel & Editor）统一卡片外观 ── */
 :global(#waline-container .wl-panel) {
 	margin: 1.5rem 0 2rem !important;
-	border-radius: 1.25rem !important;
-	border: 1px solid rgba(255, 255, 255, 0.65) !important;
-	background: rgba(255, 255, 255, 0.88) !important;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+	border-radius: var(--radius-large) !important;
+	border: 1px solid var(--border-subtle) !important;
+	background: var(--surface-card) !important;
+	box-shadow: var(--card-highlight), 0 4px 18px -4px rgba(15, 23, 42, 0.05) !important;
 	overflow: hidden !important;
-	transition: border-color 0.3s ease, box-shadow 0.3s ease !important;
+	transition: border-color 220ms ease, box-shadow 220ms ease !important;
 }
 :global(:root.dark #waline-container .wl-panel) {
-	background: rgba(30, 20, 40, 0.75) !important;
-	border: 1px solid rgba(255, 255, 255, 0.08) !important;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+	background: var(--surface-card) !important;
+	border: 1px solid var(--border-subtle) !important;
+	box-shadow: var(--card-highlight), 0 6px 20px rgba(0, 0, 0, 0.28) !important;
 }
 :global(#waline-container .wl-panel:focus-within) {
 	border-color: var(--primary) !important;
-	box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--primary) !important;
+	box-shadow: 0 8px 26px rgba(15, 23, 42, 0.08), 0 0 0 1px var(--primary) !important;
 }
 
 /* ── 3. 移除廉价虚线，改用细致微边框 ── */
 :global(#waline-container .wl-header) {
-	border-bottom: 1px solid rgba(128, 128, 128, 0.08) !important;
-	background: rgba(128, 128, 128, 0.03) !important;
+	border-bottom: 1px solid var(--border-subtle) !important;
+	background: rgba(128, 128, 128, 0.025) !important;
 	padding: 0.25rem 0.5rem !important;
 }
 :global(#waline-container .wl-header-item) {
 	border-bottom: none !important;
-	border-right: 1px solid rgba(128, 128, 128, 0.08) !important;
+	border-right: 1px solid var(--border-subtle) !important;
 }
 :global(#waline-container .wl-header-item:last-child) {
 	border-right: none !important;
@@ -432,9 +426,9 @@ const slug = postEntry.slug;
 	background: transparent !important;
 }
 
-/* ── 4. 底部工具栏与按钮现代化 ── */
+/* ── 4. 底部工具栏与按钮统一规范 ── */
 :global(#waline-container .wl-footer) {
-	border-top: 1px solid rgba(128, 128, 128, 0.08) !important;
+	border-top: 1px solid var(--border-subtle) !important;
 	background: rgba(128, 128, 128, 0.02) !important;
 	padding: 0.6rem 1rem !important;
 	align-items: center !important;
@@ -443,23 +437,23 @@ const slug = postEntry.slug;
 	width: 2rem !important;
 	height: 2rem !important;
 	border-radius: 0.5rem !important;
-	transition: all 0.2s ease !important;
-	color: rgba(128, 128, 128, 0.65) !important;
+	transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, color 180ms ease !important;
+	color: var(--text-50) !important;
 }
 :global(#waline-container .wl-action:hover) {
 	background: rgba(128, 128, 128, 0.08) !important;
 	color: var(--primary) !important;
-	transform: translateY(-1px) scale(1.1) !important;
+	transform: translateY(-1px) scale(1.06) !important;
 }
 :global(#waline-container .wl-btn) {
-	border-radius: 0.75rem !important;
-	padding: 0.45rem 1.15rem !important;
+	border-radius: var(--radius-btn) !important;
+	padding: 0.42rem 1.1rem !important;
 	font-weight: 600 !important;
 	font-size: 0.85rem !important;
-	transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+	transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 180ms ease, border-color 180ms ease, color 180ms ease, filter 180ms ease !important;
 }
 :global(#waline-container .wl-btn:not(.primary)) {
-	border: 1px solid rgba(128, 128, 128, 0.18) !important;
+	border: 1px solid var(--border-strong) !important;
 	background: transparent !important;
 	color: inherit !important;
 }
@@ -473,15 +467,14 @@ const slug = postEntry.slug;
 	background: var(--primary) !important;
 	border: none !important;
 	color: #ffffff !important;
-	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 4px 12px -4px color-mix(in oklab, var(--primary) 45%, transparent) !important;
 }
 :global(#waline-container .wl-btn.primary:hover) {
-	transform: translateY(-2px) scale(1.03) !important;
-	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15) !important;
+	transform: translateY(-1px) !important;
 	filter: brightness(1.06) !important;
 }
 :global(#waline-container .wl-btn.primary:active) {
-	transform: translateY(0) scale(0.96) !important;
+	transform: translateY(0) scale(0.97) !important;
 }
 
 /* ── 5. 排序选项与统计头 ── */
@@ -490,11 +483,12 @@ const slug = postEntry.slug;
 	align-items: center !important;
 	margin-bottom: 1rem !important;
 	padding-bottom: 0.75rem !important;
-	border-bottom: 1px solid rgba(128, 128, 128, 0.1) !important;
+	border-bottom: 1px solid var(--border-subtle) !important;
 }
 :global(#waline-container .wl-count) {
 	font-size: 1.15rem !important;
 	font-weight: 700 !important;
+	font-variant-numeric: tabular-nums !important;
 }
 :global(#waline-container .wl-sort li) {
 	padding: 0.25rem 0.75rem !important;
@@ -502,8 +496,8 @@ const slug = postEntry.slug;
 	font-size: 0.8rem !important;
 	font-weight: 500 !important;
 	cursor: pointer !important;
-	transition: all 0.2s ease !important;
-	color: var(--text-50, #888) !important;
+	transition: background-color 180ms ease, color 180ms ease !important;
+	color: var(--text-50) !important;
 }
 :global(#waline-container .wl-sort li:hover) {
 	color: var(--primary) !important;
@@ -517,7 +511,7 @@ const slug = postEntry.slug;
 /* ── 6. 评论卡片细节 ── */
 :global(#waline-container .wl-card) {
 	padding: 1.25rem 0 !important;
-	border-bottom: 1px solid rgba(128, 128, 128, 0.08) !important;
+	border-bottom: 1px solid var(--border-subtle) !important;
 }
 :global(#waline-container .wl-user) {
 	font-weight: 600 !important;
