@@ -454,17 +454,33 @@ function solveMatrix3d(w: number, h: number, dst: Vec2[]): string | null {
 	// The four source points are always the corners of an axis-aligned rectangle.
 	// Solve the two perspective terms on the unit square, then scale its columns.
 	const [tl, tr, br, bl] = dst;
-	const dx1 = tr.x - br.x, dy1 = tr.y - br.y;
-	const dx2 = bl.x - br.x, dy2 = bl.y - br.y;
-	const sx = tl.x - tr.x + br.x - bl.x, sy = tl.y - tr.y + br.y - bl.y;
+	const dx1 = tr.x - br.x;
+	const dy1 = tr.y - br.y;
+	const dx2 = bl.x - br.x;
+	const dy2 = bl.y - br.y;
+	const sx = tl.x - tr.x + br.x - bl.x;
+	const sy = tl.y - tr.y + br.y - bl.y;
 	const det = dx1 * dy2 - dx2 * dy1;
 	if (Math.abs(det) < 1e-10) return null;
 	const g = (sx * dy2 - dx2 * sy) / det;
 	const k = (dx1 * sy - sx * dy1) / det;
 	const m = [
-		(tr.x - tl.x + g * tr.x) / w, (tr.y - tl.y + g * tr.y) / w, 0, g / w,
-		(bl.x - tl.x + k * bl.x) / h, (bl.y - tl.y + k * bl.y) / h, 0, k / h,
-		0, 0, 1, 0, tl.x, tl.y, 0, 1,
+		(tr.x - tl.x + g * tr.x) / w,
+		(tr.y - tl.y + g * tr.y) / w,
+		0,
+		g / w,
+		(bl.x - tl.x + k * bl.x) / h,
+		(bl.y - tl.y + k * bl.y) / h,
+		0,
+		k / h,
+		0,
+		0,
+		1,
+		0,
+		tl.x,
+		tl.y,
+		0,
+		1,
 	];
 	if (m.some((v) => !Number.isFinite(v))) return null;
 	return `matrix3d(${m.map((v) => v.toFixed(7)).join(",")})`;
