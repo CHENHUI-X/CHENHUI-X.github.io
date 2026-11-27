@@ -1290,6 +1290,8 @@ export function initEntranceGate(
 
 	const onOpenClick = (e: Event) => {
 		const me = e as MouseEvent;
+		if (me.metaKey || me.ctrlKey || me.shiftKey || me.altKey) return;
+		e.preventDefault();
 		triggerUnseal(
 			me.clientX || window.innerWidth * 0.5,
 			me.clientY || window.innerHeight * 0.5,
@@ -1570,7 +1572,11 @@ export function initEntranceGate(
 	function onContextLost(e: Event) {
 		e.preventDefault();
 		webglReady = false;
+		root.classList.remove("is-webgl-ready");
 		root.classList.add("is-fallback");
+		if (fallbackEl) fallbackEl.style.display = "";
+		cancelAnimationFrame(rafId);
+		rafId = 0;
 	}
 	canvas.addEventListener("webglcontextlost", onContextLost);
 
@@ -2550,7 +2556,7 @@ if (uRippleAge < 1.4) {
 	window.addEventListener("resize", onResize);
 
 	const onVisibilityChange = () => {
-		if (!document.hidden && !disposed && !rafId) {
+		if (!document.hidden && !disposed && !rafId && !root.classList.contains("is-fallback")) {
 			lastTime = performance.now();
 			rafId = requestAnimationFrame(tick);
 		}
@@ -2609,6 +2615,7 @@ if (uRippleAge < 1.4) {
 			retX = e.clientX;
 			retY = e.clientY;
 			retSeeded = true;
+			reticleEl.style.transform = `translate3d(${retX}px,${retY}px,0)`;
 			reticleEl.classList.add("is-visible");
 		}
 
@@ -2618,6 +2625,7 @@ if (uRippleAge < 1.4) {
 		ptrPanelV = clamp(0.5 - py, 0, 1);
 	};
 	const onPointerLeave = () => {
+		retSeeded = false;
 		targetPtrActive = 0;
 		hoveredIndex = -1;
 		pointerNdc.set(99, 99);
@@ -2674,16 +2682,6 @@ if (uRippleAge < 1.4) {
 	const startTime = lastTime;
 
 	renderer.compile(scene, camera);
-	webglReady = true;
-	root.classList.add("is-webgl-ready");
-	triggerScramble(0);
-
-	setTimeout(() => {
-		if (!disposed && webglReady && fallbackEl) {
-			fallbackEl.style.display = "none";
-		}
-		if (!disposed) refreshMagnetRect();
-	}, 320);
 
 	const tick = (now: number) => {
 		if (disposed) return;
@@ -2692,6 +2690,7 @@ if (uRippleAge < 1.4) {
 			return;
 		}
 
+		if (!webglReady && phase === "intro") phaseStart = now;
 		const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
 		lastTime = now;
 		const elapsed = (now - startTime) / 1000;
@@ -2972,6 +2971,16 @@ if (uRippleAge < 1.4) {
 		}
 
 		renderer.render(scene, camera);
+		if (!webglReady && phase !== "shattering") {
+			webglReady = true;
+			root.classList.add("is-webgl-ready");
+			triggerScramble(0);
+			setTimeout(() => {
+				if (disposed || !webglReady) return;
+				if (fallbackEl) fallbackEl.style.display = "none";
+				refreshMagnetRect();
+			}, 320);
+		}
 		rafId = requestAnimationFrame(tick);
 	};
 

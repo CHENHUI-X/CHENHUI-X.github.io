@@ -1,5 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
+import { icons } from "@iconify-json/material-symbols";
 import { navBarConfig, siteConfig } from "../config";
 import { LinkPresets } from "../constants/link-presets";
 import type { NavBarLink } from "../types/config";
@@ -10,6 +11,7 @@ import DisplaySettings from "./widget/DisplaySettings.svelte";
 import NavMenuPanel from "./widget/NavMenuPanel.astro";
 
 const className = Astro.props.class;
+const navIcon = (name: string) => ({ width: icons.width, height: icons.height, ...icons.icons[name] });
 
 const links = navBarConfig.links.map((item): NavBarLink => {
 	const link = typeof item === "number" ? LinkPresets[item] : item;
@@ -43,21 +45,45 @@ const links = navBarConfig.links.map((item): NavBarLink => {
             })}
         </div>
         <div class="flex items-center gap-0.5 shrink-0">
-            <Search client:only="svelte"></Search>
+            <Search client:load searchIcon={navIcon("search")}></Search>
             {!siteConfig.themeColor.fixed && (
                     <button aria-label="Display Settings" class="btn-plain scale-animation rounded-[var(--radius-btn)] h-10 w-10 active:scale-90" id="display-settings-switch">
                         <Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
                     </button>
             )}
-            <LightDarkSwitch client:only="svelte"></LightDarkSwitch>
+            <LightDarkSwitch client:load icons={{
+                light: navIcon("wb-sunny-outline-rounded"),
+                dark: navIcon("dark-mode-outline-rounded"),
+                auto: navIcon("radio-button-partial-outline"),
+            }}></LightDarkSwitch>
             <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-[var(--radius-btn)] w-10 h-10 active:scale-90 lg:!hidden" id="nav-menu-switch">
                 <Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
             </button>
         </div>
         <NavMenuPanel links={links}></NavMenuPanel>
-        <DisplaySettings client:only="svelte"></DisplaySettings>
+        <div class="contents" id="settings-island"><DisplaySettings client:only="svelte"></DisplaySettings></div>
     </div>
 </div>
+
+<script is:inline>
+    document.getElementById("navbar").onclick = (event) => {
+        const button = event.target.closest?.("button");
+        if (!button) return;
+        if (button.id === "nav-menu-switch") {
+            document.getElementById("nav-menu-panel").classList.toggle("float-panel-closed");
+        } else if (button.id === "display-settings-switch") {
+            const panel = document.getElementById("display-setting");
+            if (panel) {
+                panel.classList.toggle("float-panel-closed");
+            } else {
+                document.getElementById("settings-island").addEventListener("astro:hydrate", () => button.click(), { once: true, capture: true });
+            }
+        } else {
+            // The SSR control can receive a click while its Svelte handlers are downloading.
+            button.closest("astro-island[ssr]")?.addEventListener("astro:hydrate", () => button.click(), { once: true });
+        }
+    };
+</script>
 
 <style>
     .nav-active-bar {
@@ -105,32 +131,7 @@ function updateActiveNavLink(targetUrl?: string) {
     });
 }
 
-function loadButtonScript() {
-
-    let settingBtn = document.getElementById("display-settings-switch");
-    if (settingBtn) {
-        settingBtn.onclick = function () {
-            let settingPanel = document.getElementById("display-setting");
-            if (settingPanel) {
-                settingPanel.classList.toggle("float-panel-closed");
-            }
-        };
-    }
-
-    let menuBtn = document.getElementById("nav-menu-switch");
-    if (menuBtn) {
-        menuBtn.onclick = function () {
-            let menuPanel = document.getElementById("nav-menu-panel");
-            if (menuPanel) {
-                menuPanel.classList.toggle("float-panel-closed");
-            }
-        };
-    }
-
-    updateActiveNavLink();
-}
-
-loadButtonScript();
+updateActiveNavLink();
 
 const bindSwupNavSync = () => {
     window.swup.hooks.on('visit:start', (visit: { to: { url: string } }) => {

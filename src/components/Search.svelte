@@ -1,10 +1,12 @@
 <script lang="ts">
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
-import Icon from "@iconify/svelte";
+import Icon, { type IconifyIcon } from "@iconify/svelte";
 import { url } from "@utils/url-utils.ts";
 import { onMount } from "svelte";
 import type { SearchResult } from "@/global";
+
+export let searchIcon: IconifyIcon;
 
 let keywordDesktop = "";
 let keywordMobile = "";
@@ -130,7 +132,7 @@ onMount(() => {
 	};
 	window.addEventListener("keydown", onKeydown);
 
-	if (import.meta.env.DEV) {
+	if (import.meta.env.DEV || window.pagefind?.search) {
 		initializeSearch();
 	} else {
 		document.addEventListener("pagefindready", () => {
@@ -171,7 +173,7 @@ $: if (initialized && keywordMobile) {
       bg-black/[0.035] hover:bg-black/[0.055] focus-within:bg-black/[0.045] focus-within:border-[var(--primary)]/40 focus-within:ring-2 focus-within:ring-[var(--primary)]/15
       dark:bg-white/[0.045] dark:hover:bg-white/[0.08] dark:focus-within:bg-white/[0.07]
 ">
-    <Icon icon="material-symbols:search" class="absolute text-[1.15rem] pointer-events-none ml-3 transition-colors my-auto text-black/40 dark:text-white/40"></Icon>
+    <Icon icon={searchIcon} class="absolute text-[1.15rem] pointer-events-none ml-3 transition-colors my-auto text-black/40 dark:text-white/40"></Icon>
     <input bind:this={desktopInputEl} placeholder="{i18n(I18nKey.search)}" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}
            class="transition-[width] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] pl-9 pr-8 text-sm bg-transparent outline-0
          h-full w-28 active:w-32 focus:w-32 xl:w-32 xl:active:w-44 xl:focus:w-44 text-black/75 dark:text-white/80"
@@ -182,7 +184,7 @@ $: if (initialized && keywordMobile) {
 <!-- toggle btn for phone/tablet view -->
 <button on:click={togglePanel} aria-label="Search Panel" id="search-switch"
         class="btn-plain scale-animation lg:!hidden rounded-[var(--radius-btn)] w-10 h-10 active:scale-90">
-    <Icon icon="material-symbols:search" class="text-[1.25rem]"></Icon>
+    <Icon icon={searchIcon} class="text-[1.25rem]"></Icon>
 </button>
 
 <!-- search panel -->
@@ -195,7 +197,7 @@ top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
       bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06]
       dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
   ">
-        <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition-colors my-auto text-black/35 dark:text-white/35"></Icon>
+        <Icon icon={searchIcon} class="absolute text-[1.25rem] pointer-events-none ml-3 transition-colors my-auto text-black/35 dark:text-white/35"></Icon>
         <input bind:this={mobileInputEl} placeholder="{i18n(I18nKey.search)}" bind:value={keywordMobile}
                class="pl-10 pr-3 w-full h-full text-sm bg-transparent outline-0 text-black/75 dark:text-white/80"
         >

@@ -55,10 +55,10 @@ const gateMeta = {
 				<span>{siteConfig.title}</span>
 			</div>
 			<span class="eg-fallback__meta">{postCount} 篇笔记 · {topicCount} 个专题</span>
-			<button type="button" class="eg-skip-chip" data-eg-open>
+			<a href={Astro.url.pathname} class="eg-skip-chip" data-no-swup data-eg-open>
 				<span>跳过</span>
 				<kbd>ESC</kbd>
-			</button>
+			</a>
 		</div>
 		<div class="eg-fallback__card">
 			<div class="eg-fallback__eyebrow">
@@ -73,7 +73,7 @@ const gateMeta = {
 				共收录 {postCount} 篇笔记，按专题与时间归档。
 			</p>
 			<div class="eg-actions">
-				<button type="button" class="eg-cta-primary" data-eg-open>
+				<a href={Astro.url.pathname} class="eg-cta-primary" data-no-swup data-eg-open>
 					<span class="eg-cta-primary__label">
 						<span class="eg-cta-primary__roll">
 							<span>进入博客</span>
@@ -85,7 +85,7 @@ const gateMeta = {
 							<path d="M5 12h14M13 5l7 7-7 7"></path>
 						</svg>
 					</span>
-				</button>
+				</a>
 			</div>
 		</div>
 	</div>
@@ -1035,6 +1035,10 @@ const gateMeta = {
 		let mounted = false;
 		const dismissFailsafe = () => {
 			if (mounted) return;
+			const url = new URL(location.href);
+			url.searchParams.delete("gate");
+			url.searchParams.delete("cover");
+			history.replaceState(history.state, "", url);
 			try {
 				localStorage.setItem("chenhui_gate_seen", "1");
 			} catch (_) {}
@@ -1046,14 +1050,24 @@ const gateMeta = {
 			gateEl.style.display = "none";
 		};
 
-		for (const btn of gateEl.querySelectorAll("[data-eg-open]")) {
-			btn.addEventListener("click", dismissFailsafe);
+		for (const btn of gateEl.querySelectorAll<HTMLElement>("[data-eg-open]")) {
+			btn.addEventListener("click", (event: MouseEvent) => {
+				if (mounted || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+				event.preventDefault();
+				dismissFailsafe();
+			});
 		}
 
 		const mountIfActive = async () => {
 			if (!document.documentElement.classList.contains("has-entrance-gate")) {
 				return;
 			}
+			const skipWhileLoading = (event: KeyboardEvent) => {
+				if (event.key === "Escape" && document.documentElement.classList.contains("has-entrance-gate")) {
+					event.preventDefault();
+					dismissFailsafe();
+				}
+			};
 			const rawMeta = gateEl.dataset.gateMeta;
 			const meta = rawMeta
 				? JSON.parse(rawMeta)
@@ -1065,11 +1079,15 @@ const gateMeta = {
 						siteTitle: "CHENHUI · 格物",
 					};
 			try {
+				window.addEventListener("keydown", skipWhileLoading);
 				const { initEntranceGate } = await import("../scripts/entrance-gate");
-				mounted = true;
+				if (!document.documentElement.classList.contains("has-entrance-gate")) return;
 				initEntranceGate(gateEl, meta);
+				mounted = true;
 			} catch (_) {
 				dismissFailsafe();
+			} finally {
+				window.removeEventListener("keydown", skipWhileLoading);
 			}
 		};
 
