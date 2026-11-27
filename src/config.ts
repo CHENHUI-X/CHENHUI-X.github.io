@@ -50,6 +50,16 @@ export const navBarConfig: NavBarConfig = {
 		},
 		LinkPreset.About,
 		{
+			name: "随想",
+			url: "https://life.xuchenhui.cc/",
+			external: true,
+		},
+		{
+			name: "门厅",
+			url: "https://xuchenhui.cc/",
+			external: true,
+		},
+		{
 			name: "GitHub",
 			url: "https://github.com/CHENHUI-X", // Internal links should not include the base path, as it is automatically added
 			external: true, // Show an external link icon and will open in a new tab
