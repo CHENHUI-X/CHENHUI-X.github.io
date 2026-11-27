@@ -54,6 +54,7 @@ export type NavBarLink = {
 	name: string;
 	url: string;
 	external?: boolean;
+	target?: "_self" | "_blank";
 };
 
 export type NavBarConfig = {

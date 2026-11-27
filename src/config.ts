@@ -58,6 +58,7 @@ export const navBarConfig: NavBarConfig = {
 			name: "门厅",
 			url: "https://xuchenhui.cc/",
 			external: true,
+			target: "_self",
 		},
 		{
 			name: "GitHub",
