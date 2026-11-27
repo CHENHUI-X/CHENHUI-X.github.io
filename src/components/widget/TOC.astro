@@ -119,69 +119,40 @@ class TableOfContents extends HTMLElement {
         this.update();
     };
 
-    toggleActiveHeading = () => {
-        let i = this.active.length - 1;
-        let min = this.active.length - 1, max = -1;
-        while (i >= 0 && !this.active[i]) {
-            this.tocEntries[i].classList.remove(this.visibleClass);
-            i--;
+    updateActiveHeading = () => {
+        const end = this.active.lastIndexOf(true);
+        let start = end;
+        while (start > 0 && this.active[start - 1]) start--;
+        this.tocEntries.forEach((entry, i) => {
+            entry.classList.toggle(this.visibleClass, i >= start && i <= end);
+        });
+        if (end < 0) {
+            this.activeIndicator?.setAttribute("style", "opacity: 0");
+            return;
         }
-        while (i >= 0 && this.active[i]) {
-            this.tocEntries[i].classList.add(this.visibleClass);
-            min = Math.min(min, i);
-            max = Math.max(max, i);
-            i--;
-        }
-        while (i >= 0) {
-            this.tocEntries[i].classList.remove(this.visibleClass);
-            i--;
-        }
-        if (min > max) {
-            this.activeIndicator?.setAttribute("style", `opacity: 0`);
-        } else {
-            let tocRect = this.getBoundingClientRect();
-            let top = this.tocEntries[min].getBoundingClientRect().top - tocRect.top;
-            let bottom = this.tocEntries[max].getBoundingClientRect().bottom - tocRect.top;
-            this.activeIndicator?.setAttribute("style", `transform: translateY(${top}px); height: ${bottom - top}px; opacity: 1`);
-        }
-    };
 
-    scrollToActiveHeading = () => {
-        // If the TOC widget can accommodate both the topmost
-        // and bottommost items, scroll to the topmost item. 
-        // Otherwise, scroll to the bottommost one.
+        const first = this.tocEntries[start];
+        const last = this.tocEntries[end];
+        const tocTop = this.getBoundingClientRect().top;
+        const firstRect = first.getBoundingClientRect();
+        const lastRect = first === last ? firstRect : last.getBoundingClientRect();
+        const top = firstRect.top - tocTop;
+        const bottom = lastRect.bottom - tocTop;
+        this.activeIndicator?.setAttribute("style", `transform: translateY(${top}px); height: ${bottom - top}px; opacity: 1`);
 
         if (this.anchorNavTarget || !this.tocEl) return;
-        const activeHeading =
-            this.querySelectorAll<HTMLDivElement>(`.${this.visibleClass}`);
-        if (!activeHeading.length) return;
-
-        const topmost = activeHeading[0];
-        const bottommost = activeHeading[activeHeading.length - 1];
         const tocHeight = this.tocEl.clientHeight;
-
-        // this.offsetTop = <table-of-contents> 相对 tocEl (offsetParent) 的偏移
-        let baseOffset = this.offsetTop;
-        let top;
-        if (bottommost.getBoundingClientRect().bottom -
-            topmost.getBoundingClientRect().top < 0.9 * tocHeight)
-            top = baseOffset + topmost.offsetTop - 32;
-        else
-            top = baseOffset + bottommost.offsetTop - tocHeight * 0.8;
-
-        this.tocEl.scrollTo({
-            top,
-            left: 0,
-            behavior: "smooth",
-        });
+        const scrollTop = lastRect.bottom - firstRect.top < 0.9 * tocHeight
+            ? this.offsetTop + first.offsetTop - 32
+            : this.offsetTop + last.offsetTop - tocHeight * 0.8;
+        this.tocEl.scrollTo({ top: scrollTop, left: 0, behavior: "smooth" });
     };
 
     update = () => {
         if (this.updateFrame || !this.tocEl) return;
         this.updateFrame = requestAnimationFrame(() => {
             this.updateFrame = 0;
-            this.toggleActiveHeading();
-            this.scrollToActiveHeading();
+            this.updateActiveHeading();
         });
     };
 

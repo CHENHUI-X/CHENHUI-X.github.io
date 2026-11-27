@@ -1479,13 +1479,17 @@ export function initEntranceGate(
 
 	const disposeThree = () => {
 		window.removeEventListener("keydown", onKeyDown);
-		window.removeEventListener("resize", onResize);
-		document.removeEventListener("visibilitychange", onVisibilityChange);
+		if (renderer) {
+			window.removeEventListener("resize", onResize);
+			document.removeEventListener("visibilitychange", onVisibilityChange);
+			root.removeEventListener("pointermove", onPointerMove);
+			root.removeEventListener("pointerleave", onPointerLeave);
+			canvas?.removeEventListener("webglcontextlost", onContextLost);
+			clearTimeout(resizeTimer);
+		}
 		root.removeEventListener("wheel", onWheel);
 		root.removeEventListener("touchstart", onTouchStart);
 		root.removeEventListener("touchend", onTouchEnd);
-		root.removeEventListener("pointermove", onPointerMove);
-		root.removeEventListener("pointerleave", onPointerLeave);
 		root.removeEventListener("pointermove", onMagnetMove);
 		if (audioBtn) audioBtn.removeEventListener("click", onAudioToggle);
 		for (const btn of openBtns) {
@@ -1563,11 +1567,12 @@ export function initEntranceGate(
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
 	renderer.toneMappingExposure = isDark ? 1.18 : 1.06;
 
-	canvas.addEventListener("webglcontextlost", (e) => {
+	function onContextLost(e: Event) {
 		e.preventDefault();
 		webglReady = false;
 		root.classList.add("is-fallback");
-	});
+	}
+	canvas.addEventListener("webglcontextlost", onContextLost);
 
 	scene = new THREE.Scene();
 
@@ -2557,6 +2562,7 @@ if (uRippleAge < 1.4) {
 	const raycaster = new THREE.Raycaster();
 	const worldHit = new THREE.Vector3();
 	const localHit = new THREE.Vector3();
+	const worldToSlab = new THREE.Matrix4();
 	let ptrActive = 0;
 	let targetPtrActive = 0;
 	let ptrNormX = 0;
@@ -2764,13 +2770,17 @@ if (uRippleAge < 1.4) {
 		}
 
 		// Sync 3D homography ONLY when slab tilt changes
-		if (
+		const syncOverlays =
 			phase !== "shattering" &&
 			(layoutDirty ||
 				Math.abs(smoothTiltX - lastHomoTiltX) > 3e-5 ||
-				Math.abs(smoothTiltY - lastHomoTiltY) > 3e-5)
-		) {
-			slabGroup.updateMatrixWorld(true);
+				Math.abs(smoothTiltY - lastHomoTiltY) > 3e-5);
+		const trackPointer = phase === "idle" && ptrActive > 0.05;
+		if (syncOverlays || (trackPointer && !isCoarsePointer)) {
+			// Projection and picking need the slab; the renderer updates its children after animation.
+			slabGroup.updateWorldMatrix(true, false);
+		}
+		if (syncOverlays) {
 			syncHomography(
 				panelOverlay,
 				blockW,
@@ -2793,16 +2803,15 @@ if (uRippleAge < 1.4) {
 
 		// Analytic 2D point-in-polygon hit-testing (~0.002ms)
 		hoveredIndex = -1;
-		if (phase === "idle" && ptrActive > 0.05) {
+		if (trackPointer) {
 			raycaster.setFromCamera(pointerNdc, camera);
 			if (raycaster.ray.intersectPlane(planeZ, worldHit)) {
 				sharedGlassUniforms.uCursorWorld.value.copy(worldHit);
 				vortexUniforms.uPtrWorld.value.set(worldHit.x, worldHit.y);
 
 				if (!isCoarsePointer) {
-					slabGroup.updateMatrixWorld(true);
-					localHit.copy(worldHit);
-					slabGroup.worldToLocal(localHit);
+					worldToSlab.copy(slabGroup.matrixWorld).invert();
+					localHit.copy(worldHit).applyMatrix4(worldToSlab);
 
 					const lx = localHit.x;
 					const ly = localHit.y;
