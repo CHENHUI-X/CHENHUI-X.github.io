@@ -174,7 +174,7 @@ $: if (initialized && keywordMobile) {
     <Icon icon="material-symbols:search" class="absolute text-[1.15rem] pointer-events-none ml-3 transition-colors my-auto text-black/40 dark:text-white/40"></Icon>
     <input bind:this={desktopInputEl} placeholder="{i18n(I18nKey.search)}" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}
            class="transition-[width] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] pl-9 pr-8 text-sm bg-transparent outline-0
-         h-full w-36 active:w-56 focus:w-56 text-black/75 dark:text-white/80"
+         h-full w-28 active:w-32 focus:w-32 xl:w-32 xl:active:w-44 xl:focus:w-44 text-black/75 dark:text-white/80"
     >
     <kbd class="pointer-events-none absolute right-2.5 text-[10px] font-mono px-1.5 py-0.5 rounded border border-[var(--border-subtle)] text-black/40 dark:text-white/40 group-focus-within:opacity-0 transition-opacity">/</kbd>
 </div>
